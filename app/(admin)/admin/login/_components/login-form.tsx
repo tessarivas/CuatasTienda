@@ -25,9 +25,10 @@ export function LoginForm({
 
     // Usuario de prueba sencillo
     if (username === "admin" && password === "admin-123") {
-      router.push("/admin/dashboard")
+      localStorage.setItem("username", username);
+      router.push("/admin/dashboard");
     } else {
-      setError("Usuario o contraseña incorrectos")
+      setError("Usuario o contraseña incorrectos");
     }
   }
 
