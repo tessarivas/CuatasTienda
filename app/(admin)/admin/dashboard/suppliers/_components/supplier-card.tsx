@@ -1,14 +1,6 @@
 import Image from "next/image";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
-
-export type Supplier = {
-  id: string;
-  providerName: string;
-  businessName: string;
-  logo: string;
-  phone: string;
-  email: string;
-};
+import { type Supplier } from "@/lib/data"; 
 
 interface SupplierCardProps {
   supplier: Supplier;

@@ -1,43 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { SupplierCard, type Supplier } from "./_components/supplier-card";
+import { SupplierCard } from "./_components/supplier-card";
 import { SupplierDetailsModal } from "./_components/supplier-details-modal";
-import { AddSupplierModal } from "./_components/add-supplier-modal"; // 1. Importar el nuevo modal
-import { DashboardContext } from "../layout"; // 2. Importar el contexto renombrado
-
-const initialSuppliers: Supplier[] = [
-  {
-    id: "1",
-    providerName: "Maribel Barrón",
-    businessName: "Básica Boutique",
-    logo: "/suppliers/BASICA-BOUTIQUE-LOGO.jpg",
-    phone: "123-456-7890",
-    email: "maribel.barron@basica.com",
-  },
-  {
-    id: "2",
-    providerName: "Alejandra Gómez",
-    businessName: "CIIA",
-    logo: "/suppliers/CIIA-LOGO.jpg",
-    phone: "098-765-4321",
-    email: "alejandra.gomez@ciia.com",
-  },
-  {
-    id: "3",
-    providerName: "Elizabeth",
-    businessName: "Eli´s Home",
-    logo: "/suppliers/ELIS-HOME-LOGO.jpg",
-    phone: "555-555-5555",
-    email: "elizabeth@elishome.com",
-  },
-];
+import { AddSupplierModal } from "./_components/add-supplier-modal";
+import { DashboardContext } from "../layout";
+import { initialSuppliers, type Supplier } from "@/lib/data"; 
 
 export default function Page() {
   const [suppliers, setSuppliers] = React.useState(initialSuppliers);
   const [selectedSupplier, setSelectedSupplier] = React.useState<Supplier | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  // 3. Consumir el estado del modal de agregar desde el contexto
   const { searchTerm, isAddSupplierModalOpen, setIsAddSupplierModalOpen } = React.useContext(DashboardContext); 
 
   const handleCardClick = (supplier: Supplier) => {
@@ -66,12 +39,11 @@ export default function Page() {
     handleCloseModal();
   };
 
-  // 4. Crear la función para añadir un nuevo proveedor
   const handleAddSupplier = (newSupplierData: Omit<Supplier, "id" | "logo">) => {
     const newSupplier: Supplier = {
       ...newSupplierData,
-      id: (suppliers.length + 1).toString(), // O usar una librería como `uuid` para IDs únicos
-      logo: "/suppliers/default-logo.png", // Un logo por defecto
+      id: (suppliers.length + 1).toString(), 
+      logo: "/suppliers/default-logo.png", 
     };
     setSuppliers((prevSuppliers) => [...prevSuppliers, newSupplier]);
   };
@@ -104,7 +76,6 @@ export default function Page() {
         onDelete={handleDeleteSupplier}
       />
 
-      {/* 5. Renderizar el nuevo modal */}
       <AddSupplierModal
         isOpen={isAddSupplierModalOpen}
         onClose={() => setIsAddSupplierModalOpen(false)}
