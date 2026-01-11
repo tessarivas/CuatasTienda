@@ -12,18 +12,19 @@ import { ClientCard } from "./_components/client-card";
 export default function Page() {
   const router = useRouter();
   
-  // Usar el contexto en lugar de estado local
   const { clients, setClients } = React.useContext(DashboardContext);
   
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
-  const handleAddClient = (newClientData: Omit<Client, "id">) => {
+  const handleAddClient = (newClientData: { name: string; phone: string }) => {
     const newClient: Client = {
       ...newClientData,
       id: `cli-${Date.now()}`,
+      balance: 0, // <-- Añadimos el balance inicial
     };
     setClients((prevClients) => [newClient, ...prevClients]);
+    setIsAddModalOpen(false); // <-- Cerramos el modal aquí
   };
 
   const handleCardClick = (clientId: string) => {

@@ -26,9 +26,10 @@ interface ProductsTableProps {
   suppliers: Supplier[];
   onEdit: (product: Product) => void;
   onWithdraw: (product: Product) => void;
+  onAssign: (product: Product) => void; // <-- AÑADIR PROPIEDAD
 }
 
-export function ProductsTable({ products, suppliers, onEdit, onWithdraw }: ProductsTableProps) {
+export function ProductsTable({ products, suppliers, onEdit, onWithdraw, onAssign }: ProductsTableProps) {
   // Creamos un mapa para buscar nombres de proveedores de forma eficiente
   const supplierMap = new Map(suppliers.map((s) => [s.id, s.businessName]));
 
@@ -89,6 +90,12 @@ export function ProductsTable({ products, suppliers, onEdit, onWithdraw }: Produ
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                       <DropdownMenuItem onSelect={() => onEdit(product)}>Editar</DropdownMenuItem>
+                      {/* AÑADIR LA NUEVA OPCIÓN, solo si está disponible */}
+                      {product.status === "Disponible" && (
+                        <DropdownMenuItem onSelect={() => onAssign(product)}>
+                          Apartar a Cliente
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onSelect={() => onWithdraw(product)} className="text-red-600">
                         Retirar Mercancía
                       </DropdownMenuItem>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar, data } from "./_components/app-sidebar";
-import { initialClients, type Client } from "@/lib/data";
+import { type Client, initialClients, type Product, initialProducts, type Transaction, initialTransactions } from "@/lib/data";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -26,6 +26,10 @@ type DashboardContextType = {
   setIsAddSupplierModalOpen: (isOpen: boolean) => void;
   clients: Client[];
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
+  products: Product[];
+  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  transactions: Transaction[];
+  setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
 };
 
 // Contexto con valores por defecto
@@ -36,6 +40,10 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   setIsAddSupplierModalOpen: () => {},
   clients: initialClients, // Importante: usar los datos iniciales aquí
   setClients: () => {},
+  products: initialProducts as Product[], // <-- AÑADIR ESTADO DE PRODUCTOS
+  setProducts: () => {}, // <-- AÑADIR SETTER
+  transactions: initialTransactions, // <-- Usar datos iniciales
+  setTransactions: () => {}, // <-- AÑADIR SETTER DE TRANSACTIONS
 });
 
 export default function DashboardLayout({
@@ -49,9 +57,9 @@ export default function DashboardLayout({
   );
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = React.useState(false);
-  
-  // NUEVO: Estado de clientes en el layout
-  const [clients, setClients] = React.useState<Client[]>(initialClients);
+  const [clients, setClients] = React.useState(initialClients);
+  const [products, setProducts] = React.useState(initialProducts); // <-- AÑADIR ESTADO DE PRODUCTOS
+  const [transactions, setTransactions] = React.useState(initialTransactions); // <-- Usar datos iniciales
 
   const showSearchBar = pathname.startsWith("/admin/dashboard/suppliers");
 
@@ -64,6 +72,10 @@ export default function DashboardLayout({
         setIsAddSupplierModalOpen,
         clients, // Compartir el estado
         setClients, // Compartir el setter
+        products, // <-- PASAR AL PROVIDER
+        setProducts, // <-- PASAR AL PROVIDER
+        transactions, // <-- PASAR AL PROVIDER
+        setTransactions, // <-- PASAR AL PROVIDER
       }}
     >
       <SidebarProvider

@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { initialProducts, initialSuppliers, type Product } from "@/lib/data";
+import { DashboardContext } from "../layout";
+import { initialSuppliers, type Product, type Client } from "@/lib/data";
 import { ProductsTable } from "./_components/products-table";
 import { EditProductModal } from "./_components/edit-product-modal";
 import { WithdrawProductModal } from "./_components/withdraw-product-modal";
-import { AddProductModal, type NewProductData } from "./_components/add-product-modal"; // 1. Importar el nuevo modal
+import { AddProductModal, type NewProductData } from "./_components/add-product-modal";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -15,89 +16,98 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
 
 export default function Page() {
-  const [products, setProducts] = React.useState(initialProducts);
+  const { products, setProducts, clients } = React.useContext(DashboardContext);
   const [suppliers] = React.useState(initialSuppliers);
 
-  // Estados para los filtros
+  // ... (estados de filtros sin cambios)
   const [searchTerm, setSearchTerm] = React.useState("");
   const [supplierFilter, setSupplierFilter] = React.useState("todos");
   const [statusFilter, setStatusFilter] = React.useState("todos");
 
   // Estados para los modales
-  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false); // 2. Estado para el modal de agregar
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
-  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
-    null
-  );
+  const [isSelectClientModalOpen, setIsSelectClientModalOpen] = React.useState(false); // <-- NUEVO ESTADO
+  const [productToAssign, setProductToAssign] = React.useState<Product | null>(null); // <-- NUEVO ESTADO
 
+  // ... (handleOpenEditModal, handleOpenWithdrawModal sin cambios)
   const handleOpenEditModal = (product: Product) => {
-    setSelectedProduct(product);
+    setProductToAssign(product);
     setIsEditModalOpen(true);
   };
 
   const handleOpenWithdrawModal = (product: Product) => {
-    setSelectedProduct(product);
+    setProductToAssign(product);
     setIsWithdrawModalOpen(true);
   };
 
   const handleCloseModals = () => {
-    setIsAddModalOpen(false); // Asegurarse de cerrar todos los modales
+    setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setIsWithdrawModalOpen(false);
-    setSelectedProduct(null);
+    setIsSelectClientModalOpen(false); // <-- CERRAR NUEVO MODAL
+    setProductToAssign(null);
   };
 
+  // ... (handleSaveProduct, handleWithdrawProduct, handleAddProduct sin cambios)
   const handleSaveProduct = (updatedProduct: Product) => {
     setProducts(
-      products.map((p) =>
-        p.id === updatedProduct.id ? updatedProduct : p
-      )
+      products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
-    console.log("Producto guardado:", updatedProduct);
   };
-
-  const handleWithdrawProduct = (
-    productId: string,
-    reason: string,
-    user: string
-  ) => {
+  const handleWithdrawProduct = (productId: string, reason: string, user: string) => {
     setProducts(products.filter((p) => p.id !== productId));
-    console.log(
-      `Producto retirado: ${productId}. Motivo: ${reason}. Autorizado por: ${user}`
-    );
   };
-
-  // 3. Función para agregar el nuevo producto
   const handleAddProduct = (newProductData: NewProductData) => {
     const newProduct: Product = {
       ...newProductData,
-      id: `prod-${Date.now()}`, // ID único simple basado en el tiempo
-      status: "Disponible", // Estado por defecto
+      id: `prod-${Date.now()}`,
+      status: "Disponible",
     };
     setProducts((prevProducts) => [newProduct, ...prevProducts]);
-    console.log("Nuevo producto agregado:", newProduct);
+  };
+
+  // FUNCIÓN ACTUALIZADA: Ahora abre el modal de selección de cliente
+  const handleOpenAssignModal = (product: Product) => {
+    if (clients.length > 0) {
+      setProductToAssign(product); // Guardamos el producto que se va a apartar
+      setIsSelectClientModalOpen(true); // Abrimos el modal de clientes
+    } else {
+      alert("No hay clientes registrados para poder apartar un producto.");
+    }
+  };
+
+  // NUEVA FUNCIÓN: Se ejecuta cuando se selecciona un cliente en el modal
+  const handleClientSelectedForAssignment = (client: Client) => {
+    if (!productToAssign) return;
+
+    setProducts(
+      products.map((p) =>
+        p.id === productToAssign.id
+          ? { ...p, status: "Apartado", clientId: client.id }
+          : p
+      )
+    );
+    // Limpiamos el estado después de la operación
+    setProductToAssign(null);
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesSupplier =
-      supplierFilter === "todos" || product.supplierId === supplierFilter;
-    const matchesStatus =
-      statusFilter === "todos" || product.status === statusFilter;
+    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSupplier = supplierFilter === "todos" || product.supplierId === supplierFilter;
+    const matchesStatus = statusFilter === "todos" || product.status === statusFilter;
     return matchesSearch && matchesSupplier && matchesStatus;
   });
 
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-        {/* Barra de Filtros y Acciones */}
+        {/* ... (Barra de filtros y botón de agregar sin cambios) ... */}
         <div className="flex items-center gap-4">
-          {/* ... (Inputs de filtros existentes) ... */}
           <Input
             placeholder="Buscar por título..."
             value={searchTerm}
@@ -128,24 +138,30 @@ export default function Page() {
             </SelectContent>
           </Select>
           <div className="ml-auto">
-            {/* 4. Conectar el botón para abrir el modal */}
             <Button className="cursor-pointer" onClick={() => setIsAddModalOpen(true)}>
               Agregar Producto
             </Button>
           </div>
         </div>
 
-        {/* Tabla de Productos */}
         <ProductsTable
           products={filteredProducts}
           suppliers={suppliers}
           onEdit={handleOpenEditModal}
           onWithdraw={handleOpenWithdrawModal}
+          onAssign={handleOpenAssignModal}
         />
       </div>
 
-      {/* Modales */}
-      {/* 5. Renderizar el nuevo modal */}
+      {/* Renderizar el nuevo modal */}
+      <SelectClientModal
+        isOpen={isSelectClientModalOpen}
+        onClose={handleCloseModals}
+        onSelectClient={handleClientSelectedForAssignment}
+        clients={clients}
+      />
+
+      {/* ... (otros modales existentes) ... */}
       <AddProductModal
         isOpen={isAddModalOpen}
         onClose={handleCloseModals}
@@ -156,13 +172,13 @@ export default function Page() {
         isOpen={isEditModalOpen}
         onClose={handleCloseModals}
         onSave={handleSaveProduct}
-        product={selectedProduct}
+        product={productToAssign}
       />
       <WithdrawProductModal
         isOpen={isWithdrawModalOpen}
         onClose={handleCloseModals}
         onConfirm={handleWithdrawProduct}
-        product={selectedProduct}
+        product={productToAssign}
       />
     </>
   );

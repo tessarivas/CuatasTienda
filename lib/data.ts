@@ -11,7 +11,7 @@ export type Supplier = {
   email: string;
 };
 
-export type ProductStatus = "Disponible" | "Apartado";
+export type ProductStatus = "Disponible" | "Apartado" | "Vendido"; // <-- AÑADIR "Vendido"
 
 export type Product = {
   id: string;
@@ -21,13 +21,28 @@ export type Product = {
   price: number;
   quantity: number;
   status: ProductStatus;
+  clientId?: string | null;
 };
 
 export type Client = {
   id: string;
   name: string;
   phone: string;
+  balance: number; // <-- NUEVO CAMPO: Saldo a favor del cliente
 };
+
+// --- NUEVOS TIPOS PARA EL HISTORIAL ---
+export type TransactionType = "abono" | "liquidacion";
+
+export type Transaction = {
+  id: string;
+  clientId: string;
+  type: TransactionType;
+  amount: number; // Positivo para abonos, negativo para liquidaciones
+  date: string; // Usaremos un string para la fecha por simplicidad
+  details: string; // Ej: "Abono a cuenta" o "Liquidación: Blusa de Lino"
+};
+// -----------------------------------------
 
 
 // 2. Datos de Prueba (Mock Data)
@@ -37,18 +52,42 @@ export const initialClients: Client[] = [
     id: "cli-1",
     name: "Tessa Rivas",
     phone: "333-444-5555",
+    balance: 500.00, // <-- Añadir saldo inicial
   },
   {
     id: "cli-2",
     name: "Carmelita",
     phone: "111-222-3333",
+    balance: 1500.00, // <-- Añadir saldo inicial
   },
   {
     id: "cli-3",
     name: "Andrea Rivas",
     phone: "777-888-9999",
+    balance: 0, // <-- Añadir saldo inicial
   },
 ];
+
+// --- NUEVOS DATOS DE PRUEBA ---
+export const initialTransactions: Transaction[] = [
+  {
+    id: "txn-1",
+    clientId: "cli-1",
+    type: "abono",
+    amount: 500,
+    date: new Date().toLocaleDateString('es-MX'),
+    details: "Abono inicial a cuenta",
+  },
+  {
+    id: "txn-2",
+    clientId: "cli-2",
+    type: "abono",
+    amount: 1500,
+    date: new Date().toLocaleDateString('es-MX'),
+    details: "Abono para apartado de bolsa",
+  },
+];
+// --------------------------------
 
 export const initialSuppliers: Supplier[] = [
   {
@@ -104,6 +143,7 @@ export const initialProducts: Product[] = [
         price: 980.00,
         quantity: 1,
         status: "Apartado",
+        clientId: "cli-1", // <-- ASIGNAMOS EL APARTADO a Tessa Rivas
     },
     {
         id: "prod-004",

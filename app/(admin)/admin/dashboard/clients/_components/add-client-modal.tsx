@@ -11,12 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type Client } from "@/lib/data";
 
+// La prop onAdd solo pasará los datos que el modal conoce
 interface AddClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (newClient: Omit<Client, "id">) => void;
+  onAdd: (data: { name: string; phone: string }) => void;
 }
 
 export function AddClientModal({
@@ -32,12 +32,17 @@ export function AddClientModal({
       alert("El nombre y el teléfono son obligatorios.");
       return;
     }
+    // 1. Solo llamamos a onAdd con los datos
     onAdd({ name, phone });
-    // Limpiar formulario y cerrar
-    setName("");
-    setPhone("");
-    onClose();
   };
+
+  // Limpiamos los campos solo cuando el modal se cierra desde el padre
+  React.useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setPhone("");
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -70,10 +75,10 @@ export function AddClientModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="cursor-pointer">
+          <Button onClick={handleSubmit}>
             Guardar Cliente
           </Button>
         </DialogFooter>
