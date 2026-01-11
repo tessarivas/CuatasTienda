@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar, data } from "./_components/app-sidebar";
+import { initialClients, type Client } from "@/lib/data";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -17,12 +18,24 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 
-// 1. Renombramos el contexto para que sea más general
-export const DashboardContext = React.createContext({
+// Tipo del contexto
+type DashboardContextType = {
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  isAddSupplierModalOpen: boolean;
+  setIsAddSupplierModalOpen: (isOpen: boolean) => void;
+  clients: Client[];
+  setClients: React.Dispatch<React.SetStateAction<Client[]>>;
+};
+
+// Contexto con valores por defecto
+export const DashboardContext = React.createContext<DashboardContextType>({
   searchTerm: "",
-  setSearchTerm: (term: string) => {},
+  setSearchTerm: () => {},
   isAddSupplierModalOpen: false,
-  setIsAddSupplierModalOpen: (isOpen: boolean) => {},
+  setIsAddSupplierModalOpen: () => {},
+  clients: initialClients, // Importante: usar los datos iniciales aquí
+  setClients: () => {},
 });
 
 export default function DashboardLayout({
@@ -35,20 +48,22 @@ export default function DashboardLayout({
     pathname.startsWith(item.url)
   );
   const [searchTerm, setSearchTerm] = React.useState("");
-  // 2. Añadimos el estado para el nuevo modal
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = React.useState(false);
+  
+  // NUEVO: Estado de clientes en el layout
+  const [clients, setClients] = React.useState<Client[]>(initialClients);
 
-  // Solo mostramos el buscador en la página de proveedores
   const showSearchBar = pathname.startsWith("/admin/dashboard/suppliers");
 
   return (
-    // 3. Pasamos el nuevo estado y su setter al provider
     <DashboardContext.Provider 
       value={{ 
         searchTerm, 
         setSearchTerm, 
         isAddSupplierModalOpen, 
-        setIsAddSupplierModalOpen 
+        setIsAddSupplierModalOpen,
+        clients, // Compartir el estado
+        setClients, // Compartir el setter
       }}
     >
       <SidebarProvider

@@ -19,53 +19,27 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { DashboardContext } from "../layout"; // 1. Importar el contexto
 
 export const data = {
   navMain: [
     {
       title: "Proveedores",
       url: "/admin/dashboard/suppliers",
-      items: [
-        {
-          title: "Agregar Proveedor",
-          url: "#",
-          action: "add-supplier", // Añadimos una propiedad para identificar la acción
-        },
-      ],
     },
     {
       title: "Productos",
       url: "/admin/dashboard/inventory",
-      items: [
-        {
-          title: "Agregar Producto",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Clientes",
       url: "/admin/dashboard/clients",
-      items: [
-        {
-          title: "Agregar Cliente",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Caja Registradora",
       url: "/admin/dashboard/pos",
       items: [
-        {
-          title: "Historial de Ventas",
-          url: "#",
-        },
-        {
-          title: "Corte de Caja",
-          url: "#",
-        },
+        { title: "Historial de Ventas", url: "#" },
+        { title: "Corte de Caja", url: "#" },
       ],
     },
   ],
@@ -74,28 +48,11 @@ export const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const [username, setUsername] = React.useState<string | null>(null);
-  // 2. Consumir el setter del contexto
-  const { setIsAddSupplierModalOpen } = React.useContext(DashboardContext);
-
-  React.useEffect(() => {
-    const storedUsername = localStorage.getItem("username");
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-  }, []);
+  // Usa un valor por defecto en lugar de localStorage
+  const [username, setUsername] = React.useState<string>("Administrador");
 
   const handleLogout = () => {
-    localStorage.removeItem("username");
     router.push("/admin/login");
-  };
-
-  // 3. Crear un manejador de clics para los sub-items
-  const handleSubItemClick = (e: React.MouseEvent, action?: string) => {
-    if (action === "add-supplier") {
-      e.preventDefault(); // Prevenir la navegación al href="#"
-      setIsAddSupplierModalOpen(true);
-    }
   };
 
   return (
@@ -142,13 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           asChild
                           isActive={pathname.startsWith(subItem.url)}
                         >
-                          {/* 4. Usar el manejador de clics */}
-                          <a 
-                            href={subItem.url} 
-                            onClick={(e) => handleSubItemClick(e, (subItem as any).action)}
-                          >
-                            {subItem.title}
-                          </a>
+                          <a href={subItem.url}>{subItem.title}</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -162,14 +113,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarGroup>
           <SidebarMenu>
-            {username && (
-              <SidebarMenuItem>
-                <div className="flex flex-col gap-0.5 leading-none p-2 text-sm">
-                  <span className="font-medium capitalize">{username}</span>
-                  <span className="text-muted-foreground">Administrador</span>
-                </div>
-              </SidebarMenuItem>
-            )}
+            <SidebarMenuItem>
+              <div className="flex flex-col gap-0.5 leading-none p-2 text-sm">
+                <span className="font-medium capitalize">{username}</span>
+                <span className="text-muted-foreground">Administrador</span>
+              </div>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <Button
                 variant="ghost"

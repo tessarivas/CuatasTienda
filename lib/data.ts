@@ -23,8 +23,32 @@ export type Product = {
   status: ProductStatus;
 };
 
+export type Client = {
+  id: string;
+  name: string;
+  phone: string;
+};
+
 
 // 2. Datos de Prueba (Mock Data)
+
+export const initialClients: Client[] = [
+  {
+    id: "cli-1",
+    name: "Tessa Rivas",
+    phone: "333-444-5555",
+  },
+  {
+    id: "cli-2",
+    name: "Carmelita",
+    phone: "111-222-3333",
+  },
+  {
+    id: "cli-3",
+    name: "Andrea Rivas",
+    phone: "777-888-9999",
+  },
+];
 
 export const initialSuppliers: Supplier[] = [
   {

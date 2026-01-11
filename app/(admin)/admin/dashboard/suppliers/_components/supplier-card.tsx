@@ -28,3 +28,5 @@ export function SupplierCard({ supplier, onClick }: SupplierCardProps) {
     </Card>
   );
 }
+
+export { Supplier };
