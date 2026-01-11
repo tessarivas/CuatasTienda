@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductType {
+  PRODUCT   // tiene inventario
+  SERVICE   // no tiene inventario
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+
+  sales     Sale[]
+  payments  Payment[]
+}
+
+model Client {
+  id             Int      @id @default(autoincrement())
+  name           String
+  cellphone      String?
+  currentBalance Decimal  @default(0)
+
+  sales          Sale[]
+  layaways       Layaway[]
+  payments       Payment[]
+}
+
+model Supplier {
+  id           Int      @id @default(autoincrement())
+  name         String
+  businessName String?
+  cellphone    String?
+  email        String?
+  createdAt    DateTime @default(now())
+
+  products     Product[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  supplierId  Int?
+  code        String?  @unique
+  title       String
+  type        ProductType
+  quantity    Int?     // Just for product
+  soldCount   Int      @default(0) // Just for service
+  price       Decimal
+  status      String
+  picture     String?
+  createdAt   DateTime @default(now())
+
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  saleItems   SaleItem[]
+  layawayItems LayawayItem[]
+}
+
+model Sale {
+  id        Int      @id @default(autoincrement())
+  total     Decimal
+  date      DateTime @default(now())
+  userId    String
+  clientId  Int?
+
+  user      User    @relation(fields: [userId], references: [id])
+  client    Client? @relation(fields: [clientId], references: [id])
+  items     SaleItem[]
+}
+
+model SaleItem {
+  id         Int      @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  finalPrice Decimal
+
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Layaway {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  status    String
+  createdAt DateTime @default(now())
+
+  client    Client @relation(fields: [clientId], references: [id])
+  items     LayawayItem[]
+}
+
+model LayawayItem {
+  id         Int      @id @default(autoincrement())
+  layawayId Int
+  productId Int
+  price     Decimal
+
+  layaway   Layaway @relation(fields: [layawayId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  amount      Decimal
+  date        DateTime @default(now())
+  receivedBy  String
+
+  client      Client @relation(fields: [clientId], references: [id])
+  user        User   @relation(fields: [receivedBy], references: [id])
+}
