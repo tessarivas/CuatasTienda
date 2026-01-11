@@ -38,12 +38,12 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   setSearchTerm: () => {},
   isAddSupplierModalOpen: false,
   setIsAddSupplierModalOpen: () => {},
-  clients: initialClients, // Importante: usar los datos iniciales aquí
+  clients: initialClients,
   setClients: () => {},
-  products: initialProducts as Product[], // <-- AÑADIR ESTADO DE PRODUCTOS
-  setProducts: () => {}, // <-- AÑADIR SETTER
-  transactions: initialTransactions, // <-- Usar datos iniciales
-  setTransactions: () => {}, // <-- AÑADIR SETTER DE TRANSACTIONS
+  products: initialProducts,
+  setProducts: () => {},
+  transactions: initialTransactions,
+  setTransactions: () => {},
 });
 
 export default function DashboardLayout({
@@ -58,8 +58,8 @@ export default function DashboardLayout({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = React.useState(false);
   const [clients, setClients] = React.useState(initialClients);
-  const [products, setProducts] = React.useState(initialProducts); // <-- AÑADIR ESTADO DE PRODUCTOS
-  const [transactions, setTransactions] = React.useState(initialTransactions); // <-- Usar datos iniciales
+  const [products, setProducts] = React.useState(initialProducts);
+  const [transactions, setTransactions] = React.useState(initialTransactions);
 
   const showSearchBar = pathname.startsWith("/admin/dashboard/suppliers");
 
@@ -70,12 +70,12 @@ export default function DashboardLayout({
         setSearchTerm, 
         isAddSupplierModalOpen, 
         setIsAddSupplierModalOpen,
-        clients, // Compartir el estado
-        setClients, // Compartir el setter
-        products, // <-- PASAR AL PROVIDER
-        setProducts, // <-- PASAR AL PROVIDER
-        transactions, // <-- PASAR AL PROVIDER
-        setTransactions, // <-- PASAR AL PROVIDER
+        clients,
+        setClients,
+        products,
+        setProducts,
+        transactions,
+        setTransactions,
       }}
     >
       <SidebarProvider

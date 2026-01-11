@@ -120,7 +120,7 @@ export const initialProducts: Product[] = [
     {
         id: "prod-001",
         supplierId: "1", // Básica Boutique
-        photoUrl: "/products/blusa-blanca.jpg", // Necesitarás añadir imágenes de prueba en public/products
+        photoUrl: "/products/blusa-blanca.jpg",
         title: "Blusa Blanca de Lino",
         price: 750.00,
         quantity: 15,
@@ -143,7 +143,7 @@ export const initialProducts: Product[] = [
         price: 980.00,
         quantity: 1,
         status: "Apartado",
-        clientId: "cli-1", // <-- ASIGNAMOS EL APARTADO a Tessa Rivas
+        clientId: "cli-1", // Asignamos el apartado a Tessa Rivas
     },
     {
         id: "prod-004",
