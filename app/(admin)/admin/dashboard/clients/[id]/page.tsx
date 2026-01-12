@@ -7,12 +7,10 @@ import { Button } from "@/components/ui/button";
 import { AssignProductModal } from "../_components/assign-product-modal";
 import { AddPaymentModal } from "../_components/add-payment-modal";
 import { type Product, type Transaction } from "@/lib/data";
-import { use } from "react"; // <-- ¡Importante! Asegúrate de que 'use' esté importado de React.
+import { use } from "react";
 
-// --- CORRECCIÓN AQUÍ ---
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); // Volver a usar el hook 'use'
-  // -----------------------
+  const { id } = use(params); 
 
   const { clients, setClients, products, setProducts, transactions, setTransactions } = React.useContext(DashboardContext);
   
@@ -22,10 +20,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const client = clients.find((c) => c.id === id);
 
   const handleAddPayment = (amount: number) => {
-    // 1. Actualizar el saldo del cliente
     setClients(clients.map(c => c.id === id ? { ...c, balance: c.balance + amount } : c));
 
-    // 2. Crear un registro de la transacción
     const newTransaction: Transaction = {
       id: `txn-${Date.now()}`,
       clientId: id,
@@ -43,13 +39,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       return;
     }
 
-    // 1. Restar saldo al cliente
     setClients(clients.map(c => c.id === id ? { ...c, balance: c.balance - product.price } : c));
 
-    // 2. Cambiar estado del producto a "Vendido"
     setProducts(products.map(p => p.id === product.id ? { ...p, status: "Vendido" } : p));
 
-    // 3. Crear registro de la transacción de liquidación
     const newTransaction: Transaction = {
       id: `txn-${Date.now()}`,
       clientId: id,

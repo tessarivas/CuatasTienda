@@ -21,10 +21,10 @@ export default function Page() {
     const newClient: Client = {
       ...newClientData,
       id: `cli-${Date.now()}`,
-      balance: 0, // <-- Añadimos el balance inicial
+      balance: 0, 
     };
     setClients((prevClients) => [newClient, ...prevClients]);
-    setIsAddModalOpen(false); // <-- Cerramos el modal aquí
+    setIsAddModalOpen(false); 
   };
 
   const handleCardClick = (clientId: string) => {

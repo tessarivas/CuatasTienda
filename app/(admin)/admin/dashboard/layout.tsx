@@ -1,9 +1,19 @@
+// app/(admin)/admin/dashboard/layout.tsx
 "use client";
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar, data } from "./_components/app-sidebar";
-import { type Client, initialClients, type Product, initialProducts, type Transaction, initialTransactions } from "@/lib/data";
+import {
+  type Client,
+  initialClients,
+  type Product,
+  initialProducts,
+  type Transaction,
+  initialTransactions,
+  type Sale,
+  initialSales,
+} from "@/lib/data";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -18,7 +28,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 
-// Tipo del contexto
+// Tipo del contexto (integrado con tu sistema existente)
 type DashboardContextType = {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -30,6 +40,8 @@ type DashboardContextType = {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
+  sales: Sale[]; // NUEVO: Para el módulo POS
+  setSales: React.Dispatch<React.SetStateAction<Sale[]>>; // NUEVO
 };
 
 // Contexto con valores por defecto
@@ -44,6 +56,8 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   setProducts: () => {},
   transactions: initialTransactions,
   setTransactions: () => {},
+  sales: initialSales, // NUEVO
+  setSales: () => {}, // NUEVO
 });
 
 export default function DashboardLayout({
@@ -56,19 +70,21 @@ export default function DashboardLayout({
     pathname.startsWith(item.url)
   );
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = React.useState(false);
+  const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
+    React.useState(false);
   const [clients, setClients] = React.useState(initialClients);
   const [products, setProducts] = React.useState(initialProducts);
   const [transactions, setTransactions] = React.useState(initialTransactions);
+  const [sales, setSales] = React.useState(initialSales); // NUEVO
 
   const showSearchBar = pathname.startsWith("/admin/dashboard/suppliers");
 
   return (
-    <DashboardContext.Provider 
-      value={{ 
-        searchTerm, 
-        setSearchTerm, 
-        isAddSupplierModalOpen, 
+    <DashboardContext.Provider
+      value={{
+        searchTerm,
+        setSearchTerm,
+        isAddSupplierModalOpen,
         setIsAddSupplierModalOpen,
         clients,
         setClients,
@@ -76,6 +92,8 @@ export default function DashboardLayout({
         setProducts,
         transactions,
         setTransactions,
+        sales, // NUEVO
+        setSales, // NUEVO
       }}
     >
       <SidebarProvider
@@ -113,7 +131,7 @@ export default function DashboardLayout({
               </div>
             )}
           </header>
-          <main className="flex-1">
+          <main className="flex-1 overflow-auto">
             {children}
           </main>
         </SidebarInset>

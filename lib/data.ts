@@ -1,4 +1,4 @@
-// Este archivo simulará nuestra base de datos para el desarrollo frontend.
+// lib/data.ts - VERSIÓN INTEGRADA CON TU SISTEMA
 
 // 1. Definición de Tipos
 
@@ -11,39 +11,71 @@ export type Supplier = {
   email: string;
 };
 
-export type ProductStatus = "Disponible" | "Apartado" | "Vendido"; // <-- AÑADIR "Vendido"
+export type ProductStatus = "Disponible" | "Apartado" | "Vendido";
 
 export type Product = {
   id: string;
-  supplierId: string; // Relación con el proveedor
+  supplierId: string;
   photoUrl: string;
   title: string;
   price: number;
   quantity: number;
   status: ProductStatus;
   clientId?: string | null;
+  barcode?: string; // NUEVO: Opcional para búsqueda en POS
 };
 
 export type Client = {
   id: string;
   name: string;
   phone: string;
-  balance: number; // <-- NUEVO CAMPO: Saldo a favor del cliente
+  balance: number;
 };
 
-// --- NUEVOS TIPOS PARA EL HISTORIAL ---
+// Tipos para transacciones (tu sistema existente)
 export type TransactionType = "abono" | "liquidacion";
 
 export type Transaction = {
   id: string;
   clientId: string;
   type: TransactionType;
-  amount: number; // Positivo para abonos, negativo para liquidaciones
-  date: string; // Usaremos un string para la fecha por simplicidad
-  details: string; // Ej: "Abono a cuenta" o "Liquidación: Blusa de Lino"
+  amount: number;
+  date: string;
+  details: string;
 };
-// -----------------------------------------
 
+// NUEVOS: Tipos para el sistema POS
+export type PaymentMethod = "Efectivo" | "Tarjeta" | "Transferencia";
+
+export type DiscountType = "percentage" | "fixed";
+
+export type Discount = {
+  type: DiscountType;
+  value: number;
+};
+
+export type CartItem = {
+  product: Product;
+  quantity: number;
+  discount?: Discount;
+};
+
+export type Sale = {
+  id: string;
+  date: string; // ISO string
+  items: {
+    productId: string;
+    productTitle: string;
+    quantity: number;
+    unitPrice: number;
+    discount?: Discount;
+    subtotal: number;
+  }[];
+  totalDiscount?: Discount;
+  total: number;
+  paymentMethod: PaymentMethod;
+  clientId?: string; // Opcional para futuro
+};
 
 // 2. Datos de Prueba (Mock Data)
 
@@ -52,30 +84,29 @@ export const initialClients: Client[] = [
     id: "cli-1",
     name: "Tessa Rivas",
     phone: "333-444-5555",
-    balance: 500.00, // <-- Añadir saldo inicial
+    balance: 500.0,
   },
   {
     id: "cli-2",
     name: "Carmelita",
     phone: "111-222-3333",
-    balance: 1500.00, // <-- Añadir saldo inicial
+    balance: 1500.0,
   },
   {
     id: "cli-3",
     name: "Andrea Rivas",
     phone: "777-888-9999",
-    balance: 0, // <-- Añadir saldo inicial
+    balance: 0,
   },
 ];
 
-// --- NUEVOS DATOS DE PRUEBA ---
 export const initialTransactions: Transaction[] = [
   {
     id: "txn-1",
     clientId: "cli-1",
     type: "abono",
     amount: 500,
-    date: new Date().toLocaleDateString('es-MX'),
+    date: new Date().toLocaleDateString("es-MX"),
     details: "Abono inicial a cuenta",
   },
   {
@@ -83,11 +114,10 @@ export const initialTransactions: Transaction[] = [
     clientId: "cli-2",
     type: "abono",
     amount: 1500,
-    date: new Date().toLocaleDateString('es-MX'),
+    date: new Date().toLocaleDateString("es-MX"),
     details: "Abono para apartado de bolsa",
   },
 ];
-// --------------------------------
 
 export const initialSuppliers: Supplier[] = [
   {
@@ -117,41 +147,69 @@ export const initialSuppliers: Supplier[] = [
 ];
 
 export const initialProducts: Product[] = [
-    {
-        id: "prod-001",
-        supplierId: "1", // Básica Boutique
-        photoUrl: "/products/blusa-blanca.jpg",
-        title: "Blusa Blanca de Lino",
-        price: 750.00,
-        quantity: 15,
-        status: "Disponible",
-    },
-    {
-        id: "prod-002",
-        supplierId: "2", // CIIA
-        photoUrl: "/products/bolso-piel.jpg",
-        title: "Bolso de Piel Genuina",
-        price: 1200.50,
-        quantity: 8,
-        status: "Disponible",
-    },
-    {
-        id: "prod-003",
-        supplierId: "1", // Básica Boutique
-        photoUrl: "/products/pantalon-mezclilla.jpg",
-        title: "Pantalón de Mezclilla",
-        price: 980.00,
-        quantity: 1,
-        status: "Apartado",
-        clientId: "cli-1", // Asignamos el apartado a Tessa Rivas
-    },
-    {
-        id: "prod-004",
-        supplierId: "3", // Eli´s Home
-        photoUrl: "/products/vela-aromatica.jpg",
-        title: "Vela Aromática de Lavanda",
-        price: 350.00,
-        quantity: 25,
-        status: "Disponible",
-    },
+  {
+    id: "prod-001",
+    supplierId: "1",
+    photoUrl: "/products/blusa-blanca.jpg",
+    title: "Blusa Blanca de Lino",
+    price: 750.0,
+    quantity: 15,
+    status: "Disponible",
+    barcode: "7501234567890",
+  },
+  {
+    id: "prod-002",
+    supplierId: "2",
+    photoUrl: "/products/bolso-piel.jpg",
+    title: "Bolso de Piel Genuina",
+    price: 1200.5,
+    quantity: 8,
+    status: "Disponible",
+    barcode: "7501234567891",
+  },
+  {
+    id: "prod-003",
+    supplierId: "1",
+    photoUrl: "/products/pantalon-mezclilla.jpg",
+    title: "Pantalón de Mezclilla",
+    price: 980.0,
+    quantity: 1,
+    status: "Apartado",
+    clientId: "cli-1",
+    barcode: "7501234567892",
+  },
+  {
+    id: "prod-004",
+    supplierId: "3",
+    photoUrl: "/products/vela-aromatica.jpg",
+    title: "Vela Aromática de Lavanda",
+    price: 350.0,
+    quantity: 25,
+    status: "Disponible",
+    barcode: "7501234567893",
+  },
+  // Productos adicionales para probar el POS
+  {
+    id: "prod-005",
+    supplierId: "1",
+    photoUrl: "/products/falda-rosa.jpg",
+    title: "Falda Rosa Floral",
+    price: 650.0,
+    quantity: 12,
+    status: "Disponible",
+    barcode: "7501234567894",
+  },
+  {
+    id: "prod-006",
+    supplierId: "2",
+    photoUrl: "/products/cartera.jpg",
+    title: "Cartera de Mano",
+    price: 890.0,
+    quantity: 5,
+    status: "Disponible",
+    barcode: "7501234567895",
+  },
 ];
+
+// NUEVO: Array inicial de ventas (vacío al inicio)
+export const initialSales: Sale[] = [];
