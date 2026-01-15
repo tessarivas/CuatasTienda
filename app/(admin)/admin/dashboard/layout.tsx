@@ -1,4 +1,3 @@
-// app/(admin)/admin/dashboard/layout.tsx
 "use client";
 
 import * as React from "react";
@@ -26,7 +25,6 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 
 // Tipo del contexto (integrado con tu sistema existente)
 type DashboardContextType = {
@@ -40,8 +38,8 @@ type DashboardContextType = {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
-  sales: Sale[]; // NUEVO: Para el módulo POS
-  setSales: React.Dispatch<React.SetStateAction<Sale[]>>; // NUEVO
+  sales: Sale[]; 
+  setSales: React.Dispatch<React.SetStateAction<Sale[]>>; 
 };
 
 // Contexto con valores por defecto
@@ -75,9 +73,8 @@ export default function DashboardLayout({
   const [clients, setClients] = React.useState(initialClients);
   const [products, setProducts] = React.useState(initialProducts);
   const [transactions, setTransactions] = React.useState(initialTransactions);
-  const [sales, setSales] = React.useState(initialSales); // NUEVO
+  const [sales, setSales] = React.useState(initialSales); 
 
-  const showSearchBar = pathname.startsWith("/admin/dashboard/suppliers");
 
   return (
     <DashboardContext.Provider
@@ -104,8 +101,8 @@ export default function DashboardLayout({
         }
       >
         <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col">
-          <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+        <SidebarInset className="flex-1 flex flex-col h-screen">
+          <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b sticky top-0 z-10 bg-background">
             <SidebarTrigger className="-ml-1 cursor-pointer" />
             <Separator
               orientation="vertical"
@@ -120,16 +117,6 @@ export default function DashboardLayout({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            {showSearchBar && (
-              <div className="flex-1 flex justify-center">
-                <Input
-                  placeholder="Buscar proveedor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full max-w-md"
-                />
-              </div>
-            )}
           </header>
           <main className="flex-1 overflow-auto">
             {children}

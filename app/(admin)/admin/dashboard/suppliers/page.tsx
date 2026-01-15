@@ -1,8 +1,9 @@
+// app/(admin)/admin/dashboard/suppliers/page.tsx
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { SupplierCard } from "./_components/supplier-card";
-import { SupplierDetailsModal } from "./_components/supplier-details-modal";
 import { AddSupplierModal } from "./_components/add-supplier-modal";
 import { DashboardContext } from "../layout";
 import { Button } from "@/components/ui/button";
@@ -10,38 +11,15 @@ import { initialSuppliers, type Supplier } from "@/lib/data";
 import { Input } from "@/components/ui/input";
 
 export default function Page() {
+  const router = useRouter();
   const [suppliers, setSuppliers] = React.useState(initialSuppliers);
-  const [selectedSupplier, setSelectedSupplier] =
-    React.useState<Supplier | null>(null);
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const { isAddSupplierModalOpen, setIsAddSupplierModalOpen } =
     React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
 
+  // Navegar a la página de detalles en lugar de abrir modal
   const handleCardClick = (supplier: Supplier) => {
-    setSelectedSupplier(supplier);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedSupplier(null);
-  };
-
-  const handleSaveSupplier = (updatedSupplier: Supplier) => {
-    setSuppliers((prevSuppliers) =>
-      prevSuppliers.map((s) =>
-        s.id === updatedSupplier.id ? updatedSupplier : s
-      )
-    );
-    handleCloseModal();
-  };
-
-  const handleDeleteSupplier = (supplierId: string) => {
-    setSuppliers((prevSuppliers) =>
-      prevSuppliers.filter((s) => s.id !== supplierId)
-    );
-    handleCloseModal();
+    router.push(`/admin/dashboard/suppliers/${supplier.id}`);
   };
 
   const handleAddSupplier = (
@@ -90,14 +68,6 @@ export default function Page() {
           ))}
         </div>
       </div>
-
-      <SupplierDetailsModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        supplier={selectedSupplier}
-        onSave={handleSaveSupplier}
-        onDelete={handleDeleteSupplier}
-      />
 
       <AddSupplierModal
         isOpen={isAddSupplierModalOpen}
