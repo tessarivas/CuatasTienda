@@ -9,6 +9,7 @@ export type Supplier = {
   logo: string;
   phone: string;
   email: string;
+  cutoffDay: number; // Día del mes para el corte (1-31)
 };
 
 export type ProductStatus = "Disponible" | "Apartado" | "Vendido";
@@ -127,6 +128,7 @@ export const initialSuppliers: Supplier[] = [
     logo: "/suppliers/BASICA-BOUTIQUE-LOGO.jpg",
     phone: "123-456-7890",
     email: "maribel.barron@basica.com",
+    cutoffDay: 25, // Día de corte añadido
   },
   {
     id: "2",
@@ -135,6 +137,7 @@ export const initialSuppliers: Supplier[] = [
     logo: "/suppliers/CIIA-LOGO.jpg",
     phone: "098-765-4321",
     email: "alejandra.gomez@ciia.com",
+    cutoffDay: 1, // Día de corte añadido
   },
   {
     id: "3",
@@ -143,6 +146,7 @@ export const initialSuppliers: Supplier[] = [
     logo: "/suppliers/ELIS-HOME-LOGO.jpg",
     phone: "555-555-5555",
     email: "elizabeth@elishome.com",
+    cutoffDay: 15, // Día de corte añadido
   },
 ];
 
