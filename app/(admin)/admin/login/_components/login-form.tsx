@@ -15,22 +15,43 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false)
   const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError("")
+const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  setError("");
 
-    // Usuario de prueba sencillo
-    if (username === "admin" && password === "admin-123") {
-      localStorage.setItem("username", username);
-      router.push("/admin/dashboard");
-    } else {
-      setError("Usuario o contraseña incorrectos");
+  try {
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: username, password }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      setError(error);
+      return;
     }
+
+    const { user, session } = await res.json();
+    await fetch("/api/sync-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, email: user.email }),
+    });
+
+    router.push("/admin/dashboard");
+  } catch (err) {
+    console.error("Error during login or sync:", err);
+    setError("Failed to login or sync user");
   }
+};
+
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
