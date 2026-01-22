@@ -94,6 +94,7 @@ model Supplier {
   businessName String?
   cellphone    String?
   email        String?
+  logo         String?
   createdAt    DateTime  @default(now())
   Product      Product[]
 }
@@ -101,6 +102,7 @@ model Supplier {
 model User {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
+  email     String    @unique
   role      String
   createdAt DateTime  @default(now())
   Payment   Payment[]
