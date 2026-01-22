@@ -103,7 +103,7 @@ export default function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <AppSidebar/>
+        <AppSidebar username="admin"/>
         <SidebarInset className="flex-1 flex flex-col h-screen">
           <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b sticky top-0 z-10 bg-background">
             <SidebarTrigger className="-ml-1 cursor-pointer" />
