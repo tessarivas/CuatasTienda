@@ -12,6 +12,7 @@ import {
   initialTransactions,
   type Sale,
   initialSales,
+  type Supplier,
 } from "@/lib/data";
 import {
   SidebarProvider,
@@ -40,6 +41,8 @@ type DashboardContextType = {
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   sales: Sale[]; 
   setSales: React.Dispatch<React.SetStateAction<Sale[]>>; 
+  suppliers: Supplier[];
+  setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
 };
 
 // Contexto con valores por defecto
@@ -56,6 +59,8 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   setTransactions: () => {},
   sales: initialSales, // NUEVO
   setSales: () => {}, // NUEVO
+  suppliers: [],
+  setSuppliers: () => {},
 });
 
 export default function DashboardLayout({
@@ -74,9 +79,31 @@ export default function DashboardLayout({
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
   const [clients, setClients] = React.useState(initialClients);
-  const [products, setProducts] = React.useState(initialProducts);
+  const [products, setProducts] = React.useState<Product[]>([]);
   const [transactions, setTransactions] = React.useState(initialTransactions);
   const [sales, setSales] = React.useState(initialSales); 
+
+  React.useEffect(() => {
+  async function loadProducts() {
+    try {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error loading products", error);
+    }
+  }
+
+  loadProducts();
+}, []);
+
+  const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
+
+  React.useEffect(() => {
+    fetch("/api/suppliers")
+      .then(res => res.json())
+      .then(setSuppliers);
+  }, []);
 
   return (
     <DashboardContext.Provider
@@ -93,6 +120,8 @@ export default function DashboardLayout({
         setTransactions,
         sales, // NUEVO
         setSales, // NUEVO
+        suppliers,
+        setSuppliers,
       }}
     >
       <SidebarProvider

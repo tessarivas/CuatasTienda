@@ -10,7 +10,13 @@ import { type Product, type Supplier } from "@/lib/data";
 
 // Usamos Omit para definir los datos que necesitamos para un producto nuevo.
 // El 'id' y 'status' se generarán automáticamente.
-export type NewProductData = Omit<Product, "id" | "status">;
+export type NewProductData = {
+  title: string;
+  price: number;
+  quantity: number;
+  photoUrl?: string;
+  supplierId: string;
+};
 
 interface AddProductModalProps {
   isOpen: boolean;

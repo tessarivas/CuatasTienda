@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { DashboardContext } from "../layout";
-import { initialSuppliers, type Product, type Client } from "@/lib/data";
+import { type Product, type Client } from "@/lib/data";
 import { ProductsTable } from "./_components/products-table";
 import { EditProductModal } from "./_components/edit-product-modal";
 import { WithdrawProductModal } from "./_components/withdraw-product-modal";
@@ -19,12 +19,12 @@ import { Button } from "@/components/ui/button";
 import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
 
 export default function Page() {
-  const { products, setProducts, clients } = React.useContext(DashboardContext);
-  const [suppliers] = React.useState(initialSuppliers);
+  const { products, setProducts, clients, suppliers } =
+  React.useContext(DashboardContext);
 
   // ... (estados de filtros sin cambios)
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [supplierFilter, setSupplierFilter] = React.useState("todos");
+  const [supplierFilter, setSupplierFilter] = React.useState<string | number>("todos");
   const [statusFilter, setStatusFilter] = React.useState("todos");
 
   // Estados para los modales
@@ -33,6 +33,7 @@ export default function Page() {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
   const [isSelectClientModalOpen, setIsSelectClientModalOpen] = React.useState(false); // <-- NUEVO ESTADO
   const [productToAssign, setProductToAssign] = React.useState<Product | null>(null); // <-- NUEVO ESTADO
+
 
   // ... (handleOpenEditModal, handleOpenWithdrawModal sin cambios)
   const handleOpenEditModal = (product: Product) => {
@@ -53,6 +54,26 @@ export default function Page() {
     setProductToAssign(null);
   };
 
+  const handleAddSupplier = async (newSupplier) => {
+  try {
+    const res = await fetch("/api/suppliers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newSupplier),
+    });
+
+    if (!res.ok) throw new Error("Error creando proveedor");
+
+    const createdSupplier = await res.json();
+
+    // 🔥 sincroniza estado global
+    setSuppliers((prev) => [createdSupplier, ...prev]);
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo crear el proveedor");
+  }
+};
+
   // ... (handleSaveProduct, handleWithdrawProduct, handleAddProduct sin cambios)
   const handleSaveProduct = (updatedProduct: Product) => {
     setProducts(
@@ -62,13 +83,34 @@ export default function Page() {
   const handleWithdrawProduct = (productId: string, reason: string, user: string) => {
     setProducts(products.filter((p) => p.id !== productId));
   };
-  const handleAddProduct = (newProductData: NewProductData) => {
-    const newProduct: Product = {
-      ...newProductData,
-      id: `prod-${Date.now()}`,
-      status: "Disponible",
-    };
-    setProducts((prevProducts) => [newProduct, ...prevProducts]);
+  const handleAddProduct = async (newProductData: NewProductData) => {
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newProductData.title,
+          price: newProductData.price,
+          quantity: newProductData.quantity,
+          picture: newProductData.photoUrl,
+          supplierId: Number(newProductData.supplierId),
+          status: "Disponible",
+          type: "PRODUCT", // IMPORTANTE (enum Prisma)
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error creando producto");
+
+      const createdProduct = await res.json();
+
+      // 🔥 sincronizar estado global
+      setProducts((prev) => [createdProduct, ...prev]);
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo crear el producto");
+    }
   };
 
   // FUNCIÓN ACTUALIZADA: Ahora abre el modal de selección de cliente
@@ -98,7 +140,7 @@ export default function Page() {
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSupplier = supplierFilter === "todos" || product.supplierId === supplierFilter;
+    const matchesSupplier = supplierFilter === "todos" || product.supplierId === Number(supplierFilter);
     const matchesStatus = statusFilter === "todos" || product.status === statusFilter;
     return matchesSearch && matchesSupplier && matchesStatus;
   });
@@ -121,7 +163,7 @@ export default function Page() {
             <SelectContent className="cursor-pointer">
               <SelectItem value="todos">Todos los proveedores</SelectItem>
               {suppliers.map((supplier) => (
-                <SelectItem key={supplier.id} value={supplier.id}>
+                <SelectItem key={supplier.id} value={String(supplier.id)}>
                   {supplier.businessName}
                 </SelectItem>
               ))}

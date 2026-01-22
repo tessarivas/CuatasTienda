@@ -3,14 +3,14 @@
 // 1. Definición de Tipos
 
 export type Supplier = {
-  id: string;
-  providerName: string;
+  id: number;
+  name: string;          // ← DB name
   businessName: string;
-  logo: string;
-  phone: string;
-  email: string;
-  cutoffDay: number; // Día del mes para el corte (1-31)
+  cellphone?: string;
+  email?: string;
+  createdAt?: string;
 };
+
 
 export type ProductStatus = "Disponible" | "Apartado" | "Vendido";
 

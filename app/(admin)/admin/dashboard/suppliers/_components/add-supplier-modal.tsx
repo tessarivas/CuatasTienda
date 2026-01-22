@@ -14,22 +14,27 @@ interface AddSupplierModalProps {
 }
 
 export function AddSupplierModal({ isOpen, onClose, onAdd }: AddSupplierModalProps) {
-  const [providerName, setProviderName] = React.useState("");
+  const [name, setName] = React.useState("");
   const [businessName, setBusinessName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
+  const [cellphone, setCellphone] = React.useState("");
   const [email, setEmail] = React.useState("");
 
   const handleSubmit = () => {
-    if (!providerName || !businessName) {
-      // Opcional: Añadir validación más robusta
-      alert("El nombre del proveedor y el nombre del negocio son obligatorios.");
+    if (!name || !businessName) {
+      alert("El nombre del proveedor y el negocio son obligatorios.");
       return;
     }
-    onAdd({ providerName, businessName, phone, email });
-    // Limpiar formulario y cerrar
-    setProviderName("");
+
+    onAdd({
+      name,
+      businessName,
+      cellphone,
+      email,
+    });
+
+    setName("");
     setBusinessName("");
-    setPhone("");
+    setCellphone("");
     setEmail("");
     onClose();
   };
@@ -42,44 +47,35 @@ export function AddSupplierModal({ isOpen, onClose, onAdd }: AddSupplierModalPro
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="businessName" className="text-right">
-              Negocio
-            </Label>
+            <Label className="text-right">Negocio</Label>
             <Input
-              id="businessName"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               className="col-span-3"
             />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="providerName" className="text-right">
-              Proveedor
-            </Label>
+            <Label className="text-right">Proveedor</Label>
             <Input
-              id="providerName"
-              value={providerName}
-              onChange={(e) => setProviderName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="col-span-3"
             />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
-              Teléfono
-            </Label>
+            <Label className="text-right">Teléfono</Label>
             <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={cellphone}
+              onChange={(e) => setCellphone(e.target.value)}
               className="col-span-3"
             />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
+            <Label className="text-right">Email</Label>
             <Input
-              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
