@@ -60,9 +60,12 @@ export const DashboardContext = React.createContext<DashboardContextType>({
 
 export default function DashboardLayout({
   children,
+  username
 }: {
   children: React.ReactNode;
+  username?: string;
 }) {
+  console.log("Username en dashboard/layout 1:", username);
   const pathname = usePathname();
   const currentPage = data.navMain.find((item) =>
     pathname.startsWith(item.url)
@@ -74,7 +77,6 @@ export default function DashboardLayout({
   const [products, setProducts] = React.useState(initialProducts);
   const [transactions, setTransactions] = React.useState(initialTransactions);
   const [sales, setSales] = React.useState(initialSales); 
-
 
   return (
     <DashboardContext.Provider
@@ -100,7 +102,7 @@ export default function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <AppSidebar />
+        <AppSidebar/>
         <SidebarInset className="flex-1 flex flex-col h-screen">
           <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b sticky top-0 z-10 bg-background">
             <SidebarTrigger className="-ml-1 cursor-pointer" />
