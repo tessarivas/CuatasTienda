@@ -1,6 +1,5 @@
 // Controller for authentication routes
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/modules/auth/auth.service"
 import { supabaseServerClient } from "@/lib/supabase/server"
 
 // GET method to fetch the current authenticated user
@@ -29,8 +28,6 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 401 });
   }
-
-  console.log("User data from Supabase Auth:", data.user); // Log the user data
 
   return NextResponse.json({
     user: data.user,

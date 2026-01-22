@@ -16,7 +16,6 @@ export async function POST(req: Request) {
       create: {
         id: userId,
         name: email,
-        password: "",
         role: "USER",
       },
     });

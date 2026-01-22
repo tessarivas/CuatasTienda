@@ -101,7 +101,6 @@ model Supplier {
 model User {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
-  password  String
   role      String
   createdAt DateTime  @default(now())
   Payment   Payment[]

@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useContext } from "react";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
+import { UsernameContext } from "@/context/username-context";
 
 import {
   Sidebar,
@@ -19,7 +21,6 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-
 export const data = {
   navMain: [
     {
@@ -45,14 +46,30 @@ export const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+   ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  // Usa un valor por defecto en lugar de localStorage
-  const [username, setUsername] = React.useState<string>("Administrador");
+  const { username } = useContext(UsernameContext);
 
-  const handleLogout = () => {
-    router.push("/admin/login");
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cerrar sesión");
+      }
+
+      router.push("/admin/login");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   return (
@@ -116,7 +133,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <div className="flex flex-col gap-0.5 leading-none p-2 text-sm">
                 <span className="font-medium capitalize">{username}</span>
-                <span className="text-muted-foreground">Administrador</span>
               </div>
             </SidebarMenuItem>
             <SidebarMenuItem>
