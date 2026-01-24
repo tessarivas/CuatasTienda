@@ -41,6 +41,7 @@ type DashboardContextType = {
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   sales: Sale[]; 
   setSales: React.Dispatch<React.SetStateAction<Sale[]>>; 
+  reloadSuppliers: () => Promise<void>;
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
 };
@@ -59,6 +60,7 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   setTransactions: () => {},
   sales: initialSales, // NUEVO
   setSales: () => {}, // NUEVO
+  reloadSuppliers: async () => {},
   suppliers: [],
   setSuppliers: () => {},
 });
@@ -105,6 +107,17 @@ export default function DashboardLayout({
       .then(setSuppliers);
   }, []);
 
+  const reloadSuppliers = async () => {
+    try {
+      const res = await fetch("/api/suppliers");
+      const data = await res.json();
+      setSuppliers(data);
+    } catch (error) {
+      console.error("Error reloading suppliers", error);
+    }
+  };
+
+
   return (
     <DashboardContext.Provider
       value={{
@@ -120,6 +133,7 @@ export default function DashboardLayout({
         setTransactions,
         sales, // NUEVO
         setSales, // NUEVO
+        reloadSuppliers,
         suppliers,
         setSuppliers,
       }}

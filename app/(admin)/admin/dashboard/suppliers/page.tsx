@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 
 export default function Page() {
   const router = useRouter();
-  const { suppliers, setSuppliers, isAddSupplierModalOpen, setIsAddSupplierModalOpen } =
+  const { suppliers, reloadSuppliers, isAddSupplierModalOpen, setIsAddSupplierModalOpen } =
     React.useContext(DashboardContext);
 
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -20,13 +20,23 @@ export default function Page() {
     router.push(`/admin/dashboard/suppliers/${supplier.id}`);
   };
 
-  const handleAddSupplier = async (
-    newSupplier: Omit<Supplier, "id" | "createdAt">
-  ) => {
+  const handleAddSupplier = async (form: {
+    name: string;
+    businessName?: string;
+    cellphone?: string;
+    email?: string;
+    image?: File;
+  }) => {
+    const formData = new FormData();
+    formData.append("name", form.name);
+    if (form.businessName) formData.append("businessName", form.businessName);
+    if (form.cellphone) formData.append("cellphone", form.cellphone);
+    if (form.email) formData.append("email", form.email);
+    if (form.image) formData.append("image", form.image);
+
     const res = await fetch("/api/suppliers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newSupplier),
+      body: formData,
     });
 
     if (!res.ok) {
@@ -34,8 +44,8 @@ export default function Page() {
       return;
     }
 
-    const createdSupplier: Supplier = await res.json();
-    setSuppliers((prev) => [createdSupplier, ...prev]);
+    await reloadSuppliers();
+    setIsAddSupplierModalOpen(false);
   };
 
   const filteredSuppliers = suppliers.filter(
