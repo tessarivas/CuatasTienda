@@ -31,7 +31,7 @@ export default function SupplierDetailPage({
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Cargar proveedores desde initialSuppliers (puedes mover esto al contexto después)
+  // Cargar proveedores desde initialSuppliers
   React.useEffect(() => {
     import("@/lib/data").then((data) => {
       setSuppliers(data.initialSuppliers);
@@ -62,6 +62,19 @@ export default function SupplierDetailPage({
       );
       setSupplier(editedSupplier);
       setIsEditing(false);
+      // Aquí podrías añadir una notificación de éxito
+    }
+  };
+
+  const handleCutoffDayChange = (newDay: number) => {
+    if (editedSupplier) {
+      const updatedSupplier = { ...editedSupplier, cutoffDay: newDay };
+      setEditedSupplier(updatedSupplier);
+      // Opcional: Guardar inmediatamente o esperar al guardado general
+      setSupplier(updatedSupplier);
+      setSuppliers((prev) =>
+        prev.map((s) => (s.id === updatedSupplier.id ? updatedSupplier : s))
+      );
     }
   };
 
@@ -101,7 +114,7 @@ export default function SupplierDetailPage({
 
   return (
     <>
-      <div className="flex flex-col gap-6 p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="flex flex-col gap-6 p-4 md:p-6 max-w-full mx-auto">
         <SupplierDetailsForm
           supplier={supplier}
           editedSupplier={editedSupplier}
@@ -116,9 +129,17 @@ export default function SupplierDetailPage({
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MonthlyCutoff supplier={supplier} />
-
-          <SupplierProductsList products={supplierProducts} supplierId={id} />
+          {/* Corte Mensual del Proveedor */}
+          <MonthlyCutoff
+            supplier={supplier}
+            onCutoffDayChange={handleCutoffDayChange}
+          />
+          {/* Productos del Proveedor - PASAMOS EL NOMBRE */}
+          <SupplierProductsList
+            products={supplierProducts}
+            supplierId={id}
+            supplierName={supplier.businessName}
+          />
         </div>
       </div>
 

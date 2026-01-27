@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useContext } from "react";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 
@@ -50,7 +49,7 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
- const username = "Admin"
+  const username = "Admin"
 
   const handleLogout = async () => {
     try {
