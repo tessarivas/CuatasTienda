@@ -6,7 +6,7 @@ import { type Product, type Client } from "@/lib/data";
 import { ProductsTable } from "./_components/products-table";
 import { EditProductModal } from "./_components/edit-product-modal";
 import { WithdrawProductModal } from "./_components/withdraw-product-modal";
-import { AddProductModal, type NewProductData } from "./_components/add-product-modal";
+import { AddProductModal } from "./_components/add-product-modal";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -83,34 +83,8 @@ export default function Page() {
   const handleWithdrawProduct = (productId: string, reason: string, user: string) => {
     setProducts(products.filter((p) => p.id !== productId));
   };
-  const handleAddProduct = async (newProductData: NewProductData) => {
-    try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: newProductData.title,
-          price: newProductData.price,
-          quantity: newProductData.quantity,
-          picture: newProductData.photoUrl,
-          supplierId: Number(newProductData.supplierId),
-          status: "Disponible",
-          type: "PRODUCT", // IMPORTANTE (enum Prisma)
-        }),
-      });
-
-      if (!res.ok) throw new Error("Error creando producto");
-
-      const createdProduct = await res.json();
-
-      // 🔥 sincronizar estado global
-      setProducts((prev) => [createdProduct, ...prev]);
-    } catch (error) {
-      console.error(error);
-      alert("No se pudo crear el producto");
-    }
+  const handleAddProduct = (product: Product) => {
+    setProducts((prev) => [product, ...prev]);
   };
 
   // FUNCIÓN ACTUALIZADA: Ahora abre el modal de selección de cliente

@@ -8,20 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Product, type Supplier } from "@/lib/data";
 
-// Usamos Omit para definir los datos que necesitamos para un producto nuevo.
-// El 'id' y 'status' se generarán automáticamente.
-export type NewProductData = {
-  title: string;
-  price: number;
-  quantity: number;
-  photoUrl?: string;
-  supplierId: string;
-};
-
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (newProduct: NewProductData) => void;
+  onAdd: (product: Product) => void;
   suppliers: Supplier[];
 }
 
@@ -29,31 +19,47 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
   const [title, setTitle] = React.useState("");
   const [price, setPrice] = React.useState(0);
   const [quantity, setQuantity] = React.useState(1);
-  const [photoUrl, setPhotoUrl] = React.useState("");
+  const [image, setImage] = React.useState<File | null>(null);
   const [supplierId, setSupplierId] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = () => {
-    // Validación: Asegurarse de que los campos obligatorios estén llenos.
+  const handleSubmit = async () => {
     if (!title || !price || !quantity || !supplierId) {
       alert("Todos los campos son obligatorios, incluyendo el proveedor.");
       return;
     }
-    
-    onAdd({
-      title,
-      price,
-      quantity,
-      photoUrl: photoUrl || "/products/default-product.png", // Usar una imagen por defecto si no se provee URL
-      supplierId,
-    });
 
-    // Limpiar el formulario y cerrar el modal
-    setTitle("");
-    setPrice(0);
-    setQuantity(1);
-    setPhotoUrl("");
-    setSupplierId("");
-    onClose();
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("price", String(price));
+    formData.append("quantity", String(quantity));
+    formData.append("supplierId", supplierId);
+    if (image) formData.append("image", image);
+
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error();
+
+      const product: Product = await res.json();
+      onAdd(product);
+
+      setTitle("");
+      setPrice(0);
+      setQuantity(1);
+      setImage(null);
+      setSupplierId("");
+      onClose();
+    } catch {
+      alert("Error creando producto");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,13 +100,22 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
             <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="photoUrl" className="text-right">URL de Foto</Label>
-            <Input id="photoUrl" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} className="col-span-3" placeholder="Ej: /products/mi-producto.jpg" />
+            <Label className="text-right">Logo</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                setImage(e.target.files?.[0] ?? null)
+                }
+                className="col-span-3"
+              />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSubmit}>Agregar Producto</Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Guardando..." : "Agregar Producto"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
