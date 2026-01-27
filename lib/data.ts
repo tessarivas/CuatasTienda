@@ -9,6 +9,7 @@ export type Supplier = {
   cellphone?: string;
   email?: string;
   createdAt?: string;
+  logo?: string;
 };
 
 

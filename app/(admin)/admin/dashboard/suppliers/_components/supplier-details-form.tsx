@@ -73,7 +73,7 @@ export function SupplierDetailsForm({
           <div className="flex flex-col items-center gap-4 py-6 lg:border-r lg:pr-8">
             <div className="relative">
               <Image
-                src={editedSupplier?.logo || supplier.logo}
+                src={supplier.logo}
                 alt={`Logo de ${supplier.businessName}`}
                 width={120}
                 height={120}

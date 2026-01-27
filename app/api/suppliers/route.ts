@@ -24,27 +24,37 @@ export async function POST(req: Request) {
     const email = formData.get("email") as string | null;
     const image = formData.get("image") as File | null;
 
-    if (!name) {
-      return NextResponse.json({ error: "Name required" }, { status: 400 });
+    if (!name || !businessName) {
+      return NextResponse.json(
+        { error: "Name and businessName required" },
+        { status: 400 }
+      );
     }
 
-    let logo: string | null = null;
-
-    if (image) {
-      const buffer = Buffer.from(await image.arrayBuffer());
-      const upload = await uploadSupplierImage(buffer, name);
-      logo = upload.secure_url;
-    }
-
+    // Create supplier FIRST (no logo)
     const supplier = await prisma.supplier.create({
       data: {
         name,
         businessName,
         cellphone,
         email,
-        logo,
+        logo: null,
       },
     });
+
+    // Upload image using supplier.id and name for folder structure
+    if (image) {
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const upload = await uploadSupplierImage(buffer, supplier.id, supplier.name);
+
+      // 3️⃣ Update supplier with logo URL
+      const updated = await prisma.supplier.update({
+        where: { id: supplier.id },
+        data: { logo: upload.secure_url },
+      });
+
+      return NextResponse.json(updated);
+    }
 
     return NextResponse.json(supplier);
   } catch (err) {

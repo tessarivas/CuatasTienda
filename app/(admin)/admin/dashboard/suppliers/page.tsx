@@ -20,32 +20,8 @@ export default function Page() {
     router.push(`/admin/dashboard/suppliers/${supplier.id}`);
   };
 
-  const handleAddSupplier = async (form: {
-    name: string;
-    businessName?: string;
-    cellphone?: string;
-    email?: string;
-    image?: File;
-  }) => {
-    const formData = new FormData();
-    formData.append("name", form.name);
-    if (form.businessName) formData.append("businessName", form.businessName);
-    if (form.cellphone) formData.append("cellphone", form.cellphone);
-    if (form.email) formData.append("email", form.email);
-    if (form.image) formData.append("image", form.image);
-
-    const res = await fetch("/api/suppliers", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      alert("Error creando proveedor");
-      return;
-    }
-
+  const handleAddSupplier = async (_supplier: Supplier) => {
     await reloadSuppliers();
-    setIsAddSupplierModalOpen(false);
   };
 
   const filteredSuppliers = suppliers.filter(
