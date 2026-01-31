@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductDetailsModal } from "./product-details-modal";
 import { ExternalLink, Package, LayoutList } from "lucide-react";
 import { DashboardContext } from "../../layout";
+import { AddProductModal } from "../../inventory/_components/add-product-modal";
 
 interface SupplierProductsListProps {
   products: Product[];
@@ -24,16 +25,26 @@ export function SupplierProductsList({
   supplierName,
 }: SupplierProductsListProps) {
   const router = useRouter();
-  const { clients } = React.useContext(DashboardContext) as { clients: Client[] };
+  const { clients, suppliers, reloadProducts } = React.useContext(
+    DashboardContext,
+  ) as {
+    clients: Client[];
+    suppliers: any[];
+    reloadProducts: () => Promise<void>;
+  };
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
-    null
+    null,
   );
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] =
+    React.useState(false);
 
   // Contar productos por estado
-  const availableCount = products.filter(p => p.status === "Disponible").length;
-  const apartadoCount = products.filter(p => p.status === "Apartado").length;
-  const vendidoCount = products.filter(p => p.status === "Vendido").length;
+  const availableCount = products.filter(
+    (p) => p.status === "Disponible",
+  ).length;
+  const apartadoCount = products.filter((p) => p.status === "Apartado").length;
+  const vendidoCount = products.filter((p) => p.status === "Vendido").length;
 
   const handleOpenModal = (product: Product) => {
     setSelectedProduct(product);
@@ -52,11 +63,15 @@ export function SupplierProductsList({
     return client?.name;
   };
 
+  const handleProductAdded = async () => {
+    await reloadProducts();
+  };
+
   return (
     <>
       <Card className="flex flex-col h-full">
         <CardHeader>
-          <div className="flex items-center justify-between -mt-1">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <LayoutList className="h-5 w-5" />
               <CardTitle className="text-lg">
@@ -112,9 +127,9 @@ export function SupplierProductsList({
                     key={product.id}
                     className="group flex items-center justify-between p-3 border rounded-lg hover:bg-linear-to-r hover:from-transparent hover:to-primary/5 transition-all hover:shadow-md cursor-pointer"
                     onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenModal(product);
-                      }}
+                      e.stopPropagation();
+                      handleOpenModal(product);
+                    }}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="relative">
@@ -187,13 +202,9 @@ export function SupplierProductsList({
               <Button
                 variant="default"
                 className="cursor-pointer"
-                onClick={() =>
-                  router.push(
-                    `/admin/dashboard/inventory?supplier=${supplierId}`,
-                  )
-                }
+                onClick={() => setIsAddProductModalOpen(true)}
               >
-                <Package className="mr-2 h-4 w-4" />
+                <Package className="h-4 w-4" />
                 Agregar Producto
               </Button>
             </div>
@@ -207,7 +218,17 @@ export function SupplierProductsList({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         supplierName={supplierName}
-        clientName={selectedProduct ? getClientName(selectedProduct) : undefined}
+        clientName={
+          selectedProduct ? getClientName(selectedProduct) : undefined
+        }
+      />
+
+      <AddProductModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        onAdd={handleProductAdded}
+        suppliers={suppliers}
+        supplierId={supplierId}
       />
     </>
   );

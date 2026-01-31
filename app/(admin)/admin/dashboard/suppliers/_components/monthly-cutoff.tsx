@@ -86,7 +86,7 @@ export function MonthlyCutoff({
           {/* Métricas con gradientes */}
           <div className="grid gap-3">
             {/* Total Vendido */}
-            <div className="relative overflow-hidden rounded-lg bg-yellow-100 p-4 text-yellow-600">
+            <div className="relative overflow-hidden rounded-lg bg-my-yellow-light p-4 text-my-yellow-dark">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-bold opacity-90 mb-1">
@@ -105,13 +105,15 @@ export function MonthlyCutoff({
             {/* Grid de dos columnas para las otras métricas */}
             <div className="grid grid-cols-2 gap-3">
               {/* Productos Vendidos */}
-              <div className="relative overflow-hidden rounded-lg bg-sky-100 p-3 text-sky-600">
+              <div className="relative overflow-hidden rounded-lg bg-my-blue-light p-3 text-my-blue-dark">
                 <div className="flex flex-col justify-between h-full">
                   <div className="rounded-full p-1.5 w-fit">
                     <Package className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold opacity-90 mb-1">Productos Disponibles</p>
+                    <p className="text-sm font-bold opacity-90 mb-1">
+                      Productos Disponibles
+                    </p>
                     <div className="text-xl font-bold">+{productsSoldCount}</div>
                     <p className="text-xs opacity-75">
                       en el periodo seleccionado
@@ -121,13 +123,15 @@ export function MonthlyCutoff({
               </div>
 
               {/* Ganancia Estimada */}
-              <div className="relative overflow-hidden rounded-lg bg-rose-100 p-3 text-rose-600">
+              <div className="relative overflow-hidden rounded-lg bg-my-red-light p-3 text-my-red-dark">
                 <div className="flex flex-col justify-between h-full">
                   <div className="rounded-full p-1.5 w-fit">
                     <TrendingUp className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold opacity-90 mb-1">Ganancia</p>
+                    <p className="text-sm font-bold opacity-90 mb-1">
+                      Ganancia
+                    </p>
                     <div className="text-xl font-bold">
                       $
                       {estimatedProfit.toLocaleString("es-MX", {
@@ -211,10 +215,10 @@ export function MonthlyCutoff({
           <div className="space-y-2">
             <Button
               onClick={handleGenerateReport}
-              className="w-full cursor-pointer bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              className="w-full cursor-pointer"
               size="sm"
             >
-              <TrendingUp className="mr-2 h-4 w-4" />
+              <TrendingUp className="h-4 w-4" />
               Actualizar Datos
             </Button>
 
@@ -225,7 +229,7 @@ export function MonthlyCutoff({
                   size="sm"
                   className="w-full cursor-pointer"
                 >
-                  <FileDown className="mr-2 h-4 w-4" />
+                  <FileDown className="h-4 w-4" />
                   Exportar Reporte
                 </Button>
               </DropdownMenuTrigger>

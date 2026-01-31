@@ -11,6 +11,20 @@
   --background: oklch(1 0 0);
   --foreground: oklch(0.147 0.004 49.25);
 
+  --my-blue: #3185FC;
+  --my-blue-light: #ADCEFE;
+  --my-blue-dark: #29457E;
+
+  --my-yellow: #FFE629;
+  --my-yellow-light: #FFF5A9;
+  --my-yellow-dark: #907614;
+
+  --my-red: #FE5E41;
+  --my-red-light: #FFBFB3;
+  --my-red-dark: #903220;
+
+  --my-green: #32E017;
+
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
 
@@ -59,6 +73,20 @@
   --background: oklch(0.147 0.004 49.25);
   --foreground: oklch(0.985 0.001 106.423);
 
+  --my-blue: #3185FC;
+  --my-blue-light: #ADCEFE;
+  --my-blue-dark: #29457E;
+
+  --my-yellow: #FFE629;
+  --my-yellow-light: #FFF5A9;
+  --my-yellow-dark: #907614;
+
+  --my-red: #FE5E41;
+  --my-red-light: #FFBFB3;
+  --my-red-dark: #903220;
+
+  --my-green: #32E017;
+
   --card: oklch(0.216 0.006 56.043);
   --card-foreground: var(--foreground);
 
@@ -99,6 +127,18 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-my-blue: var(--my-blue);
+  --color-my-blue-light: var(--my-blue-light);
+  --color-my-blue-dark: var(--my-blue-dark);
+  --color-my-yellow: var(--my-yellow);
+  --color-my-yellow-light: var(--my-yellow-light);
+  --color-my-yellow-dark: var(--my-yellow-dark);
+  --color-my-red: var(--my-red);
+  --color-my-red-light: var(--my-red-light);
+  --color-my-red-dark: var(--my-red-dark);
+  --color-my-green: var(--my-green);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);

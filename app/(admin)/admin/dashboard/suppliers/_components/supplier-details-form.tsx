@@ -40,19 +40,9 @@ export function SupplierDetailsForm({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="cursor-pointer"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <CardTitle>
-            {isEditing ? "Editar Proveedor" : "Detalles del Proveedor"}
-          </CardTitle>
-        </div>
+        <CardTitle>
+          {isEditing ? "Editar Proveedor" : "Detalles del Proveedor"}
+        </CardTitle>
         {!isEditing && (
           <div className="flex gap-2">
             <Button
