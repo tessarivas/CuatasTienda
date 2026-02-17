@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, User, Pencil, ArrowLeft, Trash2 } from "lucide-react";
+import { Mail, Phone, User, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface SupplierDetailsFormProps {
@@ -62,13 +62,20 @@ export function SupplierDetailsForm({
           {/* Columna del Logo */}
           <div className="flex flex-col items-center gap-4 py-6 lg:border-r lg:pr-8">
             <div className="relative">
-              <Image
-                src={supplier.logo}
-                alt={`Logo de ${supplier.businessName}`}
-                width={120}
-                height={120}
-                className="object-cover aspect-square rounded-lg border-2"
-              />
+              {/* Manejo seguro de la imagen por si logo es undefined */}
+              <div className="w-30 h-30 relative rounded-lg border-2 overflow-hidden bg-muted flex items-center justify-center">
+                {supplier.logo ? (
+                  <Image
+                    src={supplier.logo}
+                    alt={`Logo de ${supplier.businessName}`}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <User className="h-12 w-12 text-muted-foreground opacity-50" />
+                )}
+              </div>
+
               {isEditing && (
                 <>
                   <Button
@@ -117,10 +124,10 @@ export function SupplierDetailsForm({
                 )}
               </div>
 
-              {/* Nombre del proveedor */}
+              {/* Nombre del proveedor (CORREGIDO: name en lugar de providerName) */}
               <div className="space-y-2">
                 <Label
-                  htmlFor="providerName"
+                  htmlFor="name"
                   className="flex items-center gap-2"
                 >
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -128,31 +135,31 @@ export function SupplierDetailsForm({
                 </Label>
                 {isEditing ? (
                   <Input
-                    id="providerName"
-                    name="providerName"
-                    value={editedSupplier?.providerName || ""}
+                    id="name"
+                    name="name" // IMPORTANTE: name="name"
+                    value={editedSupplier?.name || ""}
                     onChange={onInputChange}
                   />
                 ) : (
-                  <p className="font-medium">{supplier.providerName}</p>
+                  <p className="font-medium">{supplier.name}</p>
                 )}
               </div>
 
-              {/* Teléfono */}
+              {/* Teléfono (CORREGIDO: cellphone en lugar de phone) */}
               <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
+                <Label htmlFor="cellphone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   Teléfono
                 </Label>
                 {isEditing ? (
                   <Input
-                    id="phone"
-                    name="phone"
-                    value={editedSupplier?.phone || ""}
+                    id="cellphone"
+                    name="cellphone" // IMPORTANTE: name="cellphone"
+                    value={editedSupplier?.cellphone || ""}
                     onChange={onInputChange}
                   />
                 ) : (
-                  <p className="font-medium">{supplier.phone}</p>
+                  <p className="font-medium">{supplier.cellphone || "Sin teléfono"}</p>
                 )}
               </div>
 
@@ -171,7 +178,7 @@ export function SupplierDetailsForm({
                     onChange={onInputChange}
                   />
                 ) : (
-                  <p className="font-medium">{supplier.email}</p>
+                  <p className="font-medium">{supplier.email || "Sin email"}</p>
                 )}
               </div>
             </div>

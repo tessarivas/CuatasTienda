@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
+import { X, UserRoundPlus } from "lucide-react";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export function AddSupplierModal({
   const [email, setEmail] = React.useState("");
   const [image, setImage] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
     if (!name || !businessName) {
@@ -70,27 +72,47 @@ export function AddSupplierModal({
     }
   };
 
+  const handleRemoveFile = () => {
+    setImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleTriggerFile = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Agregar Proveedor</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserRoundPlus className="h-5 w-5" />
+            Agregar Proveedor
+          </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Negocio</Label>
+            <Label className="text-right">
+              Negocio <span className="-ml-1 text-red-500">*</span>
+            </Label>
             <Input
               value={businessName}
+              placeholder="Nombre del Negocio"
               onChange={(e) => setBusinessName(e.target.value)}
               className="col-span-3"
             />
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Proveedor</Label>
+            <Label className="text-right">
+              Proveedor <span className="-ml-1 text-red-500">*</span>
+            </Label>
             <Input
               value={name}
+              placeholder="Nombre del Proveedor"
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
             />
@@ -100,6 +122,7 @@ export function AddSupplierModal({
             <Label className="text-right">Teléfono</Label>
             <Input
               value={cellphone}
+              placeholder="Teléfono del Proveedor"
               onChange={(e) => setCellphone(e.target.value)}
               className="col-span-3"
             />
@@ -109,6 +132,7 @@ export function AddSupplierModal({
             <Label className="text-right">Email</Label>
             <Input
               type="email"
+              placeholder="Correo Electrónico"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="col-span-3"
@@ -117,22 +141,61 @@ export function AddSupplierModal({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">Logo</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setImage(e.target.files?.[0] ?? null)
-              }
-              className="col-span-3"
-            />
+            <div className="col-span-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+                  className="hidden"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTriggerFile}
+                  className="cursor-pointer font-normal text-muted-foreground"
+                >
+                  Elegir archivo
+                </Button>
+              </div>
+
+              {image ? (
+                <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 ">
+                  <span className="truncate">{image.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
+                    onClick={handleRemoveFile}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <p className="px-2 text-xs text-muted-foreground">
+                  * Ningún archivo seleccionado
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="cursor-pointer"
+          >
             {loading ? "Guardando..." : "Guardar"}
           </Button>
         </DialogFooter>

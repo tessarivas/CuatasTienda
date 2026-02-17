@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { DashboardContext } from "../../layout";
 import { type Supplier, type Client } from "@/lib/data";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, PackagePlus, Search } from "lucide-react";
+import { ArrowLeft, PackagePlus, Search, Loader2 } from "lucide-react"; // Importar Loader2
 import { SupplierDetailsForm } from "../_components/supplier-details-form";
 import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
@@ -21,36 +21,59 @@ export default function SupplierDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { products, suppliers: allSuppliers, reloadProducts } =
-    React.useContext(DashboardContext) as {
-      products: any[];
-      suppliers: Supplier[];
-      reloadProducts: () => Promise<void>;
-      clients: Client[];
-    };
+  
+  const { 
+    products, 
+    suppliers,
+    reloadProducts,
+    reloadSuppliers
+  } = React.useContext(DashboardContext);
 
-  // Estado local de proveedores (temporal hasta integrar con contexto global)
-  const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
   const [supplier, setSupplier] = React.useState<Supplier | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
-  const [editedSupplier, setEditedSupplier] = React.useState<Supplier | null>(
-    null,
-  );
+  const [editedSupplier, setEditedSupplier] = React.useState<Supplier | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [isAddProductModalOpen, setIsAddProductModalOpen] =
-    React.useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = React.useState(false);
+  
+  // Nuevo estado para controlar la carga inicial
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Cargar proveedores desde initialSuppliers
   React.useEffect(() => {
-    import("@/lib/data").then((data) => {
-      setSuppliers(data.initialSuppliers);
-      const foundSupplier = data.initialSuppliers.find((s) => s.id === id);
-      setSupplier(foundSupplier || null);
-      setEditedSupplier(foundSupplier || null);
-    });
-  }, [id]);
+    // Si ya tenemos proveedores en el contexto, buscamos
+    if (suppliers.length > 0) {
+      const foundSupplier = suppliers.find((s) => String(s.id) === String(id)); // Asegurar comparación de tipos
+      
+      if (foundSupplier) {
+        setSupplier(foundSupplier);
+        setEditedSupplier(foundSupplier);
+      }
+      // Ya terminamos de intentar cargar (sea que lo encontramos o no)
+      setIsLoading(false);
+    } else {
+        // Podríamos intentar un fetch individual aquí si la lista global tarda, 
+        // pero por ahora asumiremos que si suppliers es [], se está cargando el layout.
+        // Opcional: Podrías hacer un fetch específico aquí para este ID si la lista global falla.
+        
+        // Si suppliers está vacío, esperamos un poco o hacemos fetch directo (opcional)
+        const fetchSupplier = async () => {
+            try {
+                const res = await fetch(`/api/suppliers/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSupplier(data);
+                    setEditedSupplier(data);
+                }
+            } catch (error) {
+                console.error("Error fetching single supplier:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchSupplier();
+    }
+  }, [id, suppliers]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editedSupplier) return;
@@ -66,14 +89,12 @@ export default function SupplierDetailPage({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedSupplier) {
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === editedSupplier.id ? editedSupplier : s)),
-      );
+        // Simulación:
       setSupplier(editedSupplier);
       setIsEditing(false);
-      // Aquí podrías añadir una notificación de éxito
+      await reloadSuppliers();
     }
   };
 
@@ -81,11 +102,7 @@ export default function SupplierDetailPage({
     if (editedSupplier) {
       const updatedSupplier = { ...editedSupplier, cutoffDay: newDay };
       setEditedSupplier(updatedSupplier);
-      // Opcional: Guardar inmediatamente o esperar al guardado general
       setSupplier(updatedSupplier);
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === updatedSupplier.id ? updatedSupplier : s)),
-      );
     }
   };
 
@@ -94,15 +111,19 @@ export default function SupplierDetailPage({
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    // Aquí puedes agregar lógica adicional como verificar si tiene productos
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
-    router.push("/admin/dashboard/suppliers");
+  const handleDelete = async () => {
+    try {
+        await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+        await reloadSuppliers();
+        router.push("/admin/dashboard/suppliers");
+    } catch (e) {
+        router.push("/admin/dashboard/suppliers");
+    }
   };
 
-  // Obtener y filtrar productos del proveedor
   const supplierProducts = React.useMemo(() => {
-    const allSupplierProducts = products.filter((p) => p.supplierId === id);
+    // Asegurarse de comparar IDs como strings para evitar problemas de tipos
+    const allSupplierProducts = products.filter((p) => String(p.supplierId) === String(id));
     if (!searchTerm) {
       return allSupplierProducts;
     }
@@ -115,18 +136,31 @@ export default function SupplierDetailPage({
     await reloadProducts();
   };
 
+  // Renderizado condicional mejorado
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 h-full">
+        <div className="flex flex-col items-center gap-2">
+           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <p className="text-muted-foreground">Cargando proveedor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!supplier) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <p className="text-lg font-semibold">Proveedor no encontrado</p>
+          <p className="text-sm text-muted-foreground">No se pudo encontrar el proveedor con ID: {id}</p>
           <Button
             variant="outline"
             onClick={() => router.back()}
-            className="mt-4 cursor-pointer"
+            className="cursor-pointer"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
+            Volver a la lista
           </Button>
         </div>
       </div>
@@ -162,7 +196,7 @@ export default function SupplierDetailPage({
                 <Search className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
-            <Button onClick={() => setIsAddProductModalOpen(true)}>
+            <Button onClick={() => setIsAddProductModalOpen(true)} className="cursor-pointer">
               <PackagePlus className="h-4 w-4" />
               Agregar Productos
             </Button>
@@ -210,7 +244,7 @@ export default function SupplierDetailPage({
         isOpen={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}
         onAdd={handleProductAdded}
-        suppliers={allSuppliers}
+        suppliers={suppliers} 
         supplierId={id}
       />
     </>

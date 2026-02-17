@@ -117,6 +117,15 @@ export default function DashboardLayout({
     }
   };
 
+  const reloadProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      setProducts(data); // <--- ESTO ES CRUCIAL
+    } catch (error) {
+      console.error("Error reloading products", error);
+    }
+  };
 
   return (
     <DashboardContext.Provider

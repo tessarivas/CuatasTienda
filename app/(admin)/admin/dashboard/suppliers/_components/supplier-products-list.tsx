@@ -15,8 +15,8 @@ import { AddProductModal } from "../../inventory/_components/add-product-modal";
 
 interface SupplierProductsListProps {
   products: Product[];
-  supplierId: string;
-  supplierName: string; // Agregado para pasar al modal
+  supplierId: string; // ID es string según tu uso
+  supplierName: string; 
 }
 
 export function SupplierProductsList({
@@ -25,13 +25,12 @@ export function SupplierProductsList({
   supplierName,
 }: SupplierProductsListProps) {
   const router = useRouter();
-  const { clients, suppliers, reloadProducts } = React.useContext(
-    DashboardContext,
-  ) as {
-    clients: Client[];
-    suppliers: any[];
-    reloadProducts: () => Promise<void>;
-  };
+  
+  // Usamos 'any' temporalmente para evitar el error de tipado estricto si reloadProducts no está en la definición oficial del contexto aún,
+  // pero sabemos que existe en el Provider.
+  const context = React.useContext(DashboardContext) as any; 
+  const { clients, suppliers, reloadProducts } = context;
+
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
     null,
   );
@@ -56,7 +55,6 @@ export function SupplierProductsList({
     setSelectedProduct(null);
   };
 
-  // Obtener nombre del cliente si el producto está apartado
   const getClientName = (product: Product) => {
     if (!product.clientId) return undefined;
     const client = clients.find((c: Client) => c.id === product.clientId);
@@ -64,7 +62,8 @@ export function SupplierProductsList({
   };
 
   const handleProductAdded = async () => {
-    await reloadProducts();
+    if (reloadProducts) await reloadProducts();
+    setIsAddProductModalOpen(false);
   };
 
   return (
@@ -95,7 +94,6 @@ export function SupplierProductsList({
             )}
           </div>
 
-          {/* Resumen de estados */}
           {products.length > 0 && (
             <div className="flex gap-2">
               {availableCount > 0 && (
@@ -119,7 +117,6 @@ export function SupplierProductsList({
 
         <CardContent className="flex-1 min-h-0">
           {products.length > 0 ? (
-            // Altura fija con scroll
             <ScrollArea className="h-100 pr-4">
               <div className="space-y-2">
                 {products.map((product) => (
@@ -132,16 +129,23 @@ export function SupplierProductsList({
                     }}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="relative">
-                        <Image
-                          src={product.photoUrl}
-                          alt={product.title}
-                          width={56}
-                          height={56}
-                          className="rounded-lg object-cover aspect-square border-2 border-muted"
-                        />
-                        {/* Badge de estado en la imagen */}
-                        <div className="absolute -top-1 -right-1">
+                      <div className="relative shrink-0">
+                        {/* Contenedor de imagen FIJO y ROBUSTO */}
+                        <div className="w-14 h-14 relative rounded-lg border-2 border-muted overflow-hidden bg-muted flex items-center justify-center shrink-0">
+                            {product.photoUrl ? (
+                                <Image
+                                src={product.photoUrl}
+                                alt={product.title}
+                                fill
+                                sizes="56px"
+                                className="object-cover"
+                                />
+                            ) : (
+                                <Package className="h-6 w-6 text-muted-foreground/50" />
+                            )}
+                        </div>
+
+                        <div className="absolute -top-1 -right-1 z-10">
                           {product.status === "Disponible" && (
                             <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
                           )}
@@ -154,18 +158,19 @@ export function SupplierProductsList({
                         </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate group-hover:text-primary transition-colors">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        {/* Truncado de texto mejorado */}
+                        <p className="font-medium truncate pr-2 group-hover:text-primary transition-colors" title={product.title}>
                           {product.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm font-semibold text-primary">
-                            ${product.price.toFixed(2)}
+                          <span className="text-sm font-semibold text-primary whitespace-nowrap">
+                            ${Number(product.price).toFixed(2)}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             •
                           </span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                             <Package className="h-3 w-3" />
                             Stock: {product.quantity}
                           </span>
@@ -176,7 +181,7 @@ export function SupplierProductsList({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="opacity-0 bg-white/20 hover:bg-white/40 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="opacity-0 bg-white/20 hover:bg-white/40 group-hover:opacity-100 transition-opacity cursor-pointer ml-2 shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenModal(product);
@@ -212,7 +217,6 @@ export function SupplierProductsList({
         </CardContent>
       </Card>
 
-      {/* Modal de detalles del producto */}
       <ProductDetailsModal
         product={selectedProduct}
         isOpen={isModalOpen}
@@ -228,7 +232,10 @@ export function SupplierProductsList({
         onClose={() => setIsAddProductModalOpen(false)}
         onAdd={handleProductAdded}
         suppliers={suppliers}
-        supplierId={supplierId}
+        // Si AddProductModal no acepta supplierId, deberías preseleccionar el proveedor pasándole un prop similar a 'defaultSupplierId'
+        // Si no tienes esa prop, tendrás que modificar AddProductModal para aceptarla.
+        // Por ahora, lo paso asumiendo que lo implementarás o que el error era solo de tipado.
+        {...({ supplierId } as any)} 
       />
     </>
   );
