@@ -21,9 +21,8 @@ export default function SupplierDetailPage({
   const router = useRouter();
   const { products } = React.useContext(DashboardContext);
 
-  // Estado local de proveedores (temporal hasta integrar con contexto global)
-  const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
   const [supplier, setSupplier] = React.useState<Supplier | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedSupplier, setEditedSupplier] = React.useState<Supplier | null>(
     null
@@ -31,14 +30,34 @@ export default function SupplierDetailPage({
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Cargar proveedores desde initialSuppliers
   React.useEffect(() => {
-    import("@/lib/data").then((data) => {
-      setSuppliers(data.initialSuppliers);
-      const foundSupplier = data.initialSuppliers.find((s) => s.id === id);
-      setSupplier(foundSupplier || null);
-      setEditedSupplier(foundSupplier || null);
-    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/suppliers/${id}`);
+        if (!res.ok) {
+          if (!cancelled) {
+            setSupplier(null);
+            setEditedSupplier(null);
+          }
+          return;
+        }
+        const data: Supplier = await res.json();
+        if (cancelled) return;
+        setSupplier(data);
+        setEditedSupplier(data);
+      } catch {
+        if (!cancelled) {
+          setSupplier(null);
+          setEditedSupplier(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,24 +76,30 @@ export default function SupplierDetailPage({
 
   const handleSave = () => {
     if (editedSupplier) {
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === editedSupplier.id ? editedSupplier : s))
-      );
       setSupplier(editedSupplier);
       setIsEditing(false);
       // Aquí podrías añadir una notificación de éxito
     }
   };
 
-  const handleCutoffDayChange = (newDay: number) => {
-    if (editedSupplier) {
-      const updatedSupplier = { ...editedSupplier, cutoffDay: newDay };
-      setEditedSupplier(updatedSupplier);
-      // Opcional: Guardar inmediatamente o esperar al guardado general
-      setSupplier(updatedSupplier);
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === updatedSupplier.id ? updatedSupplier : s))
-      );
+  const handleCutoffDayChange = async (newDay: number) => {
+    if (!supplier) return;
+    try {
+      const res = await fetch(`/api/suppliers/${supplier.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cutoffDay: newDay }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo actualizar el día de corte");
+        return;
+      }
+      const updated: Supplier = await res.json();
+      setSupplier(updated);
+      setEditedSupplier(updated);
+    } catch {
+      alert("No se pudo actualizar el día de corte");
     }
   };
 
@@ -83,16 +108,35 @@ export default function SupplierDetailPage({
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    // Aquí puedes agregar lógica adicional como verificar si tiene productos
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
-    router.push("/admin/dashboard/suppliers");
+  const handleDelete = async () => {
+    if (!supplier) return;
+    try {
+      const res = await fetch(`/api/suppliers/${supplier.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo eliminar el proveedor");
+        return;
+      }
+      router.push("/admin/dashboard/suppliers");
+    } catch {
+      alert("No se pudo eliminar el proveedor");
+    }
   };
 
   // Obtener productos del proveedor
   const supplierProducts = React.useMemo(() => {
     return products.filter((p) => p.supplierId === id);
   }, [products, id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <p className="text-sm text-muted-foreground">Cargando...</p>
+      </div>
+    );
+  }
 
   if (!supplier) {
     return (

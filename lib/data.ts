@@ -10,6 +10,7 @@ export type Supplier = {
   email?: string;
   createdAt?: string;
   logo?: string;
+  cutoffDay?: number;    // day of month (1–31), nullable in DB
 };
 
 

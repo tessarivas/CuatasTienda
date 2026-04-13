@@ -95,6 +95,7 @@ model Supplier {
   cellphone    String?
   email        String?
   logo         String?
+  cutoffDay    Int?
   createdAt    DateTime  @default(now())
   Product      Product[]
 }
