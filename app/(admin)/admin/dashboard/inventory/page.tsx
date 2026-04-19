@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardContext } from "../layout";
 import { type Product, type Client } from "@/lib/data";
 import { ProductsTable } from "./_components/products-table";
@@ -17,14 +18,18 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
+import { normalizeProduct, type ApiProduct } from "@/lib/products/normalize";
 
 export default function Page() {
   const { products, setProducts, clients, suppliers } =
   React.useContext(DashboardContext);
 
   // ... (estados de filtros sin cambios)
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [supplierFilter, setSupplierFilter] = React.useState<string | number>("todos");
+  const [supplierFilter, setSupplierFilter] = React.useState<string>(
+    searchParams.get("supplier") ?? "todos"
+  );
   const [statusFilter, setStatusFilter] = React.useState("todos");
 
   // Estados para los modales
@@ -76,15 +81,29 @@ export default function Page() {
 
   // ... (handleSaveProduct, handleWithdrawProduct, handleAddProduct sin cambios)
   const handleSaveProduct = (updatedProduct: Product) => {
+    const normalized = normalizeProduct(
+      updatedProduct as unknown as ApiProduct
+    );
     setProducts(
-      products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      products.map((p) => (p.id === normalized.id ? normalized : p))
     );
   };
-  const handleWithdrawProduct = (productId: string, reason: string, user: string) => {
-    setProducts(products.filter((p) => p.id !== productId));
+  const handleWithdrawProduct = async (productId: string, _reason: string, _user: string) => {
+    try {
+      const res = await fetch(`/api/products/${productId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo retirar el producto");
+        return;
+      }
+      setProducts(products.filter((p) => p.id !== productId));
+    } catch {
+      alert("No se pudo retirar el producto");
+    }
   };
   const handleAddProduct = (product: Product) => {
-    setProducts((prev) => [product, ...prev]);
+    const normalized = normalizeProduct(product as unknown as ApiProduct);
+    setProducts((prev) => [normalized, ...prev]);
   };
 
   // FUNCIÓN ACTUALIZADA: Ahora abre el modal de selección de cliente
@@ -97,25 +116,49 @@ export default function Page() {
     }
   };
 
-  // NUEVA FUNCIÓN: Se ejecuta cuando se selecciona un cliente en el modal
-  const handleClientSelectedForAssignment = (client: Client) => {
+  // Cuando seleccionan un cliente en el modal, persistimos el apartado vía
+  // la API del cliente. En éxito, subimos el reservedCount local para que el
+  // UI refleje la reserva sin tocar product.status.
+  const handleClientSelectedForAssignment = async (client: Client) => {
     if (!productToAssign) return;
-
-    setProducts(
-      products.map((p) =>
-        p.id === productToAssign.id
-          ? { ...p, status: "Apartado", clientId: client.id }
-          : p
-      )
-    );
-    // Limpiamos el estado después de la operación
+    const product = productToAssign;
     setProductToAssign(null);
+
+    try {
+      const res = await fetch(`/api/clients/${client.id}/layaway/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: Number(product.id) }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo apartar el producto");
+        return;
+      }
+      setProducts(
+        products.map((p) =>
+          p.id === product.id
+            ? { ...p, reservedCount: (p.reservedCount ?? 0) + 1 }
+            : p
+        )
+      );
+    } catch {
+      alert("No se pudo apartar el producto");
+    }
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSupplier = supplierFilter === "todos" || product.supplierId === Number(supplierFilter);
-    const matchesStatus = statusFilter === "todos" || product.status === statusFilter;
+    const matchesSearch = product.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesSupplier =
+      supplierFilter === "todos" ||
+      String(product.supplierId) === supplierFilter;
+    const matchesStatus = (() => {
+      if (statusFilter === "todos") return true;
+      if (statusFilter === "apartados") return (product.reservedCount ?? 0) > 0;
+      return product.status === statusFilter;
+    })();
     return matchesSearch && matchesSupplier && matchesStatus;
   });
 
@@ -150,7 +193,8 @@ export default function Page() {
             <SelectContent className="cursor-pointer">
               <SelectItem value="todos">Todos los estatus</SelectItem>
               <SelectItem value="Disponible">Disponible</SelectItem>
-              <SelectItem value="Apartado">Apartado</SelectItem>
+              <SelectItem value="apartados">Con apartados</SelectItem>
+              <SelectItem value="Vendido">Vendido</SelectItem>
             </SelectContent>
           </Select>
           <div className="ml-auto">
@@ -189,6 +233,7 @@ export default function Page() {
         onClose={handleCloseModals}
         onSave={handleSaveProduct}
         product={productToAssign}
+        suppliers={suppliers}
       />
       <WithdrawProductModal
         isOpen={isWithdrawModalOpen}

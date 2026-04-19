@@ -14,7 +14,7 @@ export type Supplier = {
 };
 
 
-export type ProductStatus = "Disponible" | "Apartado" | "Vendido";
+export type ProductStatus = "Disponible" | "Vendido" | "Retirado";
 
 export type Product = {
   id: string;
@@ -26,6 +26,8 @@ export type Product = {
   status: ProductStatus;
   clientId?: string | null;
   barcode?: string; // NUEVO: Opcional para búsqueda en POS
+  // Número de unidades reservadas (LayawayItem activos). Derivado en el backend.
+  reservedCount?: number;
 };
 
 export type Client = {
@@ -180,8 +182,7 @@ export const initialProducts: Product[] = [
     title: "Pantalón de Mezclilla",
     price: 980.0,
     quantity: 1,
-    status: "Apartado",
-    clientId: "cli-1",
+    status: "Disponible",
     barcode: "7501234567892",
   },
   {

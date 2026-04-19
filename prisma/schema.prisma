@@ -17,7 +17,7 @@ model Client {
   id             Int       @id @default(autoincrement())
   name           String
   cellphone      String?
-  currentBalance Decimal   @default(0)
+  currentBalance Decimal   @default(0) @db.Decimal(10, 2)
   Layaway        Layaway[]
   Payment        Payment[]
   Sale           Sale[]
@@ -26,7 +26,7 @@ model Client {
 model Layaway {
   id          Int           @id @default(autoincrement())
   clientId    Int
-  status      String
+  status      LayawayStatus @default(Activo)
   createdAt   DateTime      @default(now())
   Client      Client        @relation(fields: [clientId], references: [id])
   LayawayItem LayawayItem[]
@@ -36,25 +36,26 @@ model LayawayItem {
   id        Int     @id @default(autoincrement())
   layawayId Int
   productId Int
-  price     Decimal
+  price     Decimal @db.Decimal(10, 2)
   Layaway   Layaway @relation(fields: [layawayId], references: [id])
   Product   Product @relation(fields: [productId], references: [id])
 }
 
 model Payment {
-  id         Int      @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   clientId   Int
-  amount     Decimal
-  date       DateTime @default(now())
-  receivedBy String   @db.Uuid
-  Client     Client   @relation(fields: [clientId], references: [id])
-  User       User     @relation(fields: [receivedBy], references: [id])
+  amount     Decimal       @db.Decimal(10, 2)
+  method     PaymentMethod @default(Efectivo)
+  date       DateTime      @default(now())
+  receivedBy String        @db.Uuid
+  Client     Client        @relation(fields: [clientId], references: [id])
+  User       User          @relation(fields: [receivedBy], references: [id])
 }
 
 model Product {
   id          Int           @id @default(autoincrement())
   title       String
-  price       Decimal
+  price       Decimal       @db.Decimal(10, 2)
   status      String
   createdAt   DateTime      @default(now())
   code        String?       @unique
@@ -70,7 +71,7 @@ model Product {
 
 model Sale {
   id       Int        @id @default(autoincrement())
-  total    Decimal
+  total    Decimal    @db.Decimal(10, 2)
   date     DateTime   @default(now())
   userId   String     @db.Uuid
   clientId Int?
@@ -83,7 +84,7 @@ model SaleItem {
   id         Int     @id @default(autoincrement())
   saleId     Int
   productId  Int
-  finalPrice Decimal
+  finalPrice Decimal @db.Decimal(10, 2)
   Product    Product @relation(fields: [productId], references: [id])
   Sale       Sale    @relation(fields: [saleId], references: [id])
 }
@@ -113,4 +114,16 @@ model User {
 enum ProductType {
   PRODUCT
   SERVICE
+}
+
+enum LayawayStatus {
+  Activo
+  Liquidado
+  Cancelado
+}
+
+enum PaymentMethod {
+  Efectivo
+  Tarjeta
+  Transferencia
 }

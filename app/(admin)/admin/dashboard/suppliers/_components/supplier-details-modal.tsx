@@ -129,20 +129,20 @@ export function SupplierDetailsModal({
           {isEditing ? (
             <>
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="providerName">Nombre del proveedor</Label>
+                <Label htmlFor="name">Nombre del proveedor</Label>
                 <Input
-                  id="providerName"
-                  name="providerName"
-                  value={editedSupplier?.providerName || ""}
+                  id="name"
+                  name="name"
+                  value={editedSupplier?.name || ""}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="phone">Teléfono</Label>
+                <Label htmlFor="cellphone">Teléfono</Label>
                 <Input
-                  id="phone"
-                  name="phone"
-                  value={editedSupplier?.phone || ""}
+                  id="cellphone"
+                  name="cellphone"
+                  value={editedSupplier?.cellphone || ""}
                   onChange={handleInputChange}
                 />
               </div>
@@ -161,11 +161,11 @@ export function SupplierDetailsModal({
             <>
               <div className="flex items-center">
                 <User className="size-5 mr-3 text-muted-foreground" />
-                <span className="font-medium">{supplier.providerName}</span>
+                <span className="font-medium">{supplier.name}</span>
               </div>
               <div className="flex items-center">
                 <Phone className="size-5 mr-3 text-muted-foreground" />
-                <span className="font-medium">{supplier.phone}</span>
+                <span className="font-medium">{supplier.cellphone}</span>
               </div>
               <div className="flex items-center">
                 <Mail className="size-5 mr-3 text-muted-foreground" />

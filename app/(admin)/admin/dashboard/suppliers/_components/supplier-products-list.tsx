@@ -16,12 +16,14 @@ interface SupplierProductsListProps {
   products: Product[];
   supplierId: string;
   supplierName: string; // Agregado para pasar al modal
+  onProductChanged?: () => void;
 }
 
 export function SupplierProductsList({
   products,
   supplierId,
   supplierName,
+  onProductChanged,
 }: SupplierProductsListProps) {
   const router = useRouter();
   const { clients } = React.useContext(DashboardContext) as { clients: Client[] };
@@ -30,10 +32,12 @@ export function SupplierProductsList({
   );
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Contar productos por estado
-  const availableCount = products.filter(p => p.status === "Disponible").length;
-  const apartadoCount = products.filter(p => p.status === "Apartado").length;
-  const vendidoCount = products.filter(p => p.status === "Vendido").length;
+  // Contar productos: "apartados" ahora es cualquier producto con reservedCount > 0.
+  const availableCount = products.filter(
+    (p) => p.status === "Disponible" && (p.reservedCount ?? 0) === 0
+  ).length;
+  const apartadoCount = products.filter((p) => (p.reservedCount ?? 0) > 0).length;
+  const vendidoCount = products.filter((p) => p.status === "Vendido").length;
 
   const handleOpenModal = (product: Product) => {
     setSelectedProduct(product);
@@ -118,23 +122,27 @@ export function SupplierProductsList({
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="relative">
-                        <Image
-                          src={product.photoUrl}
-                          alt={product.title}
-                          width={56}
-                          height={56}
-                          className="rounded-lg object-cover aspect-square border-2 border-muted"
-                        />
+                        {product.photoUrl ? (
+                          <Image
+                            src={product.photoUrl}
+                            alt={product.title}
+                            width={56}
+                            height={56}
+                            className="rounded-lg object-cover aspect-square border-2 border-muted"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg border-2 border-muted bg-muted flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
                         {/* Badge de estado en la imagen */}
                         <div className="absolute -top-1 -right-1">
-                          {product.status === "Disponible" && (
-                            <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
-                          )}
-                          {product.status === "Apartado" && (
-                            <div className="h-3 w-3 bg-amber-500 rounded-full border-2 border-white" />
-                          )}
-                          {product.status === "Vendido" && (
+                          {product.status === "Vendido" ? (
                             <div className="h-3 w-3 bg-rose-500 rounded-full border-2 border-white" />
+                          ) : (product.reservedCount ?? 0) > 0 ? (
+                            <div className="h-3 w-3 bg-amber-500 rounded-full border-2 border-white" />
+                          ) : (
+                            <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
                           )}
                         </div>
                       </div>
@@ -208,6 +216,7 @@ export function SupplierProductsList({
         onClose={handleCloseModal}
         supplierName={supplierName}
         clientName={selectedProduct ? getClientName(selectedProduct) : undefined}
+        onChanged={onProductChanged}
       />
     </>
   );

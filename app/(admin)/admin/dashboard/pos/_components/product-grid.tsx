@@ -37,6 +37,12 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
     return Array.from(uniqueSuppliers.values());
   }, [contextProducts]);
 
+  // Unidades libres: total menos las apartadas en Layaways activos.
+  const availableOf = React.useCallback(
+    (p: Product) => p.quantity - (p.reservedCount ?? 0),
+    []
+  );
+
   // Filtrar productos
   const filteredProducts = React.useMemo(() => {
     return products.filter((product) => {
@@ -50,12 +56,13 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
       const matchesSupplier =
         supplierFilter === "all" || product.supplierId === supplierFilter;
 
-      // Solo productos disponibles
-      const isAvailable = product.status === "Disponible" && product.quantity > 0;
+      // Sólo productos con stock libre para vender.
+      const isAvailable =
+        product.status === "Disponible" && availableOf(product) > 0;
 
       return matchesSearch && matchesSupplier && isAvailable;
     });
-  }, [products, searchTerm, supplierFilter]);
+  }, [products, searchTerm, supplierFilter, availableOf]);
 
   return (
     <div className="flex flex-col h-full">
@@ -116,10 +123,16 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
                 </p>
                 <div className="flex items-center justify-between">
                   <Badge
-                    variant={product.quantity > 5 ? "default" : "destructive"}
+                    variant={availableOf(product) > 5 ? "default" : "destructive"}
                   >
-                    Stock: {product.quantity}
+                    Stock: {availableOf(product)}
                   </Badge>
+                  {(product.reservedCount ?? 0) > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {product.reservedCount} apartado
+                      {(product.reservedCount ?? 0) > 1 ? "s" : ""}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </Card>

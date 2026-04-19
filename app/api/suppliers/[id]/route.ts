@@ -21,7 +21,17 @@ export async function GET(_req: Request, { params }: Ctx) {
     where: { id },
     include: {
       Product: {
+        where: { status: { not: "Retirado" } },
         orderBy: { title: "asc" },
+        include: {
+          _count: {
+            select: {
+              LayawayItem: {
+                where: { Layaway: { status: "Activo" } },
+              },
+            },
+          },
+        },
       },
     },
   });
@@ -33,7 +43,16 @@ export async function GET(_req: Request, { params }: Ctx) {
     );
   }
 
-  return NextResponse.json(supplier);
+  // Aplanar el _count a reservedCount para que el UI lo consuma directo.
+  const response = {
+    ...supplier,
+    Product: supplier.Product.map(({ _count, ...p }) => ({
+      ...p,
+      reservedCount: _count.LayawayItem,
+    })),
+  };
+
+  return NextResponse.json(response);
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
@@ -156,12 +175,15 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
 
-  const productCount = await prisma.product.count({ where: { supplierId: id } });
+  // Los productos retirados no bloquean el borrado del proveedor.
+  const productCount = await prisma.product.count({
+    where: { supplierId: id, status: { not: "Retirado" } },
+  });
   if (productCount > 0) {
     return NextResponse.json(
       {
         error:
-          "No se puede eliminar el proveedor porque tiene productos asociados",
+          "No se puede eliminar el proveedor porque tiene productos activos asociados",
         productCount,
       },
       { status: 409 }

@@ -14,6 +14,8 @@ import {
   initialSales,
   type Supplier,
 } from "@/lib/data";
+import { normalizeProducts, type ApiProduct } from "@/lib/products/normalize";
+import { normalizeClients, type ApiClient } from "@/lib/clients/normalize";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -80,7 +82,21 @@ export default function DashboardLayout({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
-  const [clients, setClients] = React.useState(initialClients);
+  const [clients, setClients] = React.useState<Client[]>([]);
+
+  React.useEffect(() => {
+    async function loadClients() {
+      try {
+        const res = await fetch("/api/clients");
+        if (!res.ok) return;
+        const data: ApiClient[] = await res.json();
+        setClients(normalizeClients(data));
+      } catch (error) {
+        console.error("Error cargando clientes", error);
+      }
+    }
+    loadClients();
+  }, []);
   const [products, setProducts] = React.useState<Product[]>([]);
   const [transactions, setTransactions] = React.useState(initialTransactions);
   const [sales, setSales] = React.useState(initialSales); 
@@ -88,9 +104,9 @@ export default function DashboardLayout({
   React.useEffect(() => {
   async function loadProducts() {
     try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data);
+      const res = await fetch("/api/products?include=all");
+      const data: ApiProduct[] = await res.json();
+      setProducts(normalizeProducts(data));
     } catch (error) {
       console.error("Error loading products", error);
     }

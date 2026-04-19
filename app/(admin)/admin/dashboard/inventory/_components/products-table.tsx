@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Package } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,8 +30,12 @@ interface ProductsTableProps {
 }
 
 export function ProductsTable({ products, suppliers, onEdit, onWithdraw, onAssign }: ProductsTableProps) {
-  // Creamos un mapa para buscar nombres de proveedores de forma eficiente
-  const supplierMap = new Map(suppliers.map((s) => [s.id, s.businessName]));
+  // Creamos un mapa para buscar nombres de proveedores de forma eficiente.
+  // Suppliers.id es number (DB), product.supplierId es string (tras normalizar),
+  // así que llavemos el mapa con strings para que coincidan.
+  const supplierMap = new Map(
+    suppliers.map((s) => [String(s.id), s.businessName])
+  );
 
   // Función para formatear precios a moneda
   const formatCurrency = (amount: number) => {
@@ -62,23 +66,50 @@ export function ProductsTable({ products, suppliers, onEdit, onWithdraw, onAssig
             products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
-                  <Image
-                    src={product.photoUrl}
-                    alt={product.title}
-                    width={48}
-                    height={48}
-                    className="rounded-md object-cover aspect-square"
-                  />
+                  {product.photoUrl ? (
+                    <Image
+                      src={product.photoUrl}
+                      alt={product.title}
+                      width={48}
+                      height={48}
+                      className="rounded-md object-cover aspect-square"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="font-medium">{product.title}</TableCell>
                 <TableCell>{supplierMap.get(product.supplierId) ?? "N/A"}</TableCell>
                 <TableCell>
-                  <Badge variant={product.status === "Disponible" ? "default" : "secondary"}>
-                    {product.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1 items-start">
+                    <Badge
+                      variant={
+                        product.status === "Disponible" ? "default" : "secondary"
+                      }
+                    >
+                      {product.status}
+                    </Badge>
+                    {(product.reservedCount ?? 0) > 0 && (
+                      <Badge className="bg-amber-500 text-white text-xs">
+                        {product.reservedCount} apartado
+                        {(product.reservedCount ?? 0) > 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
-                <TableCell className="text-right">{product.quantity}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end leading-tight">
+                    <span>{product.quantity}</span>
+                    {(product.reservedCount ?? 0) > 0 && (
+                      <span className="text-xs text-amber-600">
+                        {product.quantity - (product.reservedCount ?? 0)} libres
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -90,12 +121,13 @@ export function ProductsTable({ products, suppliers, onEdit, onWithdraw, onAssig
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                       <DropdownMenuItem onSelect={() => onEdit(product)}>Editar</DropdownMenuItem>
-                      {/* AÑADIR LA NUEVA OPCIÓN, solo si está disponible */}
-                      {product.status === "Disponible" && (
-                        <DropdownMenuItem onSelect={() => onAssign(product)}>
-                          Apartar a Cliente
-                        </DropdownMenuItem>
-                      )}
+                      {/* Sólo permite apartar cuando queden unidades libres. */}
+                      {product.status === "Disponible" &&
+                        product.quantity - (product.reservedCount ?? 0) > 0 && (
+                          <DropdownMenuItem onSelect={() => onAssign(product)}>
+                            Apartar a Cliente
+                          </DropdownMenuItem>
+                        )}
                       <DropdownMenuItem onSelect={() => onWithdraw(product)} className="text-red-600">
                         Retirar Mercancía
                       </DropdownMenuItem>

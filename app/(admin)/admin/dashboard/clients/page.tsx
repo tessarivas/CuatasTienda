@@ -3,13 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { DashboardContext } from "../layout";
-import { type Client } from "@/lib/data";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AddClientModal } from "./_components/add-client-modal";
 import { ClientCard } from "./_components/client-card";
 import { Search, UserPlus, Users } from "lucide-react";
+import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
 
 export default function Page() {
   const router = useRouter();
@@ -19,14 +18,30 @@ export default function Page() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
-  const handleAddClient = (newClientData: { name: string; phone: string }) => {
-    const newClient: Client = {
-      ...newClientData,
-      id: `cli-${Date.now()}`,
-      balance: 0,
-    };
-    setClients((prevClients) => [newClient, ...prevClients]);
-    setIsAddModalOpen(false);
+  const handleAddClient = async (newClientData: {
+    name: string;
+    phone: string;
+  }) => {
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newClientData.name,
+          cellphone: newClientData.phone,
+        }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo crear el cliente");
+        return;
+      }
+      const created: ApiClient = await res.json();
+      setClients((prev) => [normalizeClient(created), ...prev]);
+      setIsAddModalOpen(false);
+    } catch {
+      alert("No se pudo crear el cliente");
+    }
   };
 
   const handleCardClick = (clientId: string) => {

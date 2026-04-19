@@ -130,7 +130,7 @@ export function SupplierDetailsForm({
               {/* Nombre del proveedor */}
               <div className="space-y-2">
                 <Label
-                  htmlFor="providerName"
+                  htmlFor="name"
                   className="flex items-center gap-2"
                 >
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -138,31 +138,31 @@ export function SupplierDetailsForm({
                 </Label>
                 {isEditing ? (
                   <Input
-                    id="providerName"
-                    name="providerName"
-                    value={editedSupplier?.providerName || ""}
+                    id="name"
+                    name="name"
+                    value={editedSupplier?.name || ""}
                     onChange={onInputChange}
                   />
                 ) : (
-                  <p className="font-medium">{supplier.providerName}</p>
+                  <p className="font-medium">{supplier.name}</p>
                 )}
               </div>
 
               {/* Teléfono */}
               <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
+                <Label htmlFor="cellphone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   Teléfono
                 </Label>
                 {isEditing ? (
                   <Input
-                    id="phone"
-                    name="phone"
-                    value={editedSupplier?.phone || ""}
+                    id="cellphone"
+                    name="cellphone"
+                    value={editedSupplier?.cellphone || ""}
                     onChange={onInputChange}
                   />
                 ) : (
-                  <p className="font-medium">{supplier.phone}</p>
+                  <p className="font-medium">{supplier.cellphone}</p>
                 )}
               </div>
 

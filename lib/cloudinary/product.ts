@@ -1,28 +1,14 @@
 import cloudinary from "./cloudinary";
 
-// Sanitize name for use in Cloudinary public_id
-function sanitizeFolderName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^a-z0-9]/g, "-") // Replace non-alphanumeric with hyphen
-    .replace(/-+/g, "-") // Collapse multiple hyphens
-    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
-}
-
-// Upload product image (folder: products/{productId}-{title}/picture)
-export async function uploadProductImage(
-  file: Buffer,
-  productId: number,
-  productTitle: string
-) {
-  const folderName = `${productId}-${sanitizeFolderName(productTitle)}`;
+// Sube la foto del producto a `products/{code}/picture`, sobreescribiendo
+// siempre el mismo public_id. El código del producto es único e inmutable,
+// así que el folder se mantiene estable aunque cambie el título.
+export async function uploadProductImage(file: Buffer, code: string) {
   return new Promise<{ secure_url: string }>((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
         {
-          folder: `products/${folderName}`,
+          folder: `products/${code}`,
           public_id: "picture",
           overwrite: true,
           resource_type: "image",
@@ -36,10 +22,7 @@ export async function uploadProductImage(
   });
 }
 
-// Delete product image
-export async function deleteProductImage(productId: number, productTitle: string) {
-  const folderName = `${productId}-${sanitizeFolderName(productTitle)}`;
-  await cloudinary.uploader.destroy(
-    `products/${folderName}/picture`
-  );
+// Elimina la foto del producto (útil al limpiar uploads huérfanos).
+export async function deleteProductImage(code: string) {
+  await cloudinary.uploader.destroy(`products/${code}/picture`);
 }
