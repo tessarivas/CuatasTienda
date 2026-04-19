@@ -44,10 +44,16 @@ export async function POST(req: Request, { params }: Ctx) {
 
       const product = await tx.product.findUnique({
         where: { id: productId },
-        select: { id: true, status: true, price: true, quantity: true },
+        select: { id: true, status: true, price: true, quantity: true, type: true },
       });
       if (!product) {
         return { error: "Producto no encontrado" as const, status: 404 };
+      }
+      if (product.type === "SERVICE") {
+        return {
+          error: "Los servicios no se pueden apartar." as const,
+          status: 400,
+        };
       }
       if (product.status === "Retirado" || product.status === "Vendido") {
         return {

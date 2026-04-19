@@ -26,7 +26,7 @@ export const data = {
       url: "/admin/dashboard/suppliers",
     },
     {
-      title: "Productos",
+      title: "Inventario",
       url: "/admin/dashboard/inventory",
     },
     {

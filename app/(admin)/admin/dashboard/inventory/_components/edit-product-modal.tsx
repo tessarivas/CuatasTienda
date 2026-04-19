@@ -64,6 +64,7 @@ export function EditProductModal({
 
   // Con reservas activas (apartados) los campos sensibles quedan congelados.
   const hasReservations = (product?.reservedCount ?? 0) > 0;
+  const isService = product?.type === "SERVICE";
 
   React.useEffect(() => {
     if (product) {
@@ -93,7 +94,8 @@ export function EditProductModal({
       if (title.trim() !== product.title) body.title = title.trim();
       if (!hasReservations) {
         if (price !== String(product.price)) body.price = price;
-        if (Number(quantity) !== Number(product.quantity))
+        // Los servicios no tienen cantidad.
+        if (!isService && Number(quantity) !== Number(product.quantity))
           body.quantity = Number(quantity);
         if (supplierId !== String(product.supplierId))
           body.supplierId = Number(supplierId);
@@ -168,11 +170,21 @@ export function EditProductModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Editar Producto</DialogTitle>
+            <DialogTitle>
+              {isService ? "Editar Servicio" : "Editar Producto"}
+            </DialogTitle>
             <DialogDescription>
-              Actualiza los datos del producto. El código no se puede modificar.
+              {isService
+                ? "Los servicios no tienen inventario. Sólo título, precio, proveedor y foto se pueden editar."
+                : "Actualiza los datos del producto. El código no se puede modificar."}
             </DialogDescription>
           </DialogHeader>
+
+          {isService && (
+            <div className="rounded-md border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
+              Este ítem es un servicio: no maneja stock ni se puede apartar.
+            </div>
+          )}
 
           {hasReservations && (
             <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-900">
@@ -227,7 +239,7 @@ export function EditProductModal({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={isService ? "grid gap-4" : "grid grid-cols-2 gap-4"}>
               <div className="grid gap-2">
                 <Label htmlFor="price">Precio</Label>
                 <Input
@@ -240,18 +252,20 @@ export function EditProductModal({
                   placeholder="0.00"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="quantity">Cantidad</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  disabled={hasReservations}
-                />
-              </div>
+              {!isService && (
+                <div className="grid gap-2">
+                  <Label htmlFor="quantity">Cantidad</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    disabled={hasReservations}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">

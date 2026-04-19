@@ -160,7 +160,9 @@ export function SupplierProductsList({
                           </span>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Package className="h-3 w-3" />
-                            Stock: {product.quantity}
+                            {product.type === "SERVICE"
+                              ? "Servicio"
+                              : `Stock: ${product.quantity}`}
                           </span>
                         </div>
                       </div>

@@ -1,4 +1,4 @@
-import type { Product, ProductStatus } from "@/lib/data";
+import type { Product, ProductStatus, ProductType } from "@/lib/data";
 
 // Shape returned by Prisma routes: numeric ids, Decimal-as-string price,
 // nullable picture / quantity / code, DB column name `picture`. `reservedCount`
@@ -8,6 +8,7 @@ export type ApiProduct = {
   title: string;
   price: string | number;
   status: string;
+  type?: string;
   picture: string | null;
   quantity: number | null;
   code: string | null;
@@ -19,6 +20,10 @@ export type ApiProduct = {
 // string ids, numeric price). One helper adapts at every API boundary so
 // components don't have to know the DB column names.
 export function normalizeProduct(p: ApiProduct): Product {
+  // Los servicios no tienen stock; el UI espera `quantity: number`, así que
+  // devolvemos 0 y que el consumidor use `type === "SERVICE"` para saber
+  // que no hay inventario.
+  const type: ProductType = p.type === "SERVICE" ? "SERVICE" : "PRODUCT";
   return {
     id: String(p.id),
     supplierId: p.supplierId !== null ? String(p.supplierId) : "",
@@ -26,6 +31,7 @@ export function normalizeProduct(p: ApiProduct): Product {
     price: Number(p.price),
     quantity: p.quantity ?? 0,
     status: p.status as ProductStatus,
+    type,
     photoUrl: p.picture ?? "",
     barcode: p.code ?? undefined,
     reservedCount: p.reservedCount ?? 0,

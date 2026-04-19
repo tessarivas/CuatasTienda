@@ -26,6 +26,8 @@ export default function Page() {
 
   // ... (estados de filtros sin cambios)
   const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] =
+    React.useState<"productos" | "servicios">("productos");
   const [searchTerm, setSearchTerm] = React.useState("");
   const [supplierFilter, setSupplierFilter] = React.useState<string>(
     searchParams.get("supplier") ?? "todos"
@@ -147,28 +149,71 @@ export default function Page() {
     }
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesSupplier =
-      supplierFilter === "todos" ||
-      String(product.supplierId) === supplierFilter;
-    const matchesStatus = (() => {
-      if (statusFilter === "todos") return true;
-      if (statusFilter === "apartados") return (product.reservedCount ?? 0) > 0;
-      return product.status === statusFilter;
-    })();
-    return matchesSearch && matchesSupplier && matchesStatus;
-  });
+  // Separa productos vs servicios antes del resto de filtros. Cada pestaña
+  // mostrará su propio set; los filtros de búsqueda/proveedor/estatus se
+  // comparten entre ambas.
+  const isService = (p: Product) => p.type === "SERVICE";
+  const productItems = products.filter((p) => !isService(p));
+  const serviceItems = products.filter(isService);
+
+  const applyFilters = (list: Product[]) =>
+    list.filter((product) => {
+      const matchesSearch = product.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesSupplier =
+        supplierFilter === "todos" ||
+        String(product.supplierId) === supplierFilter;
+      const matchesStatus = (() => {
+        if (statusFilter === "todos") return true;
+        if (statusFilter === "apartados") return (product.reservedCount ?? 0) > 0;
+        return product.status === statusFilter;
+      })();
+      return matchesSearch && matchesSupplier && matchesStatus;
+    });
+
+  const filteredProducts = applyFilters(productItems);
+  const filteredServices = applyFilters(serviceItems);
+
+  const visibleItems =
+    activeTab === "productos" ? filteredProducts : filteredServices;
 
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-        {/* ... (Barra de filtros y botón de agregar sin cambios) ... */}
+        {/* Pestañas Productos / Servicios */}
+        <div className="flex border-b">
+          <button
+            type="button"
+            onClick={() => setActiveTab("productos")}
+            className={`px-4 py-2 -mb-px border-b-2 text-sm font-medium cursor-pointer transition-colors ${
+              activeTab === "productos"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Productos ({productItems.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("servicios")}
+            className={`px-4 py-2 -mb-px border-b-2 text-sm font-medium cursor-pointer transition-colors ${
+              activeTab === "servicios"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Servicios ({serviceItems.length})
+          </button>
+        </div>
+
         <div className="flex items-center gap-4">
           <Input
-            placeholder="Buscar por título..."
+            placeholder={
+              activeTab === "productos"
+                ? "Buscar por título..."
+                : "Buscar servicio..."
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -186,27 +231,30 @@ export default function Page() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-45 cursor-pointer">
-              <SelectValue placeholder="Filtrar por estatus" />
-            </SelectTrigger>
-            <SelectContent className="cursor-pointer">
-              <SelectItem value="todos">Todos los estatus</SelectItem>
-              <SelectItem value="Disponible">Disponible</SelectItem>
-              <SelectItem value="apartados">Con apartados</SelectItem>
-              <SelectItem value="Vendido">Vendido</SelectItem>
-            </SelectContent>
-          </Select>
+          {activeTab === "productos" && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-45 cursor-pointer">
+                <SelectValue placeholder="Filtrar por estatus" />
+              </SelectTrigger>
+              <SelectContent className="cursor-pointer">
+                <SelectItem value="todos">Todos los estatus</SelectItem>
+                <SelectItem value="Disponible">Disponible</SelectItem>
+                <SelectItem value="apartados">Con apartados</SelectItem>
+                <SelectItem value="Vendido">Vendido</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <div className="ml-auto">
             <Button className="cursor-pointer" onClick={() => setIsAddModalOpen(true)}>
-              Agregar Producto
+              {activeTab === "productos" ? "Agregar Producto" : "Agregar Servicio"}
             </Button>
           </div>
         </div>
 
         <ProductsTable
-          products={filteredProducts}
+          products={visibleItems}
           suppliers={suppliers}
+          mode={activeTab === "servicios" ? "service" : "product"}
           onEdit={handleOpenEditModal}
           onWithdraw={handleOpenWithdrawModal}
           onAssign={handleOpenAssignModal}
@@ -227,6 +275,7 @@ export default function Page() {
         onClose={handleCloseModals}
         onAdd={handleAddProduct}
         suppliers={suppliers}
+        type={activeTab === "servicios" ? "SERVICE" : "PRODUCT"}
       />
       <EditProductModal
         isOpen={isEditModalOpen}

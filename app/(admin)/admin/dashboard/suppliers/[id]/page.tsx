@@ -3,7 +3,7 @@
 import * as React from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { type Supplier, type Product, type ProductStatus } from "@/lib/data";
+import { type Supplier, type Product, type ProductStatus, type ProductType } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { SupplierDetailsForm } from "../_components/supplier-details-form";
@@ -19,6 +19,7 @@ type ApiSupplierWithProducts = Supplier & {
     title: string;
     price: string | number;
     status: string;
+    type?: string;
     picture: string | null;
     quantity: number | null;
     code: string | null;
@@ -226,6 +227,7 @@ export default function SupplierDetailPage({
         price: Number(p.price),
         quantity: p.quantity ?? 0,
         status: p.status as ProductStatus,
+        type: (p.type === "SERVICE" ? "SERVICE" : "PRODUCT") as ProductType,
         photoUrl: p.picture ?? "",
         barcode: p.code ?? undefined,
         reservedCount: p.reservedCount ?? 0,

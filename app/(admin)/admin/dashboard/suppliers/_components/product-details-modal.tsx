@@ -78,6 +78,7 @@ export function ProductDetailsModal({
 
   const hasReservations = (product?.reservedCount ?? 0) > 0;
   const isRetirado = product?.status === "Retirado";
+  const isService = product?.type === "SERVICE";
   const canEdit = !isRetirado;
 
   React.useEffect(() => {
@@ -115,7 +116,7 @@ export function ProductDetailsModal({
           }
           body.price = price;
         }
-        if (Number(quantity) !== Number(product.quantity)) {
+        if (!isService && Number(quantity) !== Number(product.quantity)) {
           body.quantity = Number(quantity);
         }
       }
@@ -386,26 +387,35 @@ export function ProductDetailsModal({
                     <Package className="h-6 w-6" />
                   </div>
                   <div>
-                    <Label className="text-xs">Stock disponible</Label>
-                    {isEditing ? (
-                      <Input
-                        name="quantity"
-                        type="number"
-                        min={0}
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        disabled={hasReservations || !canEdit}
-                        className="text-md font-bold h-8 disabled:opacity-60"
-                      />
+                    {isService ? (
+                      <>
+                        <Label className="text-xs">Tipo</Label>
+                        <p className="text-md font-bold">Servicio (sin inventario)</p>
+                      </>
                     ) : (
-                      <p className="text-md font-bold">
-                        {product.quantity}{" "}
-                        {product.quantity === 1 ? "Unidad" : "Unidades"}
-                      </p>
+                      <>
+                        <Label className="text-xs">Stock disponible</Label>
+                        {isEditing ? (
+                          <Input
+                            name="quantity"
+                            type="number"
+                            min={0}
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            disabled={hasReservations || !canEdit}
+                            className="text-md font-bold h-8 disabled:opacity-60"
+                          />
+                        ) : (
+                          <p className="text-md font-bold">
+                            {product.quantity}{" "}
+                            {product.quantity === 1 ? "Unidad" : "Unidades"}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
-                {!isEditing &&
+                {!isEditing && !isService &&
                   product.quantity < 5 &&
                   product.status === "Disponible" && (
                     <Badge variant="destructive" className="text-xs">

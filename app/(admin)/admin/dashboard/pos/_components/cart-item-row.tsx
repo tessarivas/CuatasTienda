@@ -51,6 +51,13 @@ export function CartItemRow({
 
   const itemTotal = itemSubtotal - itemDiscount;
 
+  // Los servicios no manejan stock: no hay tope. Los productos sí: tope =
+  // unidades libres (quantity - reservedCount).
+  const isService = item.product.type === "SERVICE";
+  const maxQuantity = isService
+    ? Number.POSITIVE_INFINITY
+    : item.product.quantity - (item.product.reservedCount ?? 0);
+
   return (
     <>
       <Card className="p-3 space-y-2">
@@ -91,14 +98,14 @@ export function CartItemRow({
             onChange={handleQuantityChange}
             className="h-8 w-16 text-center"
             min={1}
-            max={item.product.quantity}
+            {...(isService ? {} : { max: maxQuantity })}
           />
           <Button
             variant="outline"
             size="icon"
             className="h-8 w-8 cursor-pointer"
             onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-            disabled={item.quantity >= item.product.quantity}
+            disabled={!isService && item.quantity >= maxQuantity}
           >
             <Plus className="h-3 w-3" />
           </Button>

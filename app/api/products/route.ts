@@ -40,11 +40,15 @@ export async function GET(req: Request) {
       reservedCount: _count.LayawayItem,
     }));
 
-    // El POS sólo quiere productos con stock libre para vender.
+    // El POS sólo quiere items vendibles. Los servicios (quantity = null)
+    // no tienen inventario: siempre están disponibles. Los productos sólo
+    // pasan si hay unidades libres (quantity - reservedCount > 0).
     const filtered = includeAll
       ? withCount
-      : withCount.filter(
-          (p) => (p.quantity ?? 0) - p.reservedCount > 0
+      : withCount.filter((p) =>
+          p.type === "SERVICE"
+            ? true
+            : (p.quantity ?? 0) - p.reservedCount > 0
         );
 
     return NextResponse.json(filtered);
@@ -81,7 +85,7 @@ export async function POST(req: Request) {
 
     const title = (formData.get("title") as string | null)?.trim() ?? "";
     const rawPrice = formData.get("price");
-    const quantity = Number(formData.get("quantity"));
+    const rawQuantity = formData.get("quantity");
     const supplierId = Number(formData.get("supplierId"));
     const rawType = (formData.get("type") as string | null) ?? "PRODUCT";
     const image = formData.get("image") as File | null;
@@ -98,6 +102,7 @@ export async function POST(req: Request) {
       );
     }
     const type: "PRODUCT" | "SERVICE" = rawType;
+    const isService = type === "SERVICE";
 
     const priceStr = typeof rawPrice === "string" ? rawPrice.trim() : "";
     if (!MONEY_PATTERN.test(priceStr)) {
@@ -114,9 +119,25 @@ export async function POST(req: Request) {
     }
     const price = Number(priceStr).toFixed(2);
 
-    if (!title || !quantity || !supplierId) {
+    // Los servicios no tienen inventario. Ignoramos cualquier `quantity`
+    // enviado y persistimos `null`. Los productos sí exigen cantidad > 0.
+    let quantity: number | null;
+    if (isService) {
+      quantity = null;
+    } else {
+      const parsed = Number(rawQuantity);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        return NextResponse.json(
+          { error: "La cantidad debe ser un entero positivo" },
+          { status: 400 }
+        );
+      }
+      quantity = parsed;
+    }
+
+    if (!title || !supplierId) {
       return NextResponse.json(
-        { error: "Título, cantidad y proveedor son obligatorios" },
+        { error: "Título y proveedor son obligatorios" },
         { status: 400 }
       );
     }

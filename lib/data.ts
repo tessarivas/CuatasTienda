@@ -16,6 +16,8 @@ export type Supplier = {
 
 export type ProductStatus = "Disponible" | "Vendido" | "Retirado";
 
+export type ProductType = "PRODUCT" | "SERVICE";
+
 export type Product = {
   id: string;
   supplierId: string;
@@ -24,6 +26,7 @@ export type Product = {
   price: number;
   quantity: number;
   status: ProductStatus;
+  type: ProductType;
   clientId?: string | null;
   barcode?: string; // NUEVO: Opcional para búsqueda en POS
   // Número de unidades reservadas (LayawayItem activos). Derivado en el backend.
@@ -163,6 +166,7 @@ export const initialProducts: Product[] = [
     price: 750.0,
     quantity: 15,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567890",
   },
   {
@@ -173,6 +177,7 @@ export const initialProducts: Product[] = [
     price: 1200.5,
     quantity: 8,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567891",
   },
   {
@@ -183,6 +188,7 @@ export const initialProducts: Product[] = [
     price: 980.0,
     quantity: 1,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567892",
   },
   {
@@ -193,6 +199,7 @@ export const initialProducts: Product[] = [
     price: 350.0,
     quantity: 25,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567893",
   },
   // Productos adicionales para probar el POS
@@ -204,6 +211,7 @@ export const initialProducts: Product[] = [
     price: 650.0,
     quantity: 12,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567894",
   },
   {
@@ -214,6 +222,7 @@ export const initialProducts: Product[] = [
     price: 890.0,
     quantity: 5,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567895",
   },
   {
@@ -224,6 +233,7 @@ export const initialProducts: Product[] = [
     price: 850.0,
     quantity: 10,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567896",
   },
   {
@@ -234,6 +244,7 @@ export const initialProducts: Product[] = [
     price: 1100.0,
     quantity: 7,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567897",
   },
   {
@@ -244,6 +255,7 @@ export const initialProducts: Product[] = [
     price: 450.0,
     quantity: 20,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567898",
   },
   {
@@ -254,6 +266,7 @@ export const initialProducts: Product[] = [
     price: 1500.0,
     quantity: 6,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567899",
   },
   {
@@ -264,6 +277,7 @@ export const initialProducts: Product[] = [
     price: 550.0,
     quantity: 15,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567900",
   },
   {
@@ -274,6 +288,7 @@ export const initialProducts: Product[] = [
     price: 150.0,
     quantity: 30,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567901",
   },
   {
@@ -284,6 +299,7 @@ export const initialProducts: Product[] = [
     price: 400.0,
     quantity: 18,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567902",
   },
   {
@@ -294,6 +310,7 @@ export const initialProducts: Product[] = [
     price: 600.0,
     quantity: 10,
     status: "Vendido",
+    type: "PRODUCT",
     barcode: "7501234567903",
   },
   {
@@ -304,6 +321,7 @@ export const initialProducts: Product[] = [
     price: 250.0,
     quantity: 22,
     status: "Disponible",
+    type: "PRODUCT",
     barcode: "7501234567904",
   },
 ];

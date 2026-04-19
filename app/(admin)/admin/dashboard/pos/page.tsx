@@ -17,8 +17,15 @@ export default function POSPage() {
   const [lastSaleId, setLastSaleId] = React.useState<string>("");
 
   // Unidades libres para vender (descontando las reservadas en apartados).
-  const availableOf = (product: { quantity: number; reservedCount?: number }) =>
-    product.quantity - (product.reservedCount ?? 0);
+  // Los servicios no manejan stock: se consideran ilimitados en caja.
+  const availableOf = (product: {
+    quantity: number;
+    reservedCount?: number;
+    type?: "PRODUCT" | "SERVICE";
+  }) =>
+    product.type === "SERVICE"
+      ? Infinity
+      : product.quantity - (product.reservedCount ?? 0);
 
   // Agregar producto al carrito
   const handleAddToCart = (productId: string) => {
@@ -111,11 +118,11 @@ export default function POSPage() {
       paymentMethod,
     };
 
-    // Actualizar stock de productos
+    // Actualizar stock de productos. Los servicios no descuentan inventario.
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
         const cartItem = cart.find((item) => item.product.id === product.id);
-        if (cartItem) {
+        if (cartItem && product.type !== "SERVICE") {
           return {
             ...product,
             quantity: product.quantity - cartItem.quantity,

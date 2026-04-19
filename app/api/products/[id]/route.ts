@@ -47,6 +47,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     supplierId?: unknown;
     code?: unknown;
     status?: unknown;
+    type?: unknown;
   };
 
   if (input.code !== undefined) {
@@ -61,10 +62,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
       { status: 400 }
     );
   }
+  if (input.type !== undefined) {
+    return NextResponse.json(
+      { error: "El tipo (producto / servicio) no se puede cambiar" },
+      { status: 400 }
+    );
+  }
 
   const current = await prisma.product.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, type: true },
   });
   if (!current) {
     return NextResponse.json(
@@ -136,6 +143,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   if (input.quantity !== undefined) {
+    if (current.type === "SERVICE") {
+      return NextResponse.json(
+        { error: "Los servicios no tienen cantidad" },
+        { status: 400 }
+      );
+    }
     const qty = Number(input.quantity);
     if (!Number.isInteger(qty) || qty < 0) {
       return NextResponse.json(
