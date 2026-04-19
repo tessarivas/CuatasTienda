@@ -11,13 +11,26 @@ import {
   type ProductType,
 } from "@/lib/data";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, PackagePlus, Search, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  Loader2,
+  PackagePlus,
+  Search,
+  Wrench,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SupplierDetailsForm } from "../_components/supplier-details-form";
 import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
 import { MonthlyCutoff } from "../_components/monthly-cutoff";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Shape returned by GET /api/suppliers/[id] — Prisma `include: { Product }`.
 // Decimal columns serialize to strings, `picture` may be null.
@@ -59,7 +72,14 @@ export default function SupplierDetailPage({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddProductModalOpen, setIsAddProductModalOpen] =
     React.useState(false);
+  const [addProductType, setAddProductType] =
+    React.useState<ProductType>("PRODUCT");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleOpenAddProductModal = (type: ProductType) => {
+    setAddProductType(type);
+    setIsAddProductModalOpen(true);
+  };
 
   const reloadSupplier = React.useCallback(async () => {
     try {
@@ -314,13 +334,30 @@ export default function SupplierDetailPage({
                 <Search className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
-            <Button
-              onClick={() => setIsAddProductModalOpen(true)}
-              className="cursor-pointer"
-            >
-              <PackagePlus className="h-4 w-4" />
-              Agregar Producto
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="cursor-pointer">
+                  Agregar
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-52">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => handleOpenAddProductModal("PRODUCT")}
+                >
+                  <PackagePlus className="h-4 w-4" />
+                  Agregar Producto
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => handleOpenAddProductModal("SERVICE")}
+                >
+                  <Wrench className="h-4 w-4" />
+                  Agregar Servicio
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -370,6 +407,7 @@ export default function SupplierDetailPage({
         }}
         suppliers={suppliers}
         supplierId={id}
+        type={addProductType}
       />
     </>
   );

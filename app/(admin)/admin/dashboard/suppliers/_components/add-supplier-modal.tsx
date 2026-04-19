@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -32,6 +33,16 @@ export function AddSupplierModal({
   const [image, setImage] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const imagePreviewUrl = React.useMemo(
+    () => (image ? URL.createObjectURL(image) : null),
+    [image],
+  );
+
+  React.useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
 
   const handleSubmit = async () => {
     if (!name || !businessName) {
@@ -91,6 +102,9 @@ export function AddSupplierModal({
             <UserRoundPlus className="h-5 w-5" />
             Agregar Proveedor
           </DialogTitle>
+          <DialogDescription>
+            Completa los datos para registrar un nuevo proveedor en el sistema.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
@@ -162,17 +176,28 @@ export function AddSupplierModal({
               </div>
 
               {image ? (
-                <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 ">
-                  <span className="truncate">{image.name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
-                    onClick={handleRemoveFile}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                    <span className="truncate">{image.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
+                      onClick={handleRemoveFile}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {imagePreviewUrl && (
+                    <div className="overflow-hidden rounded-md border bg-muted/20">
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Vista previa del logo seleccionado"
+                        className="h-32 w-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="px-2 text-xs text-muted-foreground">
