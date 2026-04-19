@@ -38,12 +38,8 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       return;
     }
 
-    const { user, session } = await res.json();
-    await fetch("/api/sync-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, email: user.email }),
-    });
+    await res.json();
+    await fetch("/api/sync-user", { method: "POST" });
 
     router.push("/admin/dashboard");
   } catch (err) {

@@ -12,6 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,11 +34,11 @@ import {
   Package,
   PackageSearch,
   Pencil,
+  RotateCcw,
   ScanBarcode,
   Store,
   Trash2,
   User,
-  ImageOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeleteProductDialog } from "./delete-product-dialog";
@@ -39,7 +49,11 @@ interface ProductDetailsModalProps {
   onClose: () => void;
   supplierName?: string;
   clientName?: string;
+  // Aviso al padre para que refresque (el supplier detail page hace re-fetch).
+  onChanged?: () => void;
 }
+
+const MONEY_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 export function ProductDetailsModal({
   product,
@@ -47,49 +61,162 @@ export function ProductDetailsModal({
   onClose,
   supplierName = "Desconocido",
   clientName,
+  onChanged,
 }: ProductDetailsModalProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = React.useState(false);
-  const [editedProduct, setEditedProduct] = React.useState<Product | null>(
-    product,
-  );
+  const [title, setTitle] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [quantity, setQuantity] = React.useState("0");
+  const [pendingImage, setPendingImage] = React.useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [confirmPriceChange, setConfirmPriceChange] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const hasReservations = (product?.reservedCount ?? 0) > 0;
+  const isRetirado = product?.status === "Retirado";
+  const isService = product?.type === "SERVICE";
+  const canEdit = !isRetirado;
+
   React.useEffect(() => {
-    setEditedProduct(product);
+    if (product) {
+      setTitle(product.title);
+      setPrice(String(product.price ?? ""));
+      setQuantity(String(product.quantity ?? 0));
+      setPendingImage(null);
+      setPreviewUrl(null);
+      setError("");
+    }
     setIsEditing(false);
   }, [product]);
 
   if (!product) return null;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editedProduct) return;
-    const { name, value } = e.target;
-    setEditedProduct({ ...editedProduct, [name]: value });
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && editedProduct) {
-      const file = e.target.files[0];
-      const newPhotoUrl = URL.createObjectURL(file);
-      setEditedProduct({ ...editedProduct, photoUrl: newPhotoUrl });
+  const doSave = async () => {
+    setError("");
+    setIsSaving(true);
+    try {
+      const body: Record<string, string | number> = {};
+      if (title.trim() !== product.title) body.title = title.trim();
+      if (!hasReservations) {
+        if (price !== String(product.price)) {
+          if (!MONEY_PATTERN.test(price)) {
+            setError("El precio debe tener hasta dos decimales");
+            return;
+          }
+          body.price = price;
+        }
+        if (!isService && Number(quantity) !== Number(product.quantity)) {
+          body.quantity = Number(quantity);
+        }
+      }
+
+      if (Object.keys(body).length > 0) {
+        const res = await fetch(`/api/products/${product.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const { error: message } = await res.json();
+          setError(message ?? "No se pudo actualizar el producto");
+          return;
+        }
+      }
+
+      if (pendingImage) {
+        const formData = new FormData();
+        formData.append("file", pendingImage);
+        const imgRes = await fetch(`/api/products/${product.id}`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!imgRes.ok) {
+          const { error: message } = await imgRes.json();
+          setError(message ?? "No se pudo subir la nueva foto");
+          return;
+        }
+      }
+
+      onChanged?.();
+      setIsEditing(false);
+      onClose();
+    } catch {
+      setError("No se pudo actualizar el producto");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleSave = () => {
-    console.log("Guardando producto:", editedProduct);
-    setIsEditing(false);
+  const handleSaveClick = () => {
+    if (isSaving) return;
+    if (!hasReservations && price !== String(product.price)) {
+      setConfirmPriceChange(true);
+      return;
+    }
+    doSave();
   };
 
-  const handleDelete = () => {
-    console.log("Eliminando producto:", product?.id);
-    setShowDeleteDialog(false);
-    onClose();
+  const handleDelete = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo retirar el producto");
+        return;
+      }
+      onChanged?.();
+      setShowDeleteDialog(false);
+      onClose();
+    } catch {
+      alert("No se pudo retirar el producto");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}/restore`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo restaurar el producto");
+        return;
+      }
+      onChanged?.();
+      onClose();
+    } catch {
+      alert("No se pudo restaurar el producto");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    setEditedProduct(product);
+    setTitle(product.title);
+    setPrice(String(product.price ?? ""));
+    setQuantity(String(product.quantity ?? 0));
+    setPendingImage(null);
+    setPreviewUrl(null);
+    setError("");
     setIsEditing(false);
   };
 
@@ -101,255 +228,333 @@ export function ProductDetailsModal({
         return "bg-amber-500";
       case "Vendido":
         return "bg-rose-500";
+      case "Retirado":
+        return "bg-gray-500";
       default:
         return "bg-gray-500";
     }
   };
 
+  // Silence unused-import warnings for helpers kept for future wiring.
+  void router;
+
+  const displayedImage = previewUrl ?? product.photoUrl;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <DialogTitle className="text-2xl font-bold flex-1">
-              {isEditing ? (
-                <Input
-                  name="title"
-                  value={editedProduct?.title || ""}
-                  onChange={handleInputChange}
-                  className="text-2xl font-bold h-auto"
-                />
-              ) : (
-                product.title
-              )}
-            </DialogTitle>
-            {!isEditing && (
-              <Badge
-                className={cn("text-white shrink-0", getStatusColor(product.status))}
-              >
-                {product.status}
-              </Badge>
-            )}
-          </div>
-          {/* Subtítulo proveedor */}
-           <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Store className="h-4 w-4" />
-              <span>{supplierName}</span>
-           </div>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {/* 1. IMAGEN (col-span-3row-span-4) */}
-          <div className="col-span-3 row-span-4 relative group w-full h-full min-h-62.5 aspect-square md:aspect-auto rounded-xl overflow-hidden bg-muted border-2 border-muted flex items-center justify-center">
-            
-            {(editedProduct?.photoUrl || product.photoUrl) ? (
-              <Image
-                src={editedProduct?.photoUrl || product.photoUrl}
-                alt={product.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 300px"
-                className="object-cover"
-                onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement?.classList.add('image-error');
-                }}
-              />
-            ) : (
-                <ImageOff className="h-12 w-12 text-muted-foreground/50" />
-            )}
-            
-            <div className="hidden in-[.image-error]:flex items-center justify-center w-full h-full absolute inset-0">
-                <ImageOff className="h-12 w-12 text-muted-foreground/50" />
-            </div>
-
-            {isEditing && (
-              <>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute bottom-2 right-2 rounded-full h-10 w-10 cursor-pointer shadow-md z-10"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Pencil className="h-5 w-5" />
-                </Button>
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
-              </>
-            )}
-          </div>
-
-          {/* 2. PRECIO (col-start-4 - span para llenar ancho) */}
-          <div className="col-span-4 md:col-start-4 relative overflow-hidden rounded-xl border border-green-500 bg-linear-to-br from-green-400 to-green-600 p-4 text-white shadow-sm flex items-center justify-between">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-1 opacity-90">
-                <DollarSign className="h-4 w-4" />
-                <Label className="text-xs font-semibold uppercase tracking-wider">Precio</Label>
-              </div>
-              {isEditing ? (
-                <Input
-                  name="price"
-                  type="number"
-                  value={editedProduct?.price || 0}
-                  onChange={handleInputChange}
-                  className="text-3xl font-bold bg-white/20 text-white border-white/40 h-10 w-full"
-                />
-              ) : (
-                <p className="text-3xl font-bold tracking-tight">
-                  ${Number(product.price).toFixed(2)}
-                </p>
-              )}
-            </div>
-             <p className="text-xs font-medium opacity-75 self-end">MXN</p>
-          </div>
-
-          {/* 3. STOCK (col-start-4 row-start-2 - span 4 para llenar ancho) */}
-          <div className="col-span-4 md:col-start-4 md:row-start-2 flex items-center justify-between p-3 bg-sky-50 text-sky-700 rounded-lg border border-sky-100">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-sky-100 rounded-lg shrink-0">
-                <Package className="h-5 w-5 text-sky-600" />
-              </div>
-              <div>
-                <Label className="text-xs text-sky-600/80 block">Stock disponible</Label>
+              <DialogTitle className="text-2xl font-bold">
                 {isEditing ? (
                   <Input
-                    name="quantity"
-                    type="number"
-                    value={editedProduct?.quantity || 0}
-                    onChange={handleInputChange}
-                    className="text-md font-bold h-7 w-20 bg-white"
+                    name="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="text-2xl font-bold h-auto"
                   />
                 ) : (
-                  <p className="text-lg font-bold leading-none">
-                    {product.quantity}{" "}
-                    <span className="text-xs font-normal text-sky-600/70">unid.</span>
-                  </p>
+                  product.title
                 )}
-              </div>
-            </div>
-            {!isEditing &&
-              product.quantity < 5 &&
-              product.status === "Disponible" && (
-                <Badge variant="destructive" className="text-xs animate-pulse">
-                  Bajo
+              </DialogTitle>
+              {!isEditing && (
+                <Badge
+                  className={cn("text-white", getStatusColor(product.status))}
+                >
+                  {product.status}
                 </Badge>
               )}
-          </div>
-
-          {/* 4. CÓDIGO DE BARRAS (col-start-4 row-start-3 - span 4) */}
-          <div className="col-span-4 md:col-start-4 md:row-start-3 flex items-center gap-3 p-3 bg-purple-50 text-purple-700 rounded-lg border border-purple-100">
-            <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-              <ScanBarcode className="h-5 w-5 text-purple-600" />
             </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-purple-600/80 block">Código de barras</Label>
-              {isEditing ? (
-                <Input
-                  name="barcode"
-                  value={editedProduct?.barcode || ""}
-                  onChange={handleInputChange}
-                  className="text-sm font-mono font-semibold h-7 bg-white w-full"
-                  placeholder="Sin código"
-                />
-              ) : (
-                <p className="text-sm font-mono font-semibold truncate text-purple-900">
-                  {product.barcode || "N/A"}
+            {/* Subtítulo: proveedor */}
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Store className="h-4 w-4" />
+              <span>{supplierName}</span>
+            </div>
+          </DialogHeader>
+
+          {hasReservations && (
+            <div className="flex items-center gap-2 p-3 bg-amber-100 text-amber-600 rounded-lg">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <div className="flex-1 min-w-0 pl-1">
+                <p className="text-sm font-semibold">
+                  {product.reservedCount}{" "}
+                  {product.reservedCount === 1
+                    ? "unidad apartada"
+                    : "unidades apartadas"}
                 </p>
+                {clientName && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    <p className="text-xs">Cliente: {clientName}</p>
+                  </div>
+                )}
+                <p className="text-xs mt-1">
+                  No se puede modificar precio ni cantidad hasta liberar los apartados.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isRetirado && (
+            <div className="flex items-center gap-2 p-3 bg-gray-100 text-gray-700 rounded-lg">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <div className="flex-1 min-w-0 pl-1">
+                <p className="text-sm font-semibold">Producto Retirado</p>
+                <p className="text-xs">
+                  Este producto ya no aparece en el inventario. Restáuralo para
+                  volver a editarlo.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-4">
+              <div className="relative group shrink-0">
+                <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+                  {displayedImage ? (
+                    <Image
+                      src={displayedImage}
+                      alt={product.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Package className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {isEditing && canEdit && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-gray-100 text-gray-600 rounded-lg shrink-0">
+                <div className="p-2 rounded-lg">
+                  <PackageSearch className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs">Id del Producto</p>
+                  <p className="text-md font-semibold truncate">{product.id}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="relative overflow-hidden rounded-xl border border-green-500 bg-linear-to-br from-green-400 to-green-600 py-4 px-6 text-white shrink-0">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <DollarSign className="h-5 w-5" />
+                    <Label className="text-sm font-semibold">Precio</Label>
+                  </div>
+                  {isEditing ? (
+                    <Input
+                      name="price"
+                      type="text"
+                      inputMode="decimal"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      disabled={hasReservations || !canEdit}
+                      className="text-4xl font-bold bg-transparent text-white border-white/20 h-auto disabled:opacity-60"
+                    />
+                  ) : (
+                    <p className="text-4xl font-bold">
+                      ${product.price.toFixed(2)}
+                    </p>
+                  )}
+                  <p className="text-sm opacity-75 mt-1">MXN</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-sky-100 text-sky-600 rounded-lg shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg">
+                    <Package className="h-6 w-6" />
+                  </div>
+                  <div>
+                    {isService ? (
+                      <>
+                        <Label className="text-xs">Tipo</Label>
+                        <p className="text-md font-bold">Servicio (sin inventario)</p>
+                      </>
+                    ) : (
+                      <>
+                        <Label className="text-xs">Stock disponible</Label>
+                        {isEditing ? (
+                          <Input
+                            name="quantity"
+                            type="number"
+                            min={0}
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            disabled={hasReservations || !canEdit}
+                            className="text-md font-bold h-8 disabled:opacity-60"
+                          />
+                        ) : (
+                          <p className="text-md font-bold">
+                            {product.quantity}{" "}
+                            {product.quantity === 1 ? "Unidad" : "Unidades"}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+                {!isEditing && !isService &&
+                  product.quantity < 5 &&
+                  product.status === "Disponible" && (
+                    <Badge variant="destructive" className="text-xs">
+                      Stock bajo
+                    </Badge>
+                  )}
+              </div>
+
+              {product.barcode && (
+                <div className="flex items-center gap-3 p-4 bg-purple-100 text-purple-600 rounded-lg shrink-0">
+                  <div className="p-2 rounded-lg">
+                    <ScanBarcode className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Label className="text-xs">Código</Label>
+                    <p className="text-md font-mono font-semibold truncate">
+                      {product.barcode}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
 
-          {/* 5. ID DEL PRODUCTO (col-start-4 row-start-4 - span 4) */}
-          <div className="col-span-4 md:col-start-4 md:row-start-4 flex items-center gap-3 p-3 bg-gray-100 text-gray-600 rounded-lg border border-gray-200">
-            <div className="p-2 bg-white rounded-lg shrink-0">
-              <PackageSearch className="h-5 w-5 text-gray-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-gray-500 block">ID del Producto</Label>
-              <p className="text-xs font-mono font-medium truncate select-all" title={product.id}>
-                {product.id}
-              </p>
-            </div>
-          </div>
+          {error && (
+            <p className="text-sm font-medium text-red-600">{error}</p>
+          )}
 
-           {/* 6. APARTADO / INFO EXTRA (col-span-5 row-start-5 - FILA INFERIOR COMPLETA) */}
-           {product.status === "Apartado" && (
-            <div className="col-span-5 row-start-5 flex items-center gap-3 p-3 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
-                <div className="p-2 bg-amber-100 rounded-full shrink-0">
-                  <AlertCircle className="h-5 w-5 text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-amber-800">Producto Apartado</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <User className="h-3 w-3 opacity-70" />
-                        <p className="text-xs opacity-90 truncate">
-                            Cliente: <span className="font-medium">{clientName || "Desconocido"}</span> 
-                            {!clientName && <span className="text-xs opacity-70 ml-1">({product.clientId})</span>}
-                        </p>
-                    </div>
-                </div>
-            </div>
-           )}
+          <Separator className="my-2" />
 
-        </div>
-
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-2">
-          {isEditing ? (
-            <div className="flex flex-col sm:flex-row gap-2 w-full">
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                className="cursor-pointer sm:mr-auto"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
-              </Button>
-              <div className="flex gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    className="cursor-pointer flex-1 sm:flex-none"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    className="cursor-pointer flex-1 sm:flex-none"
-                  >
-                    Guardar Cambios
-                  </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row justify-between w-full gap-2">
-                 <Button
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {isRetirado ? (
+              <>
+                <Button
                   variant="outline"
                   onClick={onClose}
-                  className="cursor-pointer order-2 sm:order-1"
+                  className="cursor-pointer w-full sm:w-auto"
                 >
                   Cerrar
                 </Button>
                 <Button
-                    onClick={() => setIsEditing(true)}
-                    className="cursor-pointer order-1 sm:order-2"
+                  onClick={handleRestore}
+                  disabled={isSaving}
+                  className="cursor-pointer w-full sm:w-auto"
                 >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar Producto
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Restaurar producto
                 </Button>
-            </div>
-          )}
-        </DialogFooter>
-      </DialogContent>
+              </>
+            ) : isEditing ? (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isSaving}
+                  className="cursor-pointer mr-auto"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Retirar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSaveClick}
+                  disabled={isSaving}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  {isSaving ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  Cerrar
+                </Button>
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  disabled={!canEdit}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar producto
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <DeleteProductDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         product={product}
         onDelete={handleDelete}
       />
-    </Dialog>
+
+      <AlertDialog
+        open={confirmPriceChange}
+        onOpenChange={(open) => {
+          if (!open) setConfirmPriceChange(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar cambio de precio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cambiar el precio puede afectar apartados futuros y reportes de
+              ventas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmPriceChange(false);
+                doSave();
+              }}
+              className="cursor-pointer"
+            >
+              Sí, guardar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

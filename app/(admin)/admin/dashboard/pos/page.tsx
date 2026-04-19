@@ -16,19 +16,29 @@ export default function POSPage() {
   const [showCompleteModal, setShowCompleteModal] = React.useState(false);
   const [lastSaleId, setLastSaleId] = React.useState<string>("");
 
+  // Unidades libres para vender (descontando las reservadas en apartados).
+  // Los servicios no manejan stock: se consideran ilimitados en caja.
+  const availableOf = (product: {
+    quantity: number;
+    reservedCount?: number;
+    type?: "PRODUCT" | "SERVICE";
+  }) =>
+    product.type === "SERVICE"
+      ? Infinity
+      : product.quantity - (product.reservedCount ?? 0);
+
   // Agregar producto al carrito
   const handleAddToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId);
-    if (!product || product.status === "Apartado") return;
-    if (product.quantity <= 0) return;
+    if (!product) return;
+    if (availableOf(product) <= 0) return;
 
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.product.id === productId);
-      
+
       if (existingItem) {
-        // Si ya existe, incrementar cantidad (verificar stock)
-        if (existingItem.quantity >= product.quantity) {
-          return prevCart; // No agregar más si no hay stock
+        if (existingItem.quantity >= availableOf(product)) {
+          return prevCart; // sin stock libre adicional
         }
         return prevCart.map((item) =>
           item.product.id === productId
@@ -36,7 +46,6 @@ export default function POSPage() {
             : item
         );
       } else {
-        // Si no existe, agregarlo
         return [...prevCart, { product, quantity: 1 }];
       }
     });
@@ -51,7 +60,7 @@ export default function POSPage() {
 
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-    if (quantity > product.quantity) return; // No permitir más del stock
+    if (quantity > availableOf(product)) return;
 
     setCart((prevCart) =>
       prevCart.map((item) =>
@@ -109,11 +118,11 @@ export default function POSPage() {
       paymentMethod,
     };
 
-    // Actualizar stock de productos
+    // Actualizar stock de productos. Los servicios no descuentan inventario.
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
         const cartItem = cart.find((item) => item.product.id === product.id);
-        if (cartItem) {
+        if (cartItem && product.type !== "SERVICE") {
           return {
             ...product,
             quantity: product.quantity - cartItem.quantity,

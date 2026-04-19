@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AssignProductModal } from "../_components/assign-product-modal";
-import { AddPaymentModal } from "../_components/add-payment-modal";
-import { type Product, type Transaction } from "@/lib/data";
+import {
+  AddPaymentModal,
+  type PaymentMethod,
+} from "../_components/add-payment-modal";
 import {
   ArrowLeft,
   Plus,
@@ -29,138 +31,258 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  normalizeClient,
+  type ApiClient,
+} from "@/lib/clients/normalize";
+
+type ActiveLayaway = {
+  id: number;
+  status: string;
+  LayawayItem: Array<{
+    id: number;
+    productId: number;
+    price: string | number;
+    Product: {
+      id: number;
+      title: string;
+      price: string | number;
+      status: string;
+      picture: string | null;
+      quantity: number | null;
+    };
+  }>;
+} | null;
+
+type Movement =
+  | {
+      type: "abono";
+      id: number;
+      date: string;
+      amount: string;
+      method: string;
+    }
+  | {
+      type: "liquidacion";
+      id: number;
+      date: string;
+      amount: string;
+      items: { productId: number; title: string; finalPrice: string }[];
+    };
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const {
-    clients,
-    setClients,
-    products,
-    setProducts,
-    transactions,
-    setTransactions,
-  } = React.useContext(DashboardContext);
+  const { clients, setClients, products, setProducts } =
+    React.useContext(DashboardContext);
+
+  const [layaway, setLayaway] = React.useState<ActiveLayaway>(null);
+  const [movements, setMovements] = React.useState<Movement[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = React.useState(true);
 
   const [isAssignModalOpen, setIsAssignModalOpen] = React.useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
   const [showLiquidateAllDialog, setShowLiquidateAllDialog] =
     React.useState(false);
+  const [actionInFlight, setActionInFlight] = React.useState(false);
 
-  const client = clients.find((c) => c.id === id);
+  const client = clients.find((c) => c.id === id) ?? null;
 
-  const handleAddPayment = (amount: number) => {
-    setClients(
-      clients.map((c) =>
-        c.id === id ? { ...c, balance: c.balance + amount } : c,
-      ),
-    );
-
-    const newTransaction: Transaction = {
-      id: `txn-${Date.now()}`,
-      clientId: id,
-      type: "abono",
-      amount: amount,
-      date: new Date().toLocaleDateString("es-MX"),
-      details: "Abono a cuenta",
-    };
-    setTransactions([newTransaction, ...transactions]);
-  };
-
-  const handleLiquidate = (product: Product) => {
-    if (!client || client.balance < product.price) {
-      alert("El saldo no es suficiente para liquidar este producto.");
-      return;
-    }
-
-    setClients(
-      clients.map((c) =>
-        c.id === id ? { ...c, balance: c.balance - product.price } : c,
-      ),
-    );
-
-    setProducts(
-      products.map((p) =>
-        p.id === product.id ? { ...p, status: "Vendido", clientId: null } : p,
-      ),
-    );
-
-    const newTransaction: Transaction = {
-      id: `txn-${Date.now()}`,
-      clientId: id,
-      type: "liquidacion",
-      amount: -product.price,
-      date: new Date().toLocaleDateString("es-MX"),
-      details: `Liquidación: ${product.title}`,
-    };
-    setTransactions([newTransaction, ...transactions]);
-  };
-
-  const handleLiquidateAll = () => {
-    if (!client) return;
-
-    const totalToPay = reservedProducts.reduce((sum, p) => sum + p.price, 0);
-
-    if (client.balance < totalToPay) {
-      alert(
-        `El saldo no es suficiente. Se necesitan $${totalToPay.toFixed(2)} MXN`,
+  const reloadClient = React.useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${id}`);
+      if (!res.ok) return;
+      const data: ApiClient = await res.json();
+      const normalized = normalizeClient(data);
+      setClients((prev) =>
+        prev.some((c) => c.id === normalized.id)
+          ? prev.map((c) => (c.id === normalized.id ? normalized : c))
+          : [normalized, ...prev]
       );
-      return;
+    } catch {
+      /* silencioso — el UI sigue usando el estado previo */
     }
+  }, [id, setClients]);
 
-    // Actualizar saldo del cliente
-    setClients(
-      clients.map((c) =>
-        c.id === id ? { ...c, balance: c.balance - totalToPay } : c,
-      ),
-    );
+  const reloadLayaway = React.useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${id}/layaway`);
+      if (!res.ok) return;
+      const data: ActiveLayaway = await res.json();
+      setLayaway(data);
+    } catch {
+      /* ignore */
+    }
+  }, [id]);
 
-    // Marcar todos los productos como vendidos
-    const productIds = reservedProducts.map((p) => p.id);
-    setProducts(
-      products.map((p) =>
-        productIds.includes(p.id)
-          ? { ...p, status: "Vendido", clientId: null }
-          : p,
-      ),
-    );
+  const reloadMovements = React.useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${id}/movements`);
+      if (!res.ok) return;
+      const data: Movement[] = await res.json();
+      setMovements(data);
+    } catch {
+      /* ignore */
+    }
+  }, [id]);
 
-    // Crear transacción por cada producto
-    const newTransactions = reservedProducts.map((product) => ({
-      id: `txn-${Date.now()}-${product.id}`,
-      clientId: id,
-      type: "liquidacion" as const,
-      amount: -product.price,
-      date: new Date().toLocaleDateString("es-MX"),
-      details: `Liquidación: ${product.title}`,
+  React.useEffect(() => {
+    (async () => {
+      await Promise.all([reloadClient(), reloadLayaway(), reloadMovements()]);
+      setIsLoadingDetail(false);
+    })();
+  }, [reloadClient, reloadLayaway, reloadMovements]);
+
+  const reservedItems = React.useMemo(() => {
+    const items = layaway?.LayawayItem ?? [];
+    return items.map((item) => ({
+      itemId: item.id,
+      productId: item.productId,
+      title: item.Product.title,
+      price: Number(item.price),
     }));
+  }, [layaway]);
 
-    setTransactions([...newTransactions, ...transactions]);
-    setShowLiquidateAllDialog(false);
-  };
-
-  const handleAssignProduct = (productId: string, clientId: string) => {
-    setProducts(
-      products.map((p) =>
-        p.id === productId ? { ...p, status: "Apartado", clientId } : p,
+  const availableProducts = React.useMemo(
+    () =>
+      products.filter(
+        (p) =>
+          p.status === "Disponible" &&
+          p.quantity - (p.reservedCount ?? 0) > 0
       ),
-    );
+    [products]
+  );
+
+  const totalReservedValue = reservedItems.reduce(
+    (sum, p) => sum + p.price,
+    0
+  );
+  const remainingBalance = client
+    ? client.balance - totalReservedValue
+    : 0;
+
+  // --- Handlers ---
+
+  const handleAddPayment = async (amount: number, method: PaymentMethod) => {
+    if (actionInFlight) return;
+    setActionInFlight(true);
+    try {
+      const res = await fetch(`/api/clients/${id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amount.toFixed(2), method }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo registrar el abono");
+        return;
+      }
+      const { client: updatedClient }: { client: ApiClient } = await res.json();
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === id ? normalizeClient(updatedClient) : c
+        )
+      );
+      await reloadMovements();
+      setIsPaymentModalOpen(false);
+    } catch {
+      alert("No se pudo registrar el abono");
+    } finally {
+      setActionInFlight(false);
+    }
   };
 
-  const reservedProducts = products.filter(
-    (p) => p.clientId === id && p.status === "Apartado",
-  );
-  const availableProducts = products.filter((p) => p.status === "Disponible");
-  const clientTransactions = transactions.filter((t) => t.clientId === id);
+  const handleAssignProduct = async (productId: string) => {
+    if (actionInFlight) return;
+    setActionInFlight(true);
+    try {
+      const res = await fetch(`/api/clients/${id}/layaway/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: Number(productId) }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo apartar el producto");
+        return;
+      }
+      // Reflejar en contexto: subimos el conteo de reservas del producto.
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? { ...p, reservedCount: (p.reservedCount ?? 0) + 1 }
+            : p
+        )
+      );
+      await reloadLayaway();
+      setIsAssignModalOpen(false);
+    } catch {
+      alert("No se pudo apartar el producto");
+    } finally {
+      setActionInFlight(false);
+    }
+  };
 
-  const totalReservedValue = reservedProducts.reduce(
-    (sum, p) => sum + p.price,
-    0,
-  );
-  const remainingBalance = client ? client.balance - totalReservedValue : 0;
+  const liquidateItems = async (itemIds: number[]) => {
+    if (actionInFlight || itemIds.length === 0) return;
+    setActionInFlight(true);
+    try {
+      const res = await fetch(`/api/clients/${id}/layaway/liquidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemIds }),
+      });
+      if (!res.ok) {
+        const { error: message, faltante } = await res.json();
+        alert(
+          faltante
+            ? `${message} Faltan $${faltante} MXN.`
+            : (message ?? "No se pudo liquidar")
+        );
+        return;
+      }
+      const { client: updatedClient }: { client: ApiClient } = await res.json();
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === id ? normalizeClient(updatedClient) : c
+        )
+      );
+      // Cada item liquidado consume 1 unidad y 1 reserva del producto.
+      // Si el stock queda en 0 el backend flipea a "Vendido"; en otro caso
+      // mantiene "Disponible".
+      const liquidatedProductIds = reservedItems
+        .filter((r) => itemIds.includes(r.itemId))
+        .map((r) => String(r.productId));
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (!liquidatedProductIds.includes(p.id)) return p;
+          const newQty = Math.max(0, p.quantity - 1);
+          const newReserved = Math.max(0, (p.reservedCount ?? 0) - 1);
+          return {
+            ...p,
+            quantity: newQty,
+            reservedCount: newReserved,
+            status: newQty === 0 ? ("Vendido" as const) : p.status,
+          };
+        })
+      );
+      await Promise.all([reloadLayaway(), reloadMovements()]);
+      setShowLiquidateAllDialog(false);
+    } catch {
+      alert("No se pudo liquidar");
+    } finally {
+      setActionInFlight(false);
+    }
+  };
 
-  if (!client) {
+  const handleLiquidateOne = (itemId: number) => liquidateItems([itemId]);
+  const handleLiquidateAll = () =>
+    liquidateItems(reservedItems.map((r) => r.itemId));
+
+  // --- Render ---
+
+  if (!client && !isLoadingDetail) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="text-center">
@@ -174,6 +296,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             Volver
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (!client) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <p className="text-sm text-muted-foreground">Cargando...</p>
       </div>
     );
   }
@@ -197,7 +327,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        {/* Tarjeta de Saldo Grande */}
+        {/* Tarjeta de Saldo */}
         <Card className="border-0 bg-green-50">
           <CardHeader>
             <CardTitle className="text-lg text-green-600">
@@ -212,7 +342,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               Dinero que {client.name} tiene abonado.
             </p>
 
-            {/* Botones de Acción Grandes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
               <Button
                 size="lg"
@@ -235,7 +364,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </CardContent>
         </Card>
 
-        {/* Grid de 2 columnas */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Productos Apartados */}
           <Card className="border-2 py-0">
@@ -245,70 +373,70 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   <Clock className="h-5 w-5 text-primary" />
                   Productos Apartados
                 </CardTitle>
-                <Badge className="text-lg px-3">
-                  {reservedProducts.length}
-                </Badge>
+                <Badge className="text-lg px-3">{reservedItems.length}</Badge>
               </div>
             </CardHeader>
             <CardContent className="pb-6">
-              {reservedProducts.length > 0 ? (
+              {reservedItems.length > 0 ? (
                 <div className="space-y-4">
-                  {/* Lista de productos */}
                   <div className="space-y-3">
-                    {reservedProducts.map((product) => (
+                    {reservedItems.map((item) => (
                       <div
-                        key={product.id}
+                        key={item.itemId}
                         className="p-4 border-2 rounded-lg bg-white transition-colors"
                       >
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1">
                             <p className="font-semibold text-lg">
-                              {product.title}
+                              {item.title}
                             </p>
                             <p className="text-2xl font-bold text-primary mt-1">
-                              ${product.price.toFixed(2)}
+                              ${item.price.toFixed(2)}
                             </p>
                           </div>
                           <Button
                             size="lg"
                             className="cursor-pointer bg-rose-600 hover:bg-rose-700"
-                            disabled={client.balance < product.price}
-                            onClick={() => handleLiquidate(product)}
+                            disabled={
+                              actionInFlight || client.balance < item.price
+                            }
+                            onClick={() => handleLiquidateOne(item.itemId)}
                           >
                             <Minus className="h-4 w-4" />
                             Marcar como Vendido
                           </Button>
                         </div>
-                        {client.balance < product.price && (
+                        {client.balance < item.price && (
                           <p className="text-sm font-semibold text-rose-400">
-                            Falta abonar $
-                            {(product.price - client.balance).toFixed(2)}
+                            Falta abonar ${(item.price - client.balance).toFixed(2)}
                           </p>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {/* Resumen de totales */}
                   <div className="p-4 bg-amber-100 rounded-lg border-0">
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-semibold text-amber-600">Total apartado:</span>
+                      <span className="text-xl font-semibold text-amber-600">
+                        Total apartado:
+                      </span>
                       <span className="text-2xl font-bold text-amber-600">
                         ${totalReservedValue.toFixed(2)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Botón Liquidar Todo */}
-                  {reservedProducts.length > 1 && (
+                  {reservedItems.length > 1 && (
                     <Button
                       size="lg"
                       className="w-full h-14 text-lg cursor-pointer bg-blue-600 hover:bg-blue-700"
                       onClick={() => setShowLiquidateAllDialog(true)}
-                      disabled={client.balance < totalReservedValue}
+                      disabled={
+                        actionInFlight || client.balance < totalReservedValue
+                      }
                     >
                       <CheckCircle2 className="mr-2 h-5 w-5" />
-                      Liquidar Cuenta ({reservedProducts.length} productos)
+                      Liquidar Cuenta ({reservedItems.length} productos)
                     </Button>
                   )}
                 </div>
@@ -319,7 +447,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     No hay productos apartados
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Usa el botón "Apartar Producto" para agregar
+                    Usa el botón &quot;Apartar Producto&quot; para agregar
                   </p>
                 </div>
               )}
@@ -329,45 +457,54 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           {/* Historial */}
           <Card className="border-2 py-0">
             <CardHeader className="bg-secondary py-4">
-                <CardTitle className="text-xl flex items-center gap-2 mt-1">
+              <CardTitle className="text-xl flex items-center gap-2 mt-1">
                 <DollarSign className="h-5 w-5 text-primary" />
                 Historial de Movimientos
               </CardTitle>
             </CardHeader>
             <CardContent className="pb-6">
-              {clientTransactions.length > 0 ? (
+              {movements.length > 0 ? (
                 <div className="space-y-3 max-h-150 overflow-y-auto">
-                  {clientTransactions.map((t) => (
+                  {movements.map((m) => (
                     <div
-                      key={t.id}
+                      key={`${m.type}-${m.id}`}
                       className={`p-4 border-2 rounded-lg ${
-                        t.type === "abono"
+                        m.type === "abono"
                           ? "bg-green-50 border-green-200"
                           : "bg-red-50 border-red-200"
                       }`}
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-semibold text-lg">{t.details}</p>
+                          <p className="font-semibold text-lg">
+                            {m.type === "abono"
+                              ? `Abono (${m.method})`
+                              : `Liquidación: ${m.items.map((i) => i.title).join(", ")}`}
+                          </p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {t.date}
+                            {new Date(m.date).toLocaleDateString("es-MX", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </p>
                         </div>
                         <div className="text-right">
                           <p
                             className={`text-2xl font-bold ${
-                              t.type === "abono"
+                              m.type === "abono"
                                 ? "text-green-700"
                                 : "text-red-700"
                             }`}
                           >
-                            {t.type === "abono" ? "+" : "-"}$
-                            {Math.abs(t.amount).toFixed(2)}
+                            {m.type === "abono" ? "+" : "-"}$
+                            {Number(m.amount).toFixed(2)}
                           </p>
-                          {t.type === "abono" && (
+                          {m.type === "abono" ? (
                             <Badge className="mt-1 bg-green-600">Abono</Badge>
-                          )}
-                          {t.type === "liquidacion" && (
+                          ) : (
                             <Badge className="mt-1 bg-red-600">Pago</Badge>
                           )}
                         </div>
@@ -392,7 +529,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       <AssignProductModal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
-        onAssign={handleAssignProduct}
+        onAssign={(productId) => handleAssignProduct(productId)}
         client={client}
         availableProducts={availableProducts}
       />
@@ -402,7 +539,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         onAddPayment={handleAddPayment}
       />
 
-      {/* Dialog de confirmación para liquidar todo */}
       <AlertDialog
         open={showLiquidateAllDialog}
         onOpenChange={setShowLiquidateAllDialog}
@@ -415,12 +551,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <AlertDialogDescription className="text-base space-y-3 pt-4">
               <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
                 <p className="font-semibold text-blue-900 mb-2">
-                  Se van a liquidar {reservedProducts.length} productos:
+                  Se van a liquidar {reservedItems.length} productos:
                 </p>
                 <ul className="space-y-1 text-sm text-blue-800">
-                  {reservedProducts.map((p) => (
-                    <li key={p.id}>
-                      • {p.title} - ${p.price.toFixed(2)}
+                  {reservedItems.map((r) => (
+                    <li key={r.itemId}>
+                      • {r.title} - ${r.price.toFixed(2)}
                     </li>
                   ))}
                 </ul>
@@ -449,11 +585,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer">
+            <AlertDialogCancel
+              className="cursor-pointer"
+              disabled={actionInFlight}
+            >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLiquidateAll}
+              disabled={actionInFlight}
               className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
             >
               Sí, liquidar todo

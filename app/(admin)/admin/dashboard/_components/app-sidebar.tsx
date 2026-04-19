@@ -26,7 +26,7 @@ export const data = {
       url: "/admin/dashboard/suppliers",
     },
     {
-      title: "Productos",
+      title: "Inventario",
       url: "/admin/dashboard/inventory",
     },
     {
@@ -41,6 +41,10 @@ export const data = {
         { title: "Corte de Caja", url: "#" },
       ],
     },
+    {
+      title: "Mi Perfil",
+      url: "/admin/dashboard/profile",
+    },
   ],
 };
 
@@ -49,7 +53,24 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const username = "Admin"
+  const [username, setUsername] = React.useState("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) return;
+        const data: { name?: string } = await res.json();
+        if (!cancelled && data.name) setUsername(data.name);
+      } catch {
+        // silent — sidebar just falls back to empty
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -129,9 +150,14 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <div className="flex flex-col gap-0.5 leading-none p-2 text-sm">
-                <span className="font-medium capitalize">{username}</span>
-              </div>
+              <a
+                href="/admin/dashboard/profile"
+                className="flex flex-col gap-0.5 leading-none p-2 text-sm rounded-md hover:bg-muted"
+              >
+                <span className="font-medium capitalize">
+                  {username || "Mi perfil"}
+                </span>
+              </a>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Button

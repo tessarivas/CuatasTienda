@@ -6,26 +6,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type Product, type Supplier } from "@/lib/data";
+import { type Product, type ProductType, type Supplier } from "@/lib/data";
 
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (product: Product) => void;
   suppliers: Supplier[];
+  type?: ProductType;
+  // Cuando el modal se abre desde el detalle de un proveedor, bloqueamos
+  // el select al proveedor en cuestión.
+  supplierId?: string;
 }
 
-export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProductModalProps) {
+export function AddProductModal({
+  isOpen,
+  onClose,
+  onAdd,
+  suppliers,
+  type = "PRODUCT",
+  supplierId: lockedSupplierId,
+}: AddProductModalProps) {
+  const isService = type === "SERVICE";
   const [title, setTitle] = React.useState("");
   const [price, setPrice] = React.useState(0);
   const [quantity, setQuantity] = React.useState(1);
   const [image, setImage] = React.useState<File | null>(null);
-  const [supplierId, setSupplierId] = React.useState("");
+  const [supplierId, setSupplierId] = React.useState(
+    lockedSupplierId ?? ""
+  );
   const [loading, setLoading] = React.useState(false);
 
+  // Si el padre cambia el supplierId bloqueado (o el modal se reabre),
+  // sincronizamos el state interno.
+  React.useEffect(() => {
+    if (lockedSupplierId) setSupplierId(lockedSupplierId);
+  }, [lockedSupplierId, isOpen]);
+
   const handleSubmit = async () => {
-    if (!title || !price || !quantity || !supplierId) {
-      alert("Todos los campos son obligatorios, incluyendo el proveedor.");
+    if (!title || !price || !supplierId || (!isService && !quantity)) {
+      alert(
+        isService
+          ? "Título, precio y proveedor son obligatorios."
+          : "Todos los campos son obligatorios, incluyendo el proveedor.",
+      );
       return;
     }
 
@@ -34,7 +58,8 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
     const formData = new FormData();
     formData.append("title", title);
     formData.append("price", String(price));
-    formData.append("quantity", String(quantity));
+    formData.append("type", type);
+    if (!isService) formData.append("quantity", String(quantity));
     formData.append("supplierId", supplierId);
     if (image) formData.append("image", image);
 
@@ -44,7 +69,11 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
         body: formData,
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const { error: message } = await res.json().catch(() => ({}));
+        alert(message ?? (isService ? "Error creando servicio" : "Error creando producto"));
+        return;
+      }
 
       const product: Product = await res.json();
       onAdd(product);
@@ -53,10 +82,10 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
       setPrice(0);
       setQuantity(1);
       setImage(null);
-      setSupplierId("");
+      setSupplierId(lockedSupplierId ?? "");
       onClose();
     } catch {
-      alert("Error creando producto");
+      alert(isService ? "Error creando servicio" : "Error creando producto");
     } finally {
       setLoading(false);
     }
@@ -66,21 +95,29 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+          <DialogTitle>
+            {isService ? "Agregar Nuevo Servicio" : "Agregar Nuevo Producto"}
+          </DialogTitle>
           <DialogDescription>
-            Completa los detalles para registrar un nuevo producto en el inventario.
+            {isService
+              ? "Los servicios no tienen inventario ni se pueden apartar; sólo se venden en caja."
+              : "Completa los detalles para registrar un nuevo producto en el inventario."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="supplier" className="text-right">Proveedor</Label>
-            <Select value={supplierId} onValueChange={setSupplierId}>
+            <Select
+              value={supplierId}
+              onValueChange={setSupplierId}
+              disabled={!!lockedSupplierId}
+            >
               <SelectTrigger id="supplier" className="col-span-3">
                 <SelectValue placeholder="Selecciona un proveedor" />
               </SelectTrigger>
               <SelectContent>
                 {suppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id}>
+                  <SelectItem key={supplier.id} value={String(supplier.id)}>
                     {supplier.businessName}
                   </SelectItem>
                 ))}
@@ -95,10 +132,12 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
             <Label htmlFor="price" className="text-right">Precio</Label>
             <Input id="price" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} className="col-span-3" />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="quantity" className="text-right">Cantidad</Label>
-            <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="col-span-3" />
-          </div>
+          {!isService && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="quantity" className="text-right">Cantidad</Label>
+              <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="col-span-3" />
+            </div>
+          )}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">Logo</Label>
               <Input
@@ -114,7 +153,11 @@ export function AddProductModal({ isOpen, onClose, onAdd, suppliers }: AddProduc
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Guardando..." : "Agregar Producto"}
+            {loading
+              ? "Guardando..."
+              : isService
+              ? "Agregar Servicio"
+              : "Agregar Producto"}
           </Button>
         </DialogFooter>
       </DialogContent>

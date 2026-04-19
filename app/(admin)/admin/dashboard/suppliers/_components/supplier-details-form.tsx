@@ -136,7 +136,7 @@ export function SupplierDetailsForm({
                 {isEditing ? (
                   <Input
                     id="name"
-                    name="name" // IMPORTANTE: name="name"
+                    name="name"
                     value={editedSupplier?.name || ""}
                     onChange={onInputChange}
                   />
@@ -154,7 +154,7 @@ export function SupplierDetailsForm({
                 {isEditing ? (
                   <Input
                     id="cellphone"
-                    name="cellphone" // IMPORTANTE: name="cellphone"
+                    name="cellphone"
                     value={editedSupplier?.cellphone || ""}
                     onChange={onInputChange}
                   />

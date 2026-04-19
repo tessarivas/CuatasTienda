@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, Package, Wrench } from "lucide-react";
 
 interface ProductGridProps {
   products: Product[];
@@ -37,6 +37,12 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
     return Array.from(uniqueSuppliers.values());
   }, [contextProducts]);
 
+  // Unidades libres: total menos las apartadas en Layaways activos.
+  const availableOf = React.useCallback(
+    (p: Product) => p.quantity - (p.reservedCount ?? 0),
+    []
+  );
+
   // Filtrar productos
   const filteredProducts = React.useMemo(() => {
     return products.filter((product) => {
@@ -50,12 +56,15 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
       const matchesSupplier =
         supplierFilter === "all" || product.supplierId === supplierFilter;
 
-      // Solo productos disponibles
-      const isAvailable = product.status === "Disponible" && product.quantity > 0;
+      // Los servicios no manejan stock: siempre están disponibles mientras
+      // su estatus sea "Disponible". Los productos exigen unidades libres.
+      const isAvailable =
+        product.status === "Disponible" &&
+        (product.type === "SERVICE" || availableOf(product) > 0);
 
       return matchesSearch && matchesSupplier && isAvailable;
     });
-  }, [products, searchTerm, supplierFilter]);
+  }, [products, searchTerm, supplierFilter, availableOf]);
 
   return (
     <div className="flex flex-col h-full">
@@ -94,16 +103,19 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
               onClick={() => onAddToCart(product.id)}
               className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 p-4 flex flex-col"
             >
-              {/* Imagen del producto */}
+              {/* Imagen del producto (o placeholder si no hay foto) */}
               <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                <img
-                  src={product.photoUrl}
-                  alt={product.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-product.png";
-                  }}
-                />
+                {product.photoUrl ? (
+                  <img
+                    src={product.photoUrl}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : product.type === "SERVICE" ? (
+                  <Wrench className="h-10 w-10 text-muted-foreground" />
+                ) : (
+                  <Package className="h-10 w-10 text-muted-foreground" />
+                )}
               </div>
 
               {/* Información del producto */}
@@ -115,11 +127,26 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
                   ${product.price.toFixed(2)}
                 </p>
                 <div className="flex items-center justify-between">
-                  <Badge
-                    variant={product.quantity > 5 ? "default" : "destructive"}
-                  >
-                    Stock: {product.quantity}
-                  </Badge>
+                  {product.type === "SERVICE" ? (
+                    <Badge
+                      variant="outline"
+                      className="border-sky-400 text-sky-700"
+                    >
+                      Servicio
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant={availableOf(product) > 5 ? "default" : "destructive"}
+                    >
+                      Stock: {availableOf(product)}
+                    </Badge>
+                  )}
+                  {product.type !== "SERVICE" && (product.reservedCount ?? 0) > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {product.reservedCount} apartado
+                      {(product.reservedCount ?? 0) > 1 ? "s" : ""}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </Card>

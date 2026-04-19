@@ -15,34 +15,37 @@ import { AddProductModal } from "../../inventory/_components/add-product-modal";
 
 interface SupplierProductsListProps {
   products: Product[];
-  supplierId: string; // ID es string según tu uso
-  supplierName: string; 
+  supplierId: string;
+  supplierName: string;
+  onProductChanged?: () => void;
 }
 
 export function SupplierProductsList({
   products,
   supplierId,
   supplierName,
+  onProductChanged,
 }: SupplierProductsListProps) {
   const router = useRouter();
-  
-  // Usamos 'any' temporalmente para evitar el error de tipado estricto si reloadProducts no está en la definición oficial del contexto aún,
-  // pero sabemos que existe en el Provider.
-  const context = React.useContext(DashboardContext) as any; 
-  const { clients, suppliers, reloadProducts } = context;
+  const { clients, suppliers } = React.useContext(DashboardContext) as {
+    clients: Client[];
+    suppliers: import("@/lib/data").Supplier[];
+  };
 
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
-    null,
+    null
   );
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isAddProductModalOpen, setIsAddProductModalOpen] =
     React.useState(false);
 
-  // Contar productos por estado
+  // Contar productos: "apartados" ahora es cualquier producto con reservedCount > 0.
   const availableCount = products.filter(
-    (p) => p.status === "Disponible",
+    (p) => p.status === "Disponible" && (p.reservedCount ?? 0) === 0
   ).length;
-  const apartadoCount = products.filter((p) => p.status === "Apartado").length;
+  const apartadoCount = products.filter(
+    (p) => (p.reservedCount ?? 0) > 0
+  ).length;
   const vendidoCount = products.filter((p) => p.status === "Vendido").length;
 
   const handleOpenModal = (product: Product) => {
@@ -61,9 +64,9 @@ export function SupplierProductsList({
     return client?.name;
   };
 
-  const handleProductAdded = async () => {
-    if (reloadProducts) await reloadProducts();
+  const handleProductAdded = () => {
     setIsAddProductModalOpen(false);
+    onProductChanged?.();
   };
 
   return (
@@ -83,7 +86,7 @@ export function SupplierProductsList({
                 size="sm"
                 onClick={() =>
                   router.push(
-                    `/admin/dashboard/inventory?supplier=${supplierId}`,
+                    `/admin/dashboard/inventory?supplier=${supplierId}`
                   )
                 }
                 className="cursor-pointer text-primary"
@@ -130,37 +133,38 @@ export function SupplierProductsList({
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="relative shrink-0">
-                        {/* Contenedor de imagen FIJO y ROBUSTO */}
+                        {/* Contenedor de imagen fijo; placeholder cuando no hay foto. */}
                         <div className="w-14 h-14 relative rounded-lg border-2 border-muted overflow-hidden bg-muted flex items-center justify-center shrink-0">
-                            {product.photoUrl ? (
-                                <Image
-                                src={product.photoUrl}
-                                alt={product.title}
-                                fill
-                                sizes="56px"
-                                className="object-cover"
-                                />
-                            ) : (
-                                <Package className="h-6 w-6 text-muted-foreground/50" />
-                            )}
+                          {product.photoUrl ? (
+                            <Image
+                              src={product.photoUrl}
+                              alt={product.title}
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <Package className="h-6 w-6 text-muted-foreground/50" />
+                          )}
                         </div>
-
+                        {/* Badge de estado en la imagen: rojo=Vendido,
+                            amber=tiene apartados, verde=Disponible libre. */}
                         <div className="absolute -top-1 -right-1 z-10">
-                          {product.status === "Disponible" && (
-                            <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
-                          )}
-                          {product.status === "Apartado" && (
-                            <div className="h-3 w-3 bg-amber-500 rounded-full border-2 border-white" />
-                          )}
-                          {product.status === "Vendido" && (
+                          {product.status === "Vendido" ? (
                             <div className="h-3 w-3 bg-rose-500 rounded-full border-2 border-white" />
+                          ) : (product.reservedCount ?? 0) > 0 ? (
+                            <div className="h-3 w-3 bg-amber-500 rounded-full border-2 border-white" />
+                          ) : (
+                            <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
                           )}
                         </div>
                       </div>
 
                       <div className="flex-1 min-w-0 overflow-hidden">
-                        {/* Truncado de texto mejorado */}
-                        <p className="font-medium truncate pr-2 group-hover:text-primary transition-colors" title={product.title}>
+                        <p
+                          className="font-medium truncate pr-2 group-hover:text-primary transition-colors"
+                          title={product.title}
+                        >
                           {product.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
@@ -172,7 +176,9 @@ export function SupplierProductsList({
                           </span>
                           <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                             <Package className="h-3 w-3" />
-                            Stock: {product.quantity}
+                            {product.type === "SERVICE"
+                              ? "Servicio"
+                              : `Stock: ${product.quantity}`}
                           </span>
                         </div>
                       </div>
@@ -225,6 +231,7 @@ export function SupplierProductsList({
         clientName={
           selectedProduct ? getClientName(selectedProduct) : undefined
         }
+        onChanged={onProductChanged}
       />
 
       <AddProductModal
@@ -232,10 +239,7 @@ export function SupplierProductsList({
         onClose={() => setIsAddProductModalOpen(false)}
         onAdd={handleProductAdded}
         suppliers={suppliers}
-        // Si AddProductModal no acepta supplierId, deberías preseleccionar el proveedor pasándole un prop similar a 'defaultSupplierId'
-        // Si no tienes esa prop, tendrás que modificar AddProductModal para aceptarla.
-        // Por ahora, lo paso asumiendo que lo implementarás o que el error era solo de tipado.
-        {...({ supplierId } as any)} 
+        supplierId={supplierId}
       />
     </>
   );
