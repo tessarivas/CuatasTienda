@@ -14,17 +14,18 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ChevronDown,
-  Loader2,
   PackagePlus,
   Search,
   Wrench,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { SupplierDetailsForm } from "../_components/supplier-details-form";
 import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
 import { MonthlyCutoff } from "../_components/monthly-cutoff";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,7 +164,7 @@ export default function SupplierDetailPage({
       });
       if (!patchRes.ok) {
         const { error: message } = await patchRes.json();
-        alert(message ?? "No se pudo guardar el proveedor");
+        toast.error(message ?? "No se pudo guardar el proveedor");
         return;
       }
       let updated: Supplier = await patchRes.json();
@@ -177,7 +178,7 @@ export default function SupplierDetailPage({
         });
         if (!logoRes.ok) {
           const { error: message } = await logoRes.json();
-          alert(
+          toast.error(
             message ??
               "El proveedor se guardó, pero no se pudo subir el nuevo logo"
           );
@@ -195,8 +196,9 @@ export default function SupplierDetailPage({
       setEditedSupplier(merged);
       setPendingLogoFile(null);
       setIsEditing(false);
+      toast.success("Proveedor actualizado correctamente");
     } catch {
-      alert("No se pudo guardar el proveedor");
+      toast.error("No se pudo guardar el proveedor");
     } finally {
       setIsSaving(false);
     }
@@ -212,7 +214,7 @@ export default function SupplierDetailPage({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo actualizar el día de corte");
+        toast.error(message ?? "No se pudo actualizar el día de corte");
         return;
       }
       const updated: Supplier = await res.json();
@@ -222,8 +224,9 @@ export default function SupplierDetailPage({
       };
       setSupplier(merged);
       setEditedSupplier(merged);
+      toast.success("Día de corte actualizado");
     } catch {
-      alert("No se pudo actualizar el día de corte");
+      toast.error("No se pudo actualizar el día de corte");
     }
   };
 
@@ -241,12 +244,13 @@ export default function SupplierDetailPage({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo eliminar el proveedor");
+        toast.error(message ?? "No se pudo eliminar el proveedor");
         return;
       }
+      toast.success("Proveedor eliminado");
       router.push("/admin/dashboard/suppliers");
     } catch {
-      alert("No se pudo eliminar el proveedor");
+      toast.error("No se pudo eliminar el proveedor");
     }
   };
 
@@ -278,7 +282,7 @@ export default function SupplierDetailPage({
     return (
       <div className="flex flex-1 items-center justify-center p-8 h-full">
         <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Spinner className="size-8 text-primary" />
           <p className="text-muted-foreground">Cargando proveedor...</p>
         </div>
       </div>
@@ -404,6 +408,7 @@ export default function SupplierDetailPage({
         onClose={() => setIsAddProductModalOpen(false)}
         onAdd={() => {
           reloadSupplier();
+          toast.success(addProductType === "SERVICE" ? "Servicio agregado correctamente" : "Producto agregado correctamente");
         }}
         suppliers={suppliers}
         supplierId={id}

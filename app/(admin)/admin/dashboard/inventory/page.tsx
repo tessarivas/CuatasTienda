@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
+import { SelectClientModal } from "./_components/select-client-modal";
 import { normalizeProduct, type ApiProduct } from "@/lib/products/normalize";
+import { Search } from "lucide-react";
 
 export default function Page() {
   const { products, setProducts, clients, suppliers } =
@@ -180,7 +181,7 @@ export default function Page() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
         {/* Pestañas Productos / Servicios */}
         <div className="flex border-b">
           <button
@@ -207,17 +208,20 @@ export default function Page() {
           </button>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder={
-              activeTab === "productos"
-                ? "Buscar por título..."
-                : "Buscar servicio..."
-            }
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={
+                activeTab === "productos"
+                  ? "Buscar por título..."
+                  : "Buscar servicio..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
           <Select value={supplierFilter} onValueChange={setSupplierFilter}>
             <SelectTrigger className="w-45 cursor-pointer">
               <SelectValue placeholder="Filtrar por proveedor" />

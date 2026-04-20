@@ -6,11 +6,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { UserPlus } from "lucide-react";
 
 // La prop onAdd solo pasará los datos que el modal conoce
 interface AddClientModalProps {
@@ -32,7 +34,6 @@ export function AddClientModal({
       alert("El nombre y el teléfono son obligatorios.");
       return;
     }
-    // 1. Solo llamamos a onAdd con los datos
     onAdd({ name, phone });
   };
 
@@ -46,39 +47,55 @@ export function AddClientModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-106.25">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Agregar Nuevo Cliente
+          </DialogTitle>
+          <DialogDescription>
+            Completa los datos para registrar un nuevo cliente en el sistema.
+          </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Nombre
+              Nombre <span className="-ml-1 text-red-500">*</span>
             </Label>
             <Input
               id="name"
               value={name}
+              placeholder="Nombre del Cliente"
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
-              Teléfono
+              Teléfono <span className="-ml-1 text-red-500">*</span>
             </Label>
             <Input
               id="phone"
               value={phone}
+              placeholder="Teléfono del Cliente"
               onChange={(e) => setPhone(e.target.value)}
               className="col-span-3"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>
+          <Button
+            onClick={handleSubmit}
+            className="cursor-pointer"
+          >
             Guardar Cliente
           </Button>
         </DialogFooter>

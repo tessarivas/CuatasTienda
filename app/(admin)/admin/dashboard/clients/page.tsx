@@ -68,7 +68,7 @@ export default function Page() {
               placeholder="Buscar por nombre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-white/80 border-slate-200"
+              className="pl-9"
             />
           </div>
           <Button
@@ -80,48 +80,31 @@ export default function Page() {
           </Button>
         </div>
 
-        {/* Estadísticas con colores pastel */}
+        {/* Estadísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Total de clientes */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-yellow-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-yellow-600 mb-1">
-                  Total de Clientes
-                </p>
-                <p className="text-3xl font-bold text-yellow-600">
-                  {totalClients}
-                </p>
-              </div>
-            </div>
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-yellow-light">
+            <p className="text-sm font-medium text-my-yellow-dark mb-1">
+              Total de Clientes
+            </p>
+            <p className="text-3xl font-bold text-my-yellow-dark">
+              {totalClients}
+            </p>
           </div>
-
-          {/* Clientes con saldo */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-sky-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-sky-600 mb-1">
-                  Clientes con Saldo
-                </p>
-                <p className="text-3xl font-bold text-sky-600">
-                  {clientsWithBalance}
-                </p>
-              </div>
-            </div>
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-blue-light">
+            <p className="text-sm font-medium text-my-blue-dark mb-1">
+              Clientes con Saldo
+            </p>
+            <p className="text-3xl font-bold text-my-blue-dark">
+              {clientsWithBalance}
+            </p>
           </div>
-
-          {/* Saldo total */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-rose-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-rose-600 mb-1">
-                  Saldo Total entre todos los Clientes
-                </p>
-                <p className="text-3xl font-bold text-rose-600">
-                  ${totalBalance.toLocaleString()}
-                </p>
-              </div>
-            </div>
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-red-light">
+            <p className="text-sm font-medium text-my-red-dark mb-1">
+              Saldo Total
+            </p>
+            <p className="text-3xl font-bold text-my-red-dark">
+              ${totalBalance.toLocaleString()}
+            </p>
           </div>
         </div>
         {/* Grid de Clientes */}
@@ -138,17 +121,17 @@ export default function Page() {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="relative">
-              <div className="absolute inset-0 bg-linear-to-br from-purple-300/30 to-pink-300/30 dark:from-purple-500/10 dark:to-pink-500/10 rounded-full blur-2xl" />
-              <div className="relative p-6 bg-linear-to-br from-purple-100 to-pink-100 dark:from-purple-950/30 dark:to-pink-950/30 rounded-full mb-4">
-                <Users className="h-12 w-12 text-purple-600 dark:text-purple-400" />
+              <div className="absolute inset-0 bg-linear-to-br from-my-blue-light/30 to-my-yellow-light/30 rounded-full blur-2xl" />
+              <div className="relative p-6 bg-linear-to-br from-my-blue-light to-my-yellow-light rounded-full mb-4">
+                <Users className="h-12 w-12 text-my-blue-dark" />
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+            <h3 className="text-lg font-semibold mb-2">
               {searchTerm
                 ? "No se encontraron clientes"
                 : "No hay clientes registrados"}
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 text-center max-w-md">
+            <p className="text-sm text-muted-foreground mb-6 text-center max-w-md">
               {searchTerm
                 ? "Intenta con otro término de búsqueda"
                 : "Comienza agregando tu primer cliente para llevar el registro de sus compras"}
@@ -156,7 +139,7 @@ export default function Page() {
             {!searchTerm && (
               <Button
                 variant="outline"
-                className="cursor-pointer border-purple-300 hover:bg-purple-50 dark:border-purple-700 dark:hover:bg-purple-950/30"
+                className="cursor-pointer"
                 onClick={() => setIsAddModalOpen(true)}
               >
                 <UserPlus className="mr-2 h-4 w-4" />

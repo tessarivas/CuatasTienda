@@ -1,4 +1,3 @@
-// filepath// filepath:
 import * as React from "react";
 import {
   AlertDialog,
@@ -8,9 +7,11 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { type Supplier } from "@/lib/data";
+import { Trash2 } from "lucide-react";
 
 interface DeleteSupplierDialogProps {
   open: boolean;
@@ -31,26 +32,31 @@ export function DeleteSupplierDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent size="sm">
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+          <AlertDialogMedia className="bg-destructive/10 text-destructive">
+            <Trash2 />
+          </AlertDialogMedia>
+          <AlertDialogTitle>¿Eliminar proveedor?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta acción eliminará permanentemente a {supplier.businessName}.
+            Esta acción eliminará permanentemente a{" "}
+            <strong>{supplier.businessName}</strong>.
             {supplierProductsCount > 0 && (
-              <span className="block mt-2 text-destructive font-medium">
-                Advertencia: Este proveedor tiene {supplierProductsCount}{" "}
-                producto(s) asociado(s).
+              <span className="block mt-2 font-medium text-destructive">
+                Este proveedor tiene {supplierProductsCount} producto(s)
+                asociado(s). Debes retirarlos primero.
               </span>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="cursor-pointer">
+          <AlertDialogCancel variant="outline" className="cursor-pointer">
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
+            variant="destructive"
             onClick={onDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
+            className="cursor-pointer"
           >
             Eliminar
           </AlertDialogAction>

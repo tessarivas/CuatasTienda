@@ -70,8 +70,8 @@ export function AddPaymentModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Plus className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-my-blue-light rounded-lg">
+              <Plus className="h-6 w-6 text-my-blue-dark" />
             </div>
             Agregar Abono
           </DialogTitle>
@@ -107,7 +107,7 @@ export function AddPaymentModal({
                   key={value}
                   type="button"
                   variant="outline"
-                  className="h-14 text-lg font-semibold cursor-pointer hover:bg-green-50 hover:border-green-300"
+                  className="h-14 text-lg font-semibold cursor-pointer hover:bg-my-blue-light/30 hover:border-my-blue-light"
                   onClick={() => handleQuickAmount(value)}
                 >
                   ${value}

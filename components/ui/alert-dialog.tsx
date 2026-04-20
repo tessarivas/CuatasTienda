@@ -5,6 +5,24 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { type VariantProps, cva } from "class-variance-authority"
+
+type ButtonVariant = VariantProps<typeof buttonVariants>["variant"]
+
+const alertDialogContentVariants = cva(
+  "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200",
+  {
+    variants: {
+      size: {
+        default: "sm:max-w-lg",
+        sm: "sm:max-w-sm",
+      },
+    },
+    defaultVariants: {
+      size: "default",
+    },
+  }
+)
 
 function AlertDialog({
   ...props
@@ -46,17 +64,16 @@ function AlertDialogOverlay({
 
 function AlertDialogContent({
   className,
+  size,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content> &
+  VariantProps<typeof alertDialogContentVariants>) {
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
-        className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
-          className
-        )}
+        className={cn(alertDialogContentVariants({ size }), className)}
         {...props}
       />
     </AlertDialogPortal>
@@ -70,7 +87,26 @@ function AlertDialogHeader({
   return (
     <div
       data-slot="alert-dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn(
+        "flex flex-col gap-2 text-center sm:text-left [&:has([data-slot=alert-dialog-media])]:text-center",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogMedia({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-media"
+      className={cn(
+        "mx-auto flex size-12 items-center justify-center rounded-full [&>svg]:size-5",
+        className
+      )}
       {...props}
     />
   )
@@ -120,11 +156,14 @@ function AlertDialogDescription({
 
 function AlertDialogAction({
   className,
+  variant,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action> & {
+  variant?: ButtonVariant
+}) {
   return (
     <AlertDialogPrimitive.Action
-      className={cn(buttonVariants(), className)}
+      className={cn(buttonVariants({ variant }), className)}
       {...props}
     />
   )
@@ -132,11 +171,14 @@ function AlertDialogAction({
 
 function AlertDialogCancel({
   className,
+  variant = "outline",
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> & {
+  variant?: ButtonVariant
+}) {
   return (
     <AlertDialogPrimitive.Cancel
-      className={cn(buttonVariants({ variant: "outline" }), className)}
+      className={cn(buttonVariants({ variant }), className)}
       {...props}
     />
   )
@@ -149,6 +191,7 @@ export {
   AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogFooter,
   AlertDialogTitle,
   AlertDialogDescription,

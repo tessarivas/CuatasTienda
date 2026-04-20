@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import * as React from "react";
 import { type Client, initialClients, type Product, initialProducts, type Transaction, initialTransactions } from "@/lib/data";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -41,6 +42,7 @@ export default function RootLayout({
           }}
         >
           {children}
+          <Toaster richColors closeButton position="top-right" />
         </DashboardContext.Provider>
       </body>
     </html>

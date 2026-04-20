@@ -50,8 +50,8 @@ export function AssignProductModal({
       <DialogContent className="sm:max-w-3xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <ShoppingBag className="h-6 w-6 text-amber-600" />
+            <div className="p-2 bg-my-yellow-light rounded-lg">
+              <ShoppingBag className="h-6 w-6 text-my-yellow-dark" />
             </div>
             Apartar Producto para {client.name}
           </DialogTitle>
@@ -115,14 +115,14 @@ export function AssignProductModal({
                           {product.title}
                         </h3>
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-3xl font-bold text-blue-600">
+                          <span className="text-3xl font-bold text-my-blue">
                             ${product.price.toFixed(2)}
                           </span>
                           <span className="text-sm text-muted-foreground">MXN</span>
                         </div>
                         <Button
                           size="lg"
-                          className="w-full cursor-pointer bg-amber-600 hover:bg-amber-700"
+                          className="w-full cursor-pointer bg-my-yellow hover:bg-my-yellow-dark text-my-yellow-dark hover:text-white"
                           onClick={() => handleAssignClick(product.id)}
                         >
                           <ShoppingBag className="mr-2 h-5 w-5" />

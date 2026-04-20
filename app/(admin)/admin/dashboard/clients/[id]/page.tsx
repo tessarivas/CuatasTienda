@@ -328,24 +328,24 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         {/* Tarjeta de Saldo */}
-        <Card className="border-0 bg-green-50">
+        <Card className="border-0 bg-my-blue-light/40">
           <CardHeader>
-            <CardTitle className="text-lg text-green-600">
+            <CardTitle className="text-lg text-my-blue-dark">
               Saldo Disponible
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 -mt-4">
-            <div className="text-6xl font-bold text-green-700">
+            <div className="text-6xl font-bold text-my-blue-dark">
               ${client.balance.toFixed(2)}
             </div>
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-my-blue-dark/70">
               Dinero que {client.name} tiene abonado.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
               <Button
                 size="lg"
-                className="h-16 text-lg cursor-pointer bg-green-600 hover:bg-green-700"
+                className="h-16 text-lg cursor-pointer bg-my-blue hover:bg-my-blue-dark"
                 onClick={() => setIsPaymentModalOpen(true)}
               >
                 <Plus className="h-10 w-10" />
@@ -415,12 +415,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     ))}
                   </div>
 
-                  <div className="p-4 bg-amber-100 rounded-lg border-0">
+                  <div className="p-4 bg-my-yellow-light rounded-lg border-0">
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-semibold text-amber-600">
+                      <span className="text-xl font-semibold text-my-yellow-dark">
                         Total apartado:
                       </span>
-                      <span className="text-2xl font-bold text-amber-600">
+                      <span className="text-2xl font-bold text-my-yellow-dark">
                         ${totalReservedValue.toFixed(2)}
                       </span>
                     </div>
@@ -429,7 +429,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   {reservedItems.length > 1 && (
                     <Button
                       size="lg"
-                      className="w-full h-14 text-lg cursor-pointer bg-blue-600 hover:bg-blue-700"
+                      className="w-full h-14 text-lg cursor-pointer bg-my-blue hover:bg-my-blue-dark"
                       onClick={() => setShowLiquidateAllDialog(true)}
                       disabled={
                         actionInFlight || client.balance < totalReservedValue
@@ -470,8 +470,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                       key={`${m.type}-${m.id}`}
                       className={`p-4 border-2 rounded-lg ${
                         m.type === "abono"
-                          ? "bg-green-50 border-green-200"
-                          : "bg-red-50 border-red-200"
+                          ? "bg-my-blue-light/20 border-my-blue-light"
+                          : "bg-my-red-light/20 border-my-red-light"
                       }`}
                     >
                       <div className="flex justify-between items-start">
@@ -495,17 +495,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                           <p
                             className={`text-2xl font-bold ${
                               m.type === "abono"
-                                ? "text-green-700"
-                                : "text-red-700"
+                                ? "text-my-blue-dark"
+                                : "text-my-red-dark"
                             }`}
                           >
                             {m.type === "abono" ? "+" : "-"}$
                             {Number(m.amount).toFixed(2)}
                           </p>
                           {m.type === "abono" ? (
-                            <Badge className="mt-1 bg-green-600">Abono</Badge>
+                            <Badge className="mt-1 bg-my-blue text-white">Abono</Badge>
                           ) : (
-                            <Badge className="mt-1 bg-red-600">Pago</Badge>
+                            <Badge className="mt-1 bg-my-red text-white">Pago</Badge>
                           )}
                         </div>
                       </div>
@@ -549,11 +549,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               ¿Liquidar todos los productos?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base space-y-3 pt-4">
-              <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <p className="font-semibold text-blue-900 mb-2">
+              <div className="p-4 bg-my-blue-light/20 rounded-lg border-2 border-my-blue-light">
+                <p className="font-semibold text-my-blue-dark mb-2">
                   Se van a liquidar {reservedItems.length} productos:
                 </p>
-                <ul className="space-y-1 text-sm text-blue-800">
+                <ul className="space-y-1 text-sm text-my-blue-dark">
                   {reservedItems.map((r) => (
                     <li key={r.itemId}>
                       • {r.title} - ${r.price.toFixed(2)}
@@ -561,23 +561,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   ))}
                 </ul>
               </div>
-              <div className="p-4 bg-amber-50 rounded-lg border-2 border-amber-200 space-y-2">
+              <div className="p-4 bg-my-yellow-light/30 rounded-lg border-2 border-my-yellow-light space-y-2">
                 <div className="flex justify-between text-base">
                   <span>Total a pagar:</span>
-                  <span className="font-bold text-amber-900">
+                  <span className="font-bold text-my-yellow-dark">
                     ${totalReservedValue.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between text-base">
                   <span>Saldo actual:</span>
-                  <span className="font-bold text-green-700">
+                  <span className="font-bold text-my-blue-dark">
                     ${client.balance.toFixed(2)}
                   </span>
                 </div>
-                <div className="h-px bg-amber-300" />
+                <div className="h-px bg-my-yellow" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Sobrante:</span>
-                  <span className="text-green-700">
+                  <span className="text-my-blue-dark">
                     ${remainingBalance.toFixed(2)}
                   </span>
                 </div>
@@ -594,7 +594,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <AlertDialogAction
               onClick={handleLiquidateAll}
               disabled={actionInFlight}
-              className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              className="bg-my-blue hover:bg-my-blue-dark cursor-pointer"
             >
               Sí, liquidar todo
             </AlertDialogAction>

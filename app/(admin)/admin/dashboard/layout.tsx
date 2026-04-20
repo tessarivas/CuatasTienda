@@ -31,6 +31,7 @@ import { Separator } from "@/components/ui/separator";
 
 // Tipo del contexto (integrado con tu sistema existente)
 type DashboardContextType = {
+  isLoadingData: boolean;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   isAddSupplierModalOpen: boolean;
@@ -50,6 +51,7 @@ type DashboardContextType = {
 
 // Contexto con valores por defecto
 export const DashboardContext = React.createContext<DashboardContextType>({
+  isLoadingData: true,
   searchTerm: "",
   setSearchTerm: () => {},
   isAddSupplierModalOpen: false,
@@ -82,45 +84,40 @@ export default function DashboardLayout({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
+  const [isLoadingData, setIsLoadingData] = React.useState(true);
   const [clients, setClients] = React.useState<Client[]>([]);
-
-  React.useEffect(() => {
-    async function loadClients() {
-      try {
-        const res = await fetch("/api/clients");
-        if (!res.ok) return;
-        const data: ApiClient[] = await res.json();
-        setClients(normalizeClients(data));
-      } catch (error) {
-        console.error("Error cargando clientes", error);
-      }
-    }
-    loadClients();
-  }, []);
   const [products, setProducts] = React.useState<Product[]>([]);
   const [transactions, setTransactions] = React.useState(initialTransactions);
-  const [sales, setSales] = React.useState(initialSales); 
-
-  React.useEffect(() => {
-  async function loadProducts() {
-    try {
-      const res = await fetch("/api/products?include=all");
-      const data: ApiProduct[] = await res.json();
-      setProducts(normalizeProducts(data));
-    } catch (error) {
-      console.error("Error loading products", error);
-    }
-  }
-
-  loadProducts();
-}, []);
-
+  const [sales, setSales] = React.useState(initialSales);
   const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
 
   React.useEffect(() => {
-    fetch("/api/suppliers")
-      .then(res => res.json())
-      .then(setSuppliers);
+    async function loadAll() {
+      try {
+        const [clientsRes, productsRes, suppliersRes] = await Promise.all([
+          fetch("/api/clients"),
+          fetch("/api/products?include=all"),
+          fetch("/api/suppliers"),
+        ]);
+        if (clientsRes.ok) {
+          const data: ApiClient[] = await clientsRes.json();
+          setClients(normalizeClients(data));
+        }
+        if (productsRes.ok) {
+          const data: ApiProduct[] = await productsRes.json();
+          setProducts(normalizeProducts(data));
+        }
+        if (suppliersRes.ok) {
+          const data = await suppliersRes.json();
+          setSuppliers(data);
+        }
+      } catch (error) {
+        console.error("Error cargando datos iniciales", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+    loadAll();
   }, []);
 
   const reloadSuppliers = async () => {
@@ -135,9 +132,9 @@ export default function DashboardLayout({
 
   const reloadProducts = async () => {
     try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data); // <--- ESTO ES CRUCIAL
+      const res = await fetch("/api/products?include=all");
+      const data: ApiProduct[] = await res.json();
+      setProducts(normalizeProducts(data));
     } catch (error) {
       console.error("Error reloading products", error);
     }
@@ -146,6 +143,7 @@ export default function DashboardLayout({
   return (
     <DashboardContext.Provider
       value={{
+        isLoadingData,
         searchTerm,
         setSearchTerm,
         isAddSupplierModalOpen,

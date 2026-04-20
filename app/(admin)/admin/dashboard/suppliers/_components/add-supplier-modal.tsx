@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
 import { X, UserRoundPlus } from "lucide-react";
+import { toast } from "sonner";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -76,8 +77,9 @@ export function AddSupplierModal({
       setEmail("");
       setImage(null);
       onClose();
+      toast.success(`Proveedor "${supplier.businessName}" creado correctamente`);
     } catch {
-      alert("Error creando proveedor");
+      toast.error("Error creando proveedor");
     } finally {
       setLoading(false);
     }
