@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { type Product } from "@/lib/data";
 import {
   Dialog,
@@ -63,7 +62,6 @@ export function ProductDetailsModal({
   clientName,
   onChanged,
 }: ProductDetailsModalProps) {
-  const router = useRouter();
   const [isEditing, setIsEditing] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [price, setPrice] = React.useState("");
@@ -225,9 +223,9 @@ export function ProductDetailsModal({
       case "Disponible":
         return "bg-green-500";
       case "Apartado":
-        return "bg-amber-500";
+        return "bg-amber-600";
       case "Vendido":
-        return "bg-rose-500";
+        return "bg-rose-600";
       case "Retirado":
         return "bg-gray-500";
       default:
@@ -235,18 +233,15 @@ export function ProductDetailsModal({
     }
   };
 
-  // Silence unused-import warnings for helpers kept for future wiring.
-  void router;
-
   const displayedImage = previewUrl ?? product.photoUrl;
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-5 sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <DialogTitle className="text-2xl font-bold">
+              <DialogTitle className="text-2xl font-bold leading-none">
                 {isEditing ? (
                   <Input
                     name="title"
@@ -309,10 +304,10 @@ export function ProductDetailsModal({
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-4">
-              <div className="relative group shrink-0">
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+          <div className="grid gap-2 lg:grid-cols-[1fr_1fr]">
+            <div className="flex flex-col gap-2">
+              <div className="relative aspect-square w-full max-w-84 h-84 overflow-hidden rounded-3xl bg-muted">
+                <div className="absolute inset-0">
                   {displayedImage ? (
                     <Image
                       src={displayedImage}
@@ -326,120 +321,111 @@ export function ProductDetailsModal({
                     </div>
                   )}
                 </div>
-                {isEditing && canEdit && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
-                  </>
+              </div>
+              {isEditing && canEdit && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Cambiar foto
+                  </Button>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 pt-1">
+              <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                <Label className="flex items-center gap-2 text-xl font-normal">
+                  Precio
+                </Label>
+                {isEditing ? (
+                  <Input
+                    name="price"
+                    type="text"
+                    inputMode="decimal"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    disabled={hasReservations || !canEdit}
+                    className="h-12 rounded-2xl text-xl font-normal px-4 disabled:opacity-60"
+                  />
+                ) : (
+                  <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
+                    ${product.price.toFixed(2)}
+                  </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-100 text-gray-600 rounded-lg shrink-0">
-                <div className="p-2 rounded-lg">
-                  <PackageSearch className="h-6 w-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs">Id del Producto</p>
-                  <p className="text-md font-semibold truncate">{product.id}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="relative overflow-hidden rounded-xl border border-green-500 bg-linear-to-br from-green-400 to-green-600 py-4 px-6 text-white shrink-0">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-1">
-                    <DollarSign className="h-5 w-5" />
-                    <Label className="text-sm font-semibold">Precio</Label>
+              <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                <Label className="flex items-center gap-2 text-xl font-normal">
+                  {isService ? "Tipo" : "Unidades"}
+                </Label>
+                {isService ? (
+                  <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
+                    Servicio
                   </div>
-                  {isEditing ? (
-                    <Input
-                      name="price"
-                      type="text"
-                      inputMode="decimal"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      disabled={hasReservations || !canEdit}
-                      className="text-4xl font-bold bg-transparent text-white border-white/20 h-auto disabled:opacity-60"
-                    />
-                  ) : (
-                    <p className="text-4xl font-bold">
-                      ${product.price.toFixed(2)}
-                    </p>
-                  )}
-                  <p className="text-sm opacity-75 mt-1">MXN</p>
+                ) : isEditing ? (
+                  <Input
+                    name="quantity"
+                    type="number"
+                    min={0}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    disabled={hasReservations || !canEdit}
+                    className="h-12 rounded-2xl text-xl font-normal px-4 disabled:opacity-60"
+                  />
+                ) : (
+                  <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
+                    {product.quantity}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                <Label className="flex items-center gap-2 text-xl font-normal">
+                  Código
+                </Label>
+                <div className="h-12 rounded-2xl border px-4 flex items-center text-base font-mono overflow-hidden">
+                  <span className="truncate">{product.barcode ?? "—"}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-sky-100 text-sky-600 rounded-lg shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg">
-                    <Package className="h-6 w-6" />
-                  </div>
-                  <div>
-                    {isService ? (
-                      <>
-                        <Label className="text-xs">Tipo</Label>
-                        <p className="text-md font-bold">Servicio (sin inventario)</p>
-                      </>
-                    ) : (
-                      <>
-                        <Label className="text-xs">Stock disponible</Label>
-                        {isEditing ? (
-                          <Input
-                            name="quantity"
-                            type="number"
-                            min={0}
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
-                            disabled={hasReservations || !canEdit}
-                            className="text-md font-bold h-8 disabled:opacity-60"
-                          />
-                        ) : (
-                          <p className="text-md font-bold">
-                            {product.quantity}{" "}
-                            {product.quantity === 1 ? "Unidad" : "Unidades"}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
+              {/*<div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                <Label className="flex items-center gap-2 text-xl font-normal">
+                  Id
+                </Label>
+                <div className="h-12 rounded-2xl border px-4 flex items-center text-sm font-mono overflow-hidden">
+                  <span className="truncate">{product.id}</span>
                 </div>
-                {!isEditing && !isService &&
-                  product.quantity < 5 &&
-                  product.status === "Disponible" && (
-                    <Badge variant="destructive" className="text-xs">
-                      Stock bajo
-                    </Badge>
-                  )}
-              </div>
+              </div>*/}
 
-              {product.barcode && (
-                <div className="flex items-center gap-3 p-4 bg-purple-100 text-purple-600 rounded-lg shrink-0">
-                  <div className="p-2 rounded-lg">
-                    <ScanBarcode className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <Label className="text-xs">Código</Label>
-                    <p className="text-md font-mono font-semibold truncate">
-                      {product.barcode}
-                    </p>
+              {clientName && (
+                <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                  <Label className="flex items-center gap-2 text-xl font-normal">
+                    <User className="h-5 w-5" />
+                    Cliente
+                  </Label>
+                  <div className="h-12 rounded-2xl border px-4 flex items-center text-base overflow-hidden">
+                    <span className="truncate">{clientName}</span>
                   </div>
                 </div>
               )}
+
+              {!isEditing && !isService &&
+                product.quantity < 5 &&
+                product.status === "Disponible" && (
+                  <p className="text-sm text-muted-foreground">Stock bajo</p>
+                )}
             </div>
           </div>
 

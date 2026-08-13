@@ -1,5 +1,6 @@
 "use client";
 
+// @ts-ignore: allow side-effect CSS import without type declarations
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'

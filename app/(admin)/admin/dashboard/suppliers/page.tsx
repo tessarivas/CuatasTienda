@@ -41,9 +41,6 @@ export default function Page() {
         {/* Sección del Encabezado */}
         <div className="flex flex-col md:flex-row md:items-center md:gap-4">
           <div className="flex items-center gap-2">
-            <Button className="cursor-pointer" variant="ghost" size="icon" onClick={() => router.back()}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <h1 className="text-2xl font-bold">Lista de Proveedores</h1>
           </div>
           {/* Busqueda y Agregar Proveedor */}
@@ -59,7 +56,7 @@ export default function Page() {
                 <Search className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
-            <Button onClick={() => setIsAddSupplierModalOpen(true)}>
+            <Button onClick={() => setIsAddSupplierModalOpen(true)} className="cursor-pointer">
               <UserRoundPlus className="h-4 w-4" />
               Agregar Proveedor
             </Button>

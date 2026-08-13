@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: Ctx) {
     include: {
       Product: {
         where: { status: { not: "Retirado" } },
-        orderBy: { title: "asc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         include: {
           _count: {
             select: {

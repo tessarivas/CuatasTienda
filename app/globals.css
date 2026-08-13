@@ -85,7 +85,7 @@
   --my-red-light: #FFBFB3;
   --my-red-dark: #903220;
 
-  --my-green: #32E017;
+  --my-green: #1ac200;
 
   --card: oklch(0.216 0.006 56.043);
   --card-foreground: var(--foreground);
