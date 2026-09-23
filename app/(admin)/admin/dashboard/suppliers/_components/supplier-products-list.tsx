@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { CardActionButton } from "./card-action-button";
 import { ProductDetailsModal } from "./product-details-modal";
 import { ExternalLink, Package, LayoutList } from "lucide-react";
 import { DashboardContext } from "../../layout";
@@ -81,36 +82,42 @@ export function SupplierProductsList({
               </CardTitle>
             </div>
             {products.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <CardActionButton
                 onClick={() =>
                   router.push(
                     `/admin/dashboard/inventory?supplier=${supplierId}`
                   )
                 }
-                className="cursor-pointer text-primary"
               >
                 Ver todos
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
+                <ExternalLink />
+              </CardActionButton>
             )}
           </div>
 
           {products.length > 0 && (
             <div className="flex gap-2">
               {availableCount > 0 && (
-                <Badge variant="default" className="bg-green-500">
+                <Badge
+                  variant="default"
+                  className="bg-my-green-light text-my-green-dark"
+                >
                   {availableCount} Disponible
                 </Badge>
               )}
               {apartadoCount > 0 && (
-                <Badge variant="default" className="bg-amber-500">
+                <Badge
+                  variant="default"
+                  className="bg-my-orange-light text-my-orange-dark"
+                >
                   {apartadoCount} Apartado
                 </Badge>
               )}
               {vendidoCount > 0 && (
-                <Badge variant="default" className="bg-rose-500">
+                <Badge
+                  variant="default"
+                  className="bg-my-red-light text-my-red-dark"
+                >
                   {vendidoCount} Vendido
                 </Badge>
               )}
@@ -119,13 +126,20 @@ export function SupplierProductsList({
         </CardHeader>
 
         <CardContent className="flex-1 min-h-0">
+          {/* Radix envuelve el contenido del viewport en un div con
+              `display:table` inline, que lo dimensiona a su ancho natural: por
+              eso las filas se salían (borde derecho cortado) y el `truncate`
+              del título nunca llegaba a aplicarse. Se fuerza a block para que
+              respete el ancho del viewport. El padding derecho va en el
+              contenido, no en el Root, para que la barra de scroll no se coma
+              el borde de las tarjetas. */}
           {products.length > 0 ? (
-            <ScrollArea className="h-100 pr-4">
-              <div className="space-y-2">
+            <ScrollArea className="h-100 [&>[data-slot=scroll-area-viewport]>div]:block!">
+              <div className="space-y-2 pr-4">
                 {products.map((product) => (
                   <div
                     key={product.id}
-                    className="group flex items-center justify-between p-3 border rounded-lg hover:bg-linear-to-r hover:from-transparent hover:to-primary/5 transition-all hover:shadow-md cursor-pointer"
+                    className="group flex items-center justify-between p-3 border rounded-lg  transition-all hover:shadow-md cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenModal(product);
@@ -148,14 +162,16 @@ export function SupplierProductsList({
                           )}
                         </div>
                         {/* Badge de estado en la imagen: rojo=Vendido,
-                            amber=tiene apartados, verde=Disponible libre. */}
+                            naranja=tiene apartados, verde=Disponible libre.
+                            Tono base (no light/dark): son puntos de 12px sin
+                            texto, necesitan el color más saturado para leerse. */}
                         <div className="absolute -top-1 -right-1 z-10">
                           {product.status === "Vendido" ? (
-                            <div className="h-3 w-3 bg-rose-500 rounded-full border-2 border-white" />
+                            <div className="h-3 w-3 bg-my-red rounded-full border-2 border-white" />
                           ) : (product.reservedCount ?? 0) > 0 ? (
-                            <div className="h-3 w-3 bg-amber-500 rounded-full border-2 border-white" />
+                            <div className="h-3 w-3 bg-my-orange rounded-full border-2 border-white" />
                           ) : (
-                            <div className="h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
+                            <div className="h-3 w-3 bg-my-green rounded-full border-2 border-white" />
                           )}
                         </div>
                       </div>

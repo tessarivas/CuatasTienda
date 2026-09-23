@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SupplierDetailsForm } from "../_components/supplier-details-form";
+import { EditSupplierModal } from "../_components/edit-supplier-modal";
 import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
 import { MonthlyCutoff } from "../_components/monthly-cutoff";
@@ -61,20 +62,13 @@ export default function SupplierDetailPage({
   const [supplier, setSupplier] =
     React.useState<ApiSupplierWithProducts | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editedSupplier, setEditedSupplier] =
-    React.useState<ApiSupplierWithProducts | null>(null);
-  const [pendingLogoFile, setPendingLogoFile] = React.useState<File | null>(
-    null
-  );
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddProductModalOpen, setIsAddProductModalOpen] =
     React.useState(false);
   const [addProductType, setAddProductType] =
     React.useState<ProductType>("PRODUCT");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleOpenAddProductModal = (type: ProductType) => {
     setAddProductType(type);
@@ -86,19 +80,12 @@ export default function SupplierDetailPage({
       const res = await fetch(`/api/suppliers/${id}`);
       if (!res.ok) {
         setSupplier(null);
-        setEditedSupplier(null);
         return;
       }
       const data: ApiSupplierWithProducts = await res.json();
       setSupplier(data);
-      // Sólo resetea `editedSupplier` si no hay una edición en progreso,
-      // para no perder los cambios del formulario abierto.
-      setEditedSupplier((prev) =>
-        prev ? { ...prev, Product: data.Product } : data
-      );
     } catch {
       setSupplier(null);
-      setEditedSupplier(null);
     }
   }, [id]);
 
@@ -108,21 +95,14 @@ export default function SupplierDetailPage({
       try {
         const res = await fetch(`/api/suppliers/${id}`);
         if (!res.ok) {
-          if (!cancelled) {
-            setSupplier(null);
-            setEditedSupplier(null);
-          }
+          if (!cancelled) setSupplier(null);
           return;
         }
         const data: ApiSupplierWithProducts = await res.json();
         if (cancelled) return;
         setSupplier(data);
-        setEditedSupplier(data);
       } catch {
-        if (!cancelled) {
-          setSupplier(null);
-          setEditedSupplier(null);
-        }
+        if (!cancelled) setSupplier(null);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -131,76 +111,6 @@ export default function SupplierDetailPage({
       cancelled = true;
     };
   }, [id]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editedSupplier) return;
-    const { name, value } = e.target;
-    setEditedSupplier({ ...editedSupplier, [name]: value });
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && editedSupplier) {
-      const file = e.target.files[0];
-      const newLogoUrl = URL.createObjectURL(file);
-      setPendingLogoFile(file);
-      setEditedSupplier({ ...editedSupplier, logo: newLogoUrl });
-    }
-  };
-
-  const handleSave = async () => {
-    if (!editedSupplier || !supplier || isSaving) return;
-    setIsSaving(true);
-    try {
-      const patchRes = await fetch(`/api/suppliers/${supplier.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editedSupplier.name,
-          businessName: editedSupplier.businessName,
-          cellphone: editedSupplier.cellphone ?? null,
-          email: editedSupplier.email ?? null,
-        }),
-      });
-      if (!patchRes.ok) {
-        const { error: message } = await patchRes.json();
-        alert(message ?? "No se pudo guardar el proveedor");
-        return;
-      }
-      let updated: Supplier = await patchRes.json();
-
-      if (pendingLogoFile) {
-        const formData = new FormData();
-        formData.append("file", pendingLogoFile);
-        const logoRes = await fetch(`/api/suppliers/${supplier.id}`, {
-          method: "POST",
-          body: formData,
-        });
-        if (!logoRes.ok) {
-          const { error: message } = await logoRes.json();
-          alert(
-            message ??
-              "El proveedor se guardó, pero no se pudo subir el nuevo logo"
-          );
-        } else {
-          updated = await logoRes.json();
-        }
-      }
-
-      // PATCH / POST logo don't return the nested Product array — preserve it.
-      const merged: ApiSupplierWithProducts = {
-        ...updated,
-        Product: supplier.Product,
-      };
-      setSupplier(merged);
-      setEditedSupplier(merged);
-      setPendingLogoFile(null);
-      setIsEditing(false);
-    } catch {
-      alert("No se pudo guardar el proveedor");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleCutoffDayChange = async (newDay: number) => {
     if (!supplier) return;
@@ -216,21 +126,11 @@ export default function SupplierDetailPage({
         return;
       }
       const updated: Supplier = await res.json();
-      const merged: ApiSupplierWithProducts = {
-        ...updated,
-        Product: supplier.Product,
-      };
-      setSupplier(merged);
-      setEditedSupplier(merged);
+      // PATCH no devuelve el array anidado Product — hay que conservarlo.
+      setSupplier({ ...updated, Product: supplier.Product });
     } catch {
       alert("No se pudo actualizar el día de corte");
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditedSupplier(supplier);
-    setPendingLogoFile(null);
-    setIsEditing(false);
   };
 
   const handleDelete = async () => {
@@ -376,20 +276,24 @@ export default function SupplierDetailPage({
           />
         </div>
 
-        {/* Formulario de Detalles del Proveedor */}
+        {/* Detalles del Proveedor (sólo lectura; se edita en el modal) */}
         <SupplierDetailsForm
           supplier={supplier}
-          editedSupplier={editedSupplier}
-          isEditing={isEditing}
-          onInputChange={handleInputChange}
-          onImageChange={handleImageChange}
-          onEdit={() => setIsEditing(true)}
-          onSave={handleSave}
-          onCancel={handleCancelEdit}
-          onDelete={() => setShowDeleteDialog(true)}
-          fileInputRef={fileInputRef}
+          onEdit={() => setIsEditModalOpen(true)}
         />
       </div>
+
+      <EditSupplierModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        supplier={supplier}
+        onSaved={reloadSupplier}
+        onDelete={() => {
+          // Se cierra primero para no anidar el AlertDialog dentro del Dialog.
+          setIsEditModalOpen(false);
+          setShowDeleteDialog(true);
+        }}
+      />
 
       <DeleteSupplierDialog
         open={showDeleteDialog}

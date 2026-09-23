@@ -11,6 +11,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CardActionButton } from "./card-action-button";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -69,13 +70,9 @@ export function MonthlyCutoff({
               <CalendarIcon className="h-5 w-5" />
               <CardTitle className="text-lg">Corte Mensual</CardTitle>
             </div>
-            <Button
-              variant="outline"
-              className="text-xs py-1 rounded-full cursor-pointer"
-              onClick={() => setIsModalOpen(true)}
-            >
+            <CardActionButton onClick={() => setIsModalOpen(true)}>
               Corte: Día {supplier.cutoffDay}
-            </Button>
+            </CardActionButton>
           </div>
           <CardDescription className="text-sm">
             Genera reportes de ventas del proveedor en el periodo seleccionado.

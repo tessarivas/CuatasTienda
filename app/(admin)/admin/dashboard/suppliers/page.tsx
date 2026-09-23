@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, UserRoundPlus, Search } from "lucide-react";
+import { ArrowLeft, Loader2, UserRoundPlus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SupplierCard } from "./_components/supplier-card";
 import { AddSupplierModal } from "./_components/add-supplier-modal";
@@ -17,6 +17,7 @@ export default function Page() {
     reloadSuppliers,
     isAddSupplierModalOpen,
     setIsAddSupplierModalOpen,
+    isLoadingSuppliers,
   } = React.useContext(DashboardContext);
 
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -34,6 +35,20 @@ export default function Page() {
       s.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Mismo loader que suppliers/[id]: suppliers viene de DashboardContext
+  // (fetch en layout.tsx), no de un fetch propio de esta página, por eso el
+  // gate se lee de ahí en vez de un estado local.
+  if (isLoadingSuppliers) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 h-full">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando proveedores...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

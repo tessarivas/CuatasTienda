@@ -42,8 +42,12 @@ export function DeleteProductDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            <Trash2 className="mr-2 h-4 w-4" />
+          <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer">
+            {/* Sin margen manual: AlertDialogAction usa buttonVariants(), que
+                ya trae gap-2 entre ícono y texto. El mr-2 duplicaba el
+                espacio frente a botones como "Eliminar producto" en
+                product-details-modal. */}
+            <Trash2 />
             Eliminar
           </AlertDialogAction>
         </AlertDialogFooter>

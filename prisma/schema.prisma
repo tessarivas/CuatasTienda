@@ -53,20 +53,43 @@ model Payment {
 }
 
 model Product {
-  id          Int           @id @default(autoincrement())
-  title       String
-  price       Decimal       @db.Decimal(10, 2)
-  status      String
-  createdAt   DateTime      @default(now())
-  code        String?       @unique
-  picture     String?
-  quantity    Int?
-  soldCount   Int           @default(0)
-  supplierId  Int?
-  type        ProductType
-  LayawayItem LayawayItem[]
-  Supplier    Supplier?     @relation(fields: [supplierId], references: [id])
-  SaleItem    SaleItem[]
+  id            Int             @id @default(autoincrement())
+  title         String
+  price         Decimal         @db.Decimal(10, 2)
+  status        String
+  createdAt     DateTime        @default(now())
+  code          String?         @unique
+  picture       String?
+  quantity      Int?
+  soldCount     Int             @default(0)
+  supplierId    Int?
+  type          ProductType
+  LayawayItem   LayawayItem[]
+  Supplier      Supplier?       @relation(fields: [supplierId], references: [id])
+  SaleItem      SaleItem[]
+  StockMovement StockMovement[]
+}
+
+// Bitácora de entradas y salidas de inventario que NO son ventas: altas de
+// mercancía y retiros (merma, devolución al proveedor, daño). `Product.quantity`
+// sólo guarda el saldo actual, así que sin esta tabla el historial no se puede
+// reconstruir.
+model StockMovement {
+  id        Int               @id @default(autoincrement())
+  productId Int
+  type      StockMovementType
+  quantity  Int // Siempre positivo; el signo lo da `type`.
+  reason    String?
+  // Nombre de quien recoge físicamente la mercancía (repartidor, transportista).
+  // Sólo aplica a `Retiro` — en `Alta` no hay nadie que "recoja" nada, entra
+  // mercancía. Texto libre: no hay catálogo de repartidores.
+  pickedUpBy String?
+  createdAt  DateTime          @default(now())
+  createdBy  String            @db.Uuid
+  Product    Product           @relation(fields: [productId], references: [id])
+  User       User              @relation(fields: [createdBy], references: [id])
+
+  @@index([productId, createdAt])
 }
 
 model Sale {
@@ -102,18 +125,24 @@ model Supplier {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String
-  email     String    @unique
-  role      String
-  createdAt DateTime  @default(now())
-  Payment   Payment[]
-  Sale      Sale[]
+  id            String          @id @default(uuid()) @db.Uuid
+  name          String
+  email         String          @unique
+  role          String
+  createdAt     DateTime        @default(now())
+  Payment       Payment[]
+  Sale          Sale[]
+  StockMovement StockMovement[]
 }
 
 enum ProductType {
   PRODUCT
   SERVICE
+}
+
+enum StockMovementType {
+  Alta
+  Retiro
 }
 
 enum LayawayStatus {

@@ -31,9 +31,12 @@ import {
   DollarSign,
   Edit,
   Package,
+  PackageMinus,
+  PackagePlus,
   PackageSearch,
   Pencil,
   RotateCcw,
+  Save,
   ScanBarcode,
   Store,
   Trash2,
@@ -41,6 +44,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeleteProductDialog } from "./delete-product-dialog";
+import {
+  StockMovementModal,
+  type StockMovementKind,
+} from "./stock-movement-modal";
 
 interface ProductDetailsModalProps {
   product: Product | null;
@@ -65,25 +72,32 @@ export function ProductDetailsModal({
   const [isEditing, setIsEditing] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [quantity, setQuantity] = React.useState("0");
   const [pendingImage, setPendingImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [confirmPriceChange, setConfirmPriceChange] = React.useState(false);
+  const [stockMovementKind, setStockMovementKind] =
+    React.useState<StockMovementKind | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const hasReservations = (product?.reservedCount ?? 0) > 0;
+  const reserved = product?.reservedCount ?? 0;
+  const hasReservations = reserved > 0;
   const isRetirado = product?.status === "Retirado";
   const isService = product?.type === "SERVICE";
   const canEdit = !isRetirado;
+
+  // Disponibilidad real = total menos lo apartado. Los servicios no llevan
+  // inventario, así que ahí no aplica.
+  const totalUnits = product?.quantity ?? 0;
+  const availableUnits = Math.max(0, totalUnits - reserved);
+  const isSoldOut = !isService && !isRetirado && availableUnits === 0;
 
   React.useEffect(() => {
     if (product) {
       setTitle(product.title);
       setPrice(String(product.price ?? ""));
-      setQuantity(String(product.quantity ?? 0));
       setPendingImage(null);
       setPreviewUrl(null);
       setError("");
@@ -114,9 +128,8 @@ export function ProductDetailsModal({
           }
           body.price = price;
         }
-        if (!isService && Number(quantity) !== Number(product.quantity)) {
-          body.quantity = Number(quantity);
-        }
+        // `quantity` no se manda nunca desde aquí: el stock se mueve sólo
+        // agregando unidades o retirando mercancía.
       }
 
       if (Object.keys(body).length > 0) {
@@ -211,25 +224,25 @@ export function ProductDetailsModal({
   const handleCancel = () => {
     setTitle(product.title);
     setPrice(String(product.price ?? ""));
-    setQuantity(String(product.quantity ?? 0));
     setPendingImage(null);
     setPreviewUrl(null);
     setError("");
     setIsEditing(false);
   };
 
-  const getStatusColor = (status: string) => {
+  // Fondo -light con texto -dark, igual que las tags de la lista de productos.
+  const getStatusClasses = (status: string) => {
     switch (status) {
       case "Disponible":
-        return "bg-green-500";
+        return "bg-my-green-light text-my-green-dark";
       case "Apartado":
-        return "bg-amber-600";
+        return "bg-my-orange-light text-my-orange-dark";
       case "Vendido":
-        return "bg-rose-600";
+        return "bg-my-red-light text-my-red-dark";
       case "Retirado":
-        return "bg-gray-500";
+        return "bg-muted text-muted-foreground";
       default:
-        return "bg-gray-500";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -240,26 +253,38 @@ export function ProductDetailsModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-5 sm:p-6">
           <DialogHeader>
-            <div className="flex items-center gap-3">
-              <DialogTitle className="text-2xl font-bold leading-none">
+            {/* pr-8 deja libre la X de cerrar. El título encoge (min-w-0 +
+                flex-1) y se corta a dos líneas para que un nombre largo no
+                empuje al badge ni estire el encabezado. */}
+            <div className="flex items-start gap-3 pr-8">
+              <DialogTitle className="min-w-0 flex-1 text-2xl font-bold leading-tight">
                 {isEditing ? (
                   <Input
                     name="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="text-2xl font-bold h-auto"
+                    // md:text-2xl repite el tamaño porque el Input base trae
+                    // text-base md:text-sm; sin el prefijo md: aquí, ese
+                    // md:text-sm gana en pantallas ≥768px y el campo se ve
+                    // más chico que el resto de las etiquetas de solo lectura.
+                    className="text-2xl font-bold h-auto md:text-2xl"
                   />
                 ) : (
-                  product.title
+                  <span
+                    className="line-clamp-2 wrap-break-word"
+                    title={product.title}
+                  >
+                    {product.title}
+                  </span>
                 )}
               </DialogTitle>
-              {!isEditing && (
-                <Badge
-                  className={cn("text-white", getStatusColor(product.status))}
-                >
-                  {product.status}
-                </Badge>
-              )}
+              {/* Visible también en edición: si desaparece, el encabezado da
+                  un salto de layout al entrar y salir del modo editar. */}
+              <Badge
+                className={cn("mt-1 shrink-0", getStatusClasses(product.status))}
+              >
+                {product.status}
+              </Badge>
             </div>
             {/* Subtítulo: proveedor */}
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -268,35 +293,17 @@ export function ProductDetailsModal({
             </div>
           </DialogHeader>
 
-          {hasReservations && (
-            <div className="flex items-center gap-2 p-3 bg-amber-100 text-amber-600 rounded-lg">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <div className="flex-1 min-w-0 pl-1">
-                <p className="text-sm font-semibold">
-                  {product.reservedCount}{" "}
-                  {product.reservedCount === 1
-                    ? "unidad apartada"
-                    : "unidades apartadas"}
-                </p>
-                {clientName && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-3 w-3" />
-                    <p className="text-xs">Cliente: {clientName}</p>
-                  </div>
-                )}
-                <p className="text-xs mt-1">
-                  No se puede modificar precio ni cantidad hasta liberar los apartados.
-                </p>
-              </div>
-            </div>
-          )}
-
+          {/* Las alertas de inventario (apartados, sin stock, stock bajo) no
+              viven aquí: van debajo del campo de Unidades, que es lo que
+              describen. Ésta sí es de producto entero. */}
           {isRetirado && (
-            <div className="flex items-center gap-2 p-3 bg-gray-100 text-gray-700 rounded-lg">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <div className="flex-1 min-w-0 pl-1">
-                <p className="text-sm font-semibold">Producto Retirado</p>
-                <p className="text-xs">
+            <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-muted-foreground">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Producto Retirado
+                </p>
+                <p className="mt-1 text-xs">
                   Este producto ya no aparece en el inventario. Restáuralo para
                   volver a editarlo.
                 </p>
@@ -321,27 +328,29 @@ export function ProductDetailsModal({
                     </div>
                   )}
                 </div>
+                {/* Superpuesto sobre la foto, no debajo, para no crecer la
+                    altura del modal al entrar en edición. */}
+                {isEditing && canEdit && (
+                  <div className="absolute inset-x-3 bottom-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer bg-background/90 shadow-md backdrop-blur-sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Pencil />
+                      Cambiar foto
+                    </Button>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </div>
+                )}
               </div>
-              {isEditing && canEdit && (
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Cambiar foto
-                  </Button>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
-                </div>
-              )}
             </div>
 
             <div className="space-y-4 pt-1">
@@ -357,7 +366,7 @@ export function ProductDetailsModal({
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     disabled={hasReservations || !canEdit}
-                    className="h-12 rounded-2xl text-xl font-normal px-4 disabled:opacity-60"
+                    className="h-12 rounded-2xl text-xl font-normal px-4 disabled:opacity-60 md:text-xl"
                   />
                 ) : (
                   <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
@@ -374,22 +383,102 @@ export function ProductDetailsModal({
                   <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
                     Servicio
                   </div>
-                ) : isEditing ? (
-                  <Input
-                    name="quantity"
-                    type="number"
-                    min={0}
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    disabled={hasReservations || !canEdit}
-                    className="h-12 rounded-2xl text-xl font-normal px-4 disabled:opacity-60"
-                  />
                 ) : (
-                  <div className="h-12 rounded-2xl border px-4 flex items-center text-xl">
-                    {product.quantity}
+                  // Nunca editable, ni en modo edición. El stock sólo se mueve
+                  // agregando unidades o retirando mercancía.
+                  //
+                  // El número grande es lo vendible, no el total: con apartados
+                  // el total engaña sobre lo que realmente se puede vender.
+                  <div className="flex h-12 items-center justify-between gap-2 rounded-2xl border px-4 text-xl">
+                    {hasReservations ? (
+                      <>
+                        <span className="truncate">
+                          {availableUnits}
+                          <span className="ml-1.5 text-sm text-muted-foreground">
+                            de {totalUnits}
+                          </span>
+                        </span>
+                        <span className="shrink-0 rounded-full bg-my-orange-light px-2.5 py-0.5 text-xs font-semibold text-my-orange-dark">
+                          {reserved} {reserved === 1 ? "apartada" : "apartadas"}
+                        </span>
+                      </>
+                    ) : (
+                      <span>{totalUnits}</span>
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* Alertas de inventario, pegadas al campo que describen.
+                  Ocupan el ancho completo de la columna derecha. */}
+              {hasReservations && (
+                <div className="flex items-start gap-3 rounded-lg bg-my-orange-light p-3 text-my-orange-dark">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">
+                      {reserved}{" "}
+                      {reserved === 1 ? "unidad apartada" : "unidades apartadas"}
+                      {!isService && (
+                        <>
+                          {" · quedan "}
+                          {availableUnits}{" "}
+                          {availableUnits === 1 ? "disponible" : "disponibles"}
+                        </>
+                      )}
+                    </p>
+                    {clientName && (
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        <p className="text-xs">Cliente: {clientName}</p>
+                      </div>
+                    )}
+                    <p className="mt-1 text-xs">
+                      No se puede modificar el precio hasta liberar los
+                      apartados.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Sin apartados pero sin stock libre: no es vendible. */}
+              {!hasReservations && isSoldOut && (
+                <div className="flex items-start gap-3 rounded-lg bg-my-red-light p-3 text-my-red-dark">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">
+                      Sin unidades disponibles
+                    </p>
+                    <p className="mt-1 text-xs">
+                      Agrega unidades para volver a ponerlo en circulación.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Únicas dos formas de mover stock. Sólo en modo edición. */}
+              {isEditing && !isService && !isRetirado && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={() => setStockMovementKind("Alta")}
+                  >
+                    <PackagePlus />
+                    Agregar unidades
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={availableUnits === 0}
+                    className="cursor-pointer"
+                    onClick={() => setStockMovementKind("Retiro")}
+                  >
+                    <PackageMinus />
+                    Retirar mercancía
+                  </Button>
+                </div>
+              )}
 
               <div className="grid grid-cols-[110px_1fr] items-center gap-3">
                 <Label className="flex items-center gap-2 text-xl font-normal">
@@ -421,16 +510,14 @@ export function ProductDetailsModal({
                 </div>
               )}
 
-              {!isEditing && !isService &&
-                product.quantity < 5 &&
-                product.status === "Disponible" && (
-                  <p className="text-sm text-muted-foreground">Stock bajo</p>
-                )}
             </div>
           </div>
 
           {error && (
-            <p className="text-sm font-medium text-red-600">{error}</p>
+            <div className="flex items-start gap-3 rounded-lg bg-my-red-light p-3 text-my-red-dark">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
           )}
 
           <Separator className="my-2" />
@@ -450,7 +537,7 @@ export function ProductDetailsModal({
                   disabled={isSaving}
                   className="cursor-pointer w-full sm:w-auto"
                 >
-                  <RotateCcw className="mr-2 h-4 w-4" />
+                  <RotateCcw />
                   Restaurar producto
                 </Button>
               </>
@@ -462,8 +549,13 @@ export function ProductDetailsModal({
                   disabled={isSaving}
                   className="cursor-pointer mr-auto"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Retirar
+                  {/* "Eliminar producto" y no "Retirar": este botón da de
+                      baja TODO el producto (todas las unidades, fuera del
+                      catálogo), a diferencia de "Retirar mercancía", que sólo
+                      descuenta parte del stock. Mismo verbo para dos acciones
+                      muy distintas confundía. */}
+                  <Trash2 />
+                  Eliminar producto
                 </Button>
                 <Button
                   variant="outline"
@@ -478,24 +570,18 @@ export function ProductDetailsModal({
                   disabled={isSaving}
                   className="cursor-pointer w-full sm:w-auto"
                 >
+                  <Save />
                   {isSaving ? "Guardando..." : "Guardar cambios"}
                 </Button>
               </>
             ) : (
               <>
                 <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="cursor-pointer w-full sm:w-auto"
-                >
-                  Cerrar
-                </Button>
-                <Button
                   onClick={() => setIsEditing(true)}
                   disabled={!canEdit}
                   className="cursor-pointer w-full sm:w-auto"
                 >
-                  <Edit className="mr-2 h-4 w-4" />
+                  <Edit />
                   Editar producto
                 </Button>
               </>
@@ -510,6 +596,19 @@ export function ProductDetailsModal({
         product={product}
         onDelete={handleDelete}
       />
+
+      {stockMovementKind && (
+        <StockMovementModal
+          isOpen={stockMovementKind !== null}
+          onClose={() => setStockMovementKind(null)}
+          product={product}
+          kind={stockMovementKind}
+          onDone={() => {
+            onChanged?.();
+            onClose();
+          }}
+        />
+      )}
 
       <AlertDialog
         open={confirmPriceChange}
