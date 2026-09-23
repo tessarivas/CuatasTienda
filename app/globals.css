@@ -23,7 +23,24 @@
   --my-red-light: #FFBFB3;
   --my-red-dark: #903220;
 
-  --my-green: #32E017;
+  /* Secundarios: misma familia que blue/yellow/red — croma OKLCH ~0.17-0.20,
+     con los tonos repartidos para que ninguno se confunda con otro.
+     Rueda completa (H en OKLCH): red 32° · orange 66° · yellow 101° ·
+     green 150° · blue 258° · purple 302°.
+     Ojo: sobre el tono base sólo va texto oscuro (green y orange dan 8.8:1 y
+     8.5:1 contra el foreground). El morado base se queda en ~4.2:1 contra
+     ambos, así que para texto usa --my-purple-dark (10.8:1 en blanco). */
+  --my-green: #25D366;
+  --my-green-light: #BAF3CF;
+  --my-green-dark: #1F6E3B;
+
+  --my-orange: #FF9F1C;
+  --my-orange-light: #FFDDAD;
+  --my-orange-dark: #835516;
+
+  --my-purple: #9B5DE5;
+  --my-purple-light: #D7BEF5;
+  --my-purple-dark: #512682;
 
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
@@ -85,7 +102,20 @@
   --my-red-light: #FFBFB3;
   --my-red-dark: #903220;
 
-  --my-green: #1ac200;
+  /* Mismos valores que en :root, igual que blue/yellow/red. El verde anterior
+     bajaba a #1ac200 en oscuro porque el lime #32E017 vibraba; #25D366 ya no
+     lo necesita. */
+  --my-green: #25D366;
+  --my-green-light: #BAF3CF;
+  --my-green-dark: #1F6E3B;
+
+  --my-orange: #FF9F1C;
+  --my-orange-light: #FFDDAD;
+  --my-orange-dark: #835516;
+
+  --my-purple: #9B5DE5;
+  --my-purple-light: #D7BEF5;
+  --my-purple-dark: #512682;
 
   --card: oklch(0.216 0.006 56.043);
   --card-foreground: var(--foreground);
@@ -138,6 +168,14 @@
   --color-my-red-light: var(--my-red-light);
   --color-my-red-dark: var(--my-red-dark);
   --color-my-green: var(--my-green);
+  --color-my-green-light: var(--my-green-light);
+  --color-my-green-dark: var(--my-green-dark);
+  --color-my-orange: var(--my-orange);
+  --color-my-orange-light: var(--my-orange-light);
+  --color-my-orange-dark: var(--my-orange-dark);
+  --color-my-purple: var(--my-purple);
+  --color-my-purple-light: var(--my-purple-light);
+  --color-my-purple-dark: var(--my-purple-dark);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
