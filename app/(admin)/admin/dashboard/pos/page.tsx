@@ -7,10 +7,12 @@ import { type CartItem, type PaymentMethod, type Discount } from "@/lib/data";
 import { ProductGrid } from "./_components/product-grid";
 import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
+import { Loader2 } from "lucide-react";
 
 export default function POSPage() {
-  const { products, setProducts, sales, setSales } = React.useContext(DashboardContext);
-  
+  const { products, setProducts, sales, setSales, isLoadingProducts } =
+    React.useContext(DashboardContext);
+
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [totalDiscount, setTotalDiscount] = React.useState<Discount | undefined>();
   const [showCompleteModal, setShowCompleteModal] = React.useState(false);
@@ -181,6 +183,19 @@ export default function POSPage() {
 
     return Math.max(0, finalTotal);
   };
+
+  // Mismo loader que suppliers/[id]: products viene de DashboardContext
+  // (fetch en layout.tsx), no de un fetch propio de esta página.
+  if (isLoadingProducts) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 h-full">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando caja registradora...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

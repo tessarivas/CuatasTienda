@@ -41,11 +41,17 @@ type DashboardContextType = {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
-  sales: Sale[]; 
-  setSales: React.Dispatch<React.SetStateAction<Sale[]>>; 
+  sales: Sale[];
+  setSales: React.Dispatch<React.SetStateAction<Sale[]>>;
   reloadSuppliers: () => Promise<void>;
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
+  // Cada página que lee de aquí (en vez de hacer su propio fetch) necesita
+  // saber si el primer fetch todavía está en curso para no mostrar un
+  // "no hay nada" falso justo después de entrar/loguearse.
+  isLoadingClients: boolean;
+  isLoadingProducts: boolean;
+  isLoadingSuppliers: boolean;
 };
 
 // Contexto con valores por defecto
@@ -65,6 +71,9 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   reloadSuppliers: async () => {},
   suppliers: [],
   setSuppliers: () => {},
+  isLoadingClients: true,
+  isLoadingProducts: true,
+  isLoadingSuppliers: true,
 });
 
 export default function DashboardLayout({
@@ -83,6 +92,7 @@ export default function DashboardLayout({
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
   const [clients, setClients] = React.useState<Client[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = React.useState(true);
 
   React.useEffect(() => {
     async function loadClients() {
@@ -93,13 +103,16 @@ export default function DashboardLayout({
         setClients(normalizeClients(data));
       } catch (error) {
         console.error("Error cargando clientes", error);
+      } finally {
+        setIsLoadingClients(false);
       }
     }
     loadClients();
   }, []);
   const [products, setProducts] = React.useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = React.useState(true);
   const [transactions, setTransactions] = React.useState(initialTransactions);
-  const [sales, setSales] = React.useState(initialSales); 
+  const [sales, setSales] = React.useState(initialSales);
 
   React.useEffect(() => {
   async function loadProducts() {
@@ -109,6 +122,8 @@ export default function DashboardLayout({
       setProducts(normalizeProducts(data));
     } catch (error) {
       console.error("Error loading products", error);
+    } finally {
+      setIsLoadingProducts(false);
     }
   }
 
@@ -116,11 +131,13 @@ export default function DashboardLayout({
 }, []);
 
   const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
+  const [isLoadingSuppliers, setIsLoadingSuppliers] = React.useState(true);
 
   React.useEffect(() => {
     fetch("/api/suppliers")
-      .then(res => res.json())
-      .then(setSuppliers);
+      .then((res) => res.json())
+      .then(setSuppliers)
+      .finally(() => setIsLoadingSuppliers(false));
   }, []);
 
   const reloadSuppliers = async () => {
@@ -161,6 +178,9 @@ export default function DashboardLayout({
         reloadSuppliers,
         suppliers,
         setSuppliers,
+        isLoadingClients,
+        isLoadingProducts,
+        isLoadingSuppliers,
       }}
     >
       <SidebarProvider

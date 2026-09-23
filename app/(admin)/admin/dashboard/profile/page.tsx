@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 type MeResponse = {
   id: string;
@@ -78,7 +79,13 @@ export default function ProfilePage() {
       <h1 className="text-xl font-semibold mb-4">Mi perfil</h1>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
+        // Mismo loader que suppliers/[id].
+        <div className="flex items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Cargando perfil...</p>
+          </div>
+        </div>
       ) : (
         <Card>
           <CardContent>
