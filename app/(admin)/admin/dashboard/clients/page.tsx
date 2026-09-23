@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddClientModal } from "./_components/add-client-modal";
 import { ClientCard } from "./_components/client-card";
-import { Search, UserPlus, Users } from "lucide-react";
+import { Loader2, Search, UserPlus, Users } from "lucide-react";
 import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
 
 export default function Page() {
   const router = useRouter();
 
-  const { clients, setClients } = React.useContext(DashboardContext);
+  const { clients, setClients, isLoadingClients } =
+    React.useContext(DashboardContext);
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
@@ -57,9 +58,26 @@ export default function Page() {
   const clientsWithBalance = clients.filter((c) => c.balance > 0).length;
   const totalBalance = clients.reduce((sum, c) => sum + c.balance, 0);
 
+  // Mismo loader que suppliers/[id]: clients viene de DashboardContext
+  // (fetch en layout.tsx), no de un fetch propio de esta página.
+  if (isLoadingClients) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 h-full">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando clientes...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        {/* Mismo tratamiento que "Lista de Proveedores" y "Mi Inventario
+            Hoy": texto propio, no el nombre literal de la sección. */}
+        <h1 className="text-2xl font-bold">Apartados y Crédito de Clientes</h1>
+
         {/* Barra de Búsqueda y Acciones */}
         <div className="flex flex-col justify-between sm:flex-row items-stretch sm:items-center gap-4">
           <div className="relative flex-1 max-w-md">
@@ -80,44 +98,41 @@ export default function Page() {
           </Button>
         </div>
 
-        {/* Estadísticas con colores pastel */}
+        {/* Tokens de marca, misma pareja bg-{color}-light/text-{color}-dark
+            y el mismo color por posición que Corte Mensual en
+            suppliers/[id] (amarillo → azul → rojo) — antes usaba la paleta
+            genérica de Tailwind (yellow-100/sky-100/rose-100). */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Total de clientes */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-yellow-100">
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-yellow-600 mb-1">
-                  Total de Clientes
-                </p>
-                <p className="text-3xl font-bold text-yellow-600">
-                  {totalClients}
-                </p>
+                <p className="text-sm font-medium mb-1">Total de Clientes</p>
+                <p className="text-3xl font-bold">{totalClients}</p>
               </div>
             </div>
           </div>
 
           {/* Clientes con saldo */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-sky-100">
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-blue-light text-my-blue-dark">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-sky-600 mb-1">
+                <p className="text-sm font-medium mb-1">
                   Clientes con Saldo
                 </p>
-                <p className="text-3xl font-bold text-sky-600">
-                  {clientsWithBalance}
-                </p>
+                <p className="text-3xl font-bold">{clientsWithBalance}</p>
               </div>
             </div>
           </div>
 
           {/* Saldo total */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-rose-100">
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-red-light text-my-red-dark">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-rose-600 mb-1">
+                <p className="text-sm font-medium mb-1">
                   Saldo Total entre todos los Clientes
                 </p>
-                <p className="text-3xl font-bold text-rose-600">
+                <p className="text-3xl font-bold">
                   ${totalBalance.toLocaleString()}
                 </p>
               </div>
@@ -137,18 +152,19 @@ export default function Page() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-linear-to-br from-purple-300/30 to-pink-300/30 dark:from-purple-500/10 dark:to-pink-500/10 rounded-full blur-2xl" />
-              <div className="relative p-6 bg-linear-to-br from-purple-100 to-pink-100 dark:from-purple-950/30 dark:to-pink-950/30 rounded-full mb-4">
-                <Users className="h-12 w-12 text-purple-600 dark:text-purple-400" />
-              </div>
+            {/* Mismo tratamiento neutral que el estado vacío de
+                supplier-products-list.tsx: círculo bg-muted, sin degradado
+                morado/rosa ni glow — la app no usa ese acento en ningún
+                otro lado. */}
+            <div className="rounded-full bg-muted p-6 mb-4">
+              <Users className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               {searchTerm
                 ? "No se encontraron clientes"
                 : "No hay clientes registrados"}
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 text-center max-w-md">
+            <p className="text-sm text-muted-foreground mb-6 text-center max-w-md">
               {searchTerm
                 ? "Intenta con otro término de búsqueda"
                 : "Comienza agregando tu primer cliente para llevar el registro de sus compras"}
@@ -156,10 +172,10 @@ export default function Page() {
             {!searchTerm && (
               <Button
                 variant="outline"
-                className="cursor-pointer border-purple-300 hover:bg-purple-50 dark:border-purple-700 dark:hover:bg-purple-950/30"
+                className="cursor-pointer"
                 onClick={() => setIsAddModalOpen(true)}
               >
-                <UserPlus className="mr-2 h-4 w-4" />
+                <UserPlus />
                 Agregar Primer Cliente
               </Button>
             )}
