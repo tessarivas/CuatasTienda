@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MoreHorizontal, Package } from "lucide-react";
+import { Package, User, UserRoundCheck } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,13 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type Product, type Supplier } from "@/lib/data";
@@ -25,26 +18,47 @@ interface ProductsTableProps {
   products: Product[];
   suppliers: Supplier[];
   mode?: "product" | "service";
-  onEdit: (product: Product) => void;
-  onWithdraw: (product: Product) => void;
   onAssign: (product: Product) => void; // <-- AÑADIR PROPIEDAD
+  // Click en cualquier parte de la fila (fuera del botón de Apartados) abre
+  // el detalle de sólo lectura — ahí viven Editar, Eliminar y los
+  // movimientos de stock, ya no en esta tabla.
+  onRowClick: (product: Product) => void;
 }
+
+// Anchos en porcentaje del ancho total de la tabla (requiere table-fixed).
+// Dos sets porque en modo servicio no existe la columna Cantidad; si no se
+// redistribuyera, quedaría un hueco en blanco a la derecha.
+const PRODUCT_WIDTHS = {
+  foto: "w-[8%]",
+  titulo: "w-[30%]",
+  proveedor: "w-[14%]",
+  estado: "w-[14%]",
+  precio: "w-[13%]",
+  cantidad: "w-[9%]",
+  apartados: "w-[12%]",
+};
+const SERVICE_WIDTHS = {
+  foto: "w-[9%]",
+  titulo: "w-[33%]",
+  proveedor: "w-[15%]",
+  estado: "w-[15%]",
+  precio: "w-[15%]",
+  apartados: "w-[13%]",
+};
 
 export function ProductsTable({
   products,
   suppliers,
   mode = "product",
-  onEdit,
-  onWithdraw,
   onAssign,
+  onRowClick,
 }: ProductsTableProps) {
   const isServiceMode = mode === "service";
-  // Creamos un mapa para buscar nombres de proveedores de forma eficiente.
-  // Suppliers.id es number (DB), product.supplierId es string (tras normalizar),
-  // así que llavemos el mapa con strings para que coincidan.
-  const supplierMap = new Map(
-    suppliers.map((s) => [String(s.id), s.businessName])
-  );
+  const widths = isServiceMode ? SERVICE_WIDTHS : PRODUCT_WIDTHS;
+  // Mapa proveedor completo (no sólo el nombre) para poder mostrar también
+  // su logo. Suppliers.id es number (DB), product.supplierId es string (tras
+  // normalizar), así que llavemos el mapa con strings para que coincidan.
+  const supplierMap = new Map(suppliers.map((s) => [String(s.id), s]));
 
   // Función para formatear precios a moneda
   const formatCurrency = (amount: number) => {
@@ -54,109 +68,161 @@ export function ProductsTable({
     }).format(amount);
   };
 
+  // En modo servicio no existe la columna Cantidad (todas las filas dirían
+  // "Servicio" — no aporta nada), pero Apartados sigue presente en ambos
+  // modos, así que el conteo total sólo baja en 1.
+  const columnCount = isServiceMode ? 6 : 7;
+
   return (
     <div className="border rounded-lg overflow-hidden">
-      <Table>
+      {/* table-fixed: los anchos de PRODUCT_WIDTHS/SERVICE_WIDTHS son
+          proporciones reales del ancho total, no sólo del contenido de cada
+          columna (que es lo que hace table-auto, el default). */}
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[80px]">Foto</TableHead>
-            <TableHead>Título</TableHead>
-            <TableHead>Proveedor</TableHead>
-            <TableHead>Estatus</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="text-right">
-              {isServiceMode ? "Inventario" : "Cantidad"}
+            <TableHead className={`${widths.foto} pl-4`}>Foto</TableHead>
+            <TableHead className={widths.titulo}>Título</TableHead>
+            <TableHead className={widths.proveedor}>Proveedor</TableHead>
+            <TableHead className={`${widths.estado} text-center`}>
+              Estado
             </TableHead>
-            <TableHead>
-              <span className="sr-only">Acciones</span>
+            <TableHead className={`${widths.precio} text-center`}>
+              Precio
+            </TableHead>
+            {!isServiceMode && (
+              <TableHead className={`${PRODUCT_WIDTHS.cantidad} text-center`}>
+                Cantidad
+              </TableHead>
+            )}
+            <TableHead className={`${widths.apartados} pr-4 text-center`}>
+              Apartados
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.length > 0 ? (
-            products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  {product.photoUrl ? (
-                    <Image
-                      src={product.photoUrl}
-                      alt={product.title}
-                      width={48}
-                      height={48}
-                      className="rounded-md object-cover aspect-square"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">{product.title}</TableCell>
-                <TableCell>{supplierMap.get(product.supplierId) ?? "N/A"}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1 items-start">
-                    <Badge
-                      variant={
-                        product.status === "Disponible" ? "default" : "secondary"
-                      }
-                    >
-                      {product.status}
-                    </Badge>
-                    {(product.reservedCount ?? 0) > 0 && (
-                      <Badge className="bg-amber-500 text-white text-xs">
-                        {product.reservedCount} apartado
-                        {(product.reservedCount ?? 0) > 1 ? "s" : ""}
-                      </Badge>
+            products.map((product) => {
+              // Misma regla que antes decidía si "Apartar a Cliente"
+              // aparecía en el menú: no es servicio, está Disponible, y
+              // quedan unidades libres.
+              const canAssign =
+                product.type !== "SERVICE" &&
+                product.status === "Disponible" &&
+                product.quantity - (product.reservedCount ?? 0) > 0;
+              const supplier = supplierMap.get(product.supplierId);
+
+              return (
+                <TableRow
+                  key={product.id}
+                  onClick={() => onRowClick(product)}
+                  className="cursor-pointer"
+                >
+                  <TableCell className="pl-4">
+                    {product.photoUrl ? (
+                      <Image
+                        src={product.photoUrl}
+                        alt={product.title}
+                        width={48}
+                        height={48}
+                        className="rounded-md object-cover aspect-square"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
-                <TableCell className="text-right">
-                  {product.type === "SERVICE" ? (
-                    <Badge variant="outline" className="border-sky-400 text-sky-700">
-                      Servicio
-                    </Badge>
-                  ) : (
-                    <div className="flex flex-col items-end leading-tight">
-                      <span>{product.quantity}</span>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {/* Con table-fixed la celda ya está acotada al ancho de
+                        la columna (widths.titulo); truncate sólo necesita
+                        un contenedor de bloque para tener contra qué recortar. */}
+                    <span className="block truncate" title={product.title}>
+                      {product.title}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      {/* Logo pequeño y circular, mismo ícono de respaldo
+                          (User) que usa la vista de detalle del proveedor
+                          cuando no tiene logo cargado. */}
+                      <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full border bg-muted flex items-center justify-center">
+                        {supplier?.logo ? (
+                          <Image
+                            src={supplier.logo}
+                            alt={`Logo de ${supplier.businessName}`}
+                            width={24}
+                            height={24}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span className="truncate">
+                        {supplier?.businessName ?? "N/A"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {/* Mismos colores que la lista de productos del proveedor:
+                        bg-{color}-light + text-{color}-dark. */}
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge
+                        variant="default"
+                        className={
+                          product.status === "Disponible"
+                            ? "bg-my-green-light text-my-green-dark"
+                            : "bg-my-red-light text-my-red-dark"
+                        }
+                      >
+                        {product.status}
+                      </Badge>
                       {(product.reservedCount ?? 0) > 0 && (
-                        <span className="text-xs text-amber-600">
-                          {product.quantity - (product.reservedCount ?? 0)} libres
-                        </span>
+                        <Badge
+                          variant="default"
+                          className="bg-my-orange-light text-my-orange-dark text-xs"
+                        >
+                          {product.reservedCount} Apartado
+                          {(product.reservedCount ?? 0) > 1 ? "s" : ""}
+                        </Badge>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {formatCurrency(product.price)}
+                  </TableCell>
+                  {!isServiceMode && (
+                    <TableCell className="text-center">
+                      {/* Total en tienda, no disponible/total: un apartado no
+                          saca la unidad de la tienda, y el badge "N apartado(s)"
+                          ya deja claro que parte de este total no está libre. */}
+                      <span className="tabular-nums">{product.quantity}</span>
+                    </TableCell>
                   )}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
+                  <TableCell
+                    className="pr-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!canAssign}
+                        className="cursor-pointer"
+                        onClick={() => onAssign(product)}
+                      >
+                        <UserRoundCheck />
+                        Apartar
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <DropdownMenuItem onSelect={() => onEdit(product)}>Editar</DropdownMenuItem>
-                      {/* Sólo permite apartar cuando queden unidades libres y no sea servicio. */}
-                      {product.type !== "SERVICE" &&
-                        product.status === "Disponible" &&
-                        product.quantity - (product.reservedCount ?? 0) > 0 && (
-                          <DropdownMenuItem onSelect={() => onAssign(product)}>
-                            Apartar a Cliente
-                          </DropdownMenuItem>
-                        )}
-                      <DropdownMenuItem onSelect={() => onWithdraw(product)} className="text-red-600">
-                        Retirar Mercancía
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={columnCount} className="h-24 text-center">
                 {isServiceMode
                   ? "No se encontraron servicios."
                   : "No se encontraron productos."}

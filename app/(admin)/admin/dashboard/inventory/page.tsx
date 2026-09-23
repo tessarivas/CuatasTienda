@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { DashboardContext } from "../layout";
 import { type Product, type Client } from "@/lib/data";
 import { ProductsTable } from "./_components/products-table";
-import { EditProductModal } from "./_components/edit-product-modal";
-import { WithdrawProductModal } from "./_components/withdraw-product-modal";
+import { ProductDetailsModal } from "../suppliers/_components/product-details-modal";
 import { AddProductModal } from "./_components/add-product-modal";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,12 +16,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Loader2, PackagePlus, Wrench } from "lucide-react";
 import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
-import { normalizeProduct, type ApiProduct } from "@/lib/products/normalize";
+import {
+  normalizeProduct,
+  normalizeProducts,
+  type ApiProduct,
+} from "@/lib/products/normalize";
 
 export default function Page() {
-  const { products, setProducts, clients, suppliers } =
-  React.useContext(DashboardContext);
+  const {
+    products,
+    setProducts,
+    clients,
+    suppliers,
+    isLoadingProducts,
+    isLoadingSuppliers,
+  } = React.useContext(DashboardContext);
 
   // ... (estados de filtros sin cambios)
   const searchParams = useSearchParams();
@@ -33,30 +43,33 @@ export default function Page() {
     searchParams.get("supplier") ?? "todos"
   );
   const [statusFilter, setStatusFilter] = React.useState("todos");
+  // "reciente" no reordena nada: GET /api/products?include=all ya llega
+  // ordenado por createdAt desc desde el backend (y handleAddProduct
+  // antepone los nuevos), así que el orden del array ya ES "más reciente
+  // primero". El Product normalizado no trae createdAt — no hace falta,
+  // basta con respetar (o invertir) el orden en que llegó.
+  type SortOrder = "reciente" | "antiguos" | "precio-desc" | "precio-asc";
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>("reciente");
 
   // Estados para los modales
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
+  // Click en la fila → detalle de sólo lectura (product-details-modal.tsx,
+  // el mismo que usa la página de proveedor). Ahí adentro viven Editar,
+  // Eliminar producto y los movimientos de stock — ya no hay un modal de
+  // edición directa ni un menú de acciones aparte en esta tabla.
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [isSelectClientModalOpen, setIsSelectClientModalOpen] = React.useState(false); // <-- NUEVO ESTADO
   const [productToAssign, setProductToAssign] = React.useState<Product | null>(null); // <-- NUEVO ESTADO
 
 
-  // ... (handleOpenEditModal, handleOpenWithdrawModal sin cambios)
-  const handleOpenEditModal = (product: Product) => {
+  const handleOpenDetailsModal = (product: Product) => {
     setProductToAssign(product);
-    setIsEditModalOpen(true);
-  };
-
-  const handleOpenWithdrawModal = (product: Product) => {
-    setProductToAssign(product);
-    setIsWithdrawModalOpen(true);
+    setIsDetailsModalOpen(true);
   };
 
   const handleCloseModals = () => {
     setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setIsWithdrawModalOpen(false);
+    setIsDetailsModalOpen(false);
     setIsSelectClientModalOpen(false); // <-- CERRAR NUEVO MODAL
     setProductToAssign(null);
   };
@@ -81,31 +94,34 @@ export default function Page() {
   }
 };
 
-  // ... (handleSaveProduct, handleWithdrawProduct, handleAddProduct sin cambios)
-  const handleSaveProduct = (updatedProduct: Product) => {
-    const normalized = normalizeProduct(
-      updatedProduct as unknown as ApiProduct
-    );
-    setProducts(
-      products.map((p) => (p.id === normalized.id ? normalized : p))
-    );
-  };
-  const handleWithdrawProduct = async (productId: string, _reason: string, _user: string) => {
+  // ProductDetailsModal (el aprobado, compartido con la página de proveedor)
+  // no devuelve el producto actualizado — avisa con onChanged y el padre
+  // vuelve a pedir la lista completa.
+  const reloadProducts = async () => {
     try {
-      const res = await fetch(`/api/products/${productId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const { error: message } = await res.json();
-        alert(message ?? "No se pudo retirar el producto");
-        return;
-      }
-      setProducts(products.filter((p) => p.id !== productId));
-    } catch {
-      alert("No se pudo retirar el producto");
+      const res = await fetch("/api/products?include=all");
+      if (!res.ok) return;
+      const data: ApiProduct[] = await res.json();
+      setProducts(normalizeProducts(data));
+    } catch (error) {
+      console.error("Error recargando productos", error);
     }
   };
+
   const handleAddProduct = (product: Product) => {
     const normalized = normalizeProduct(product as unknown as ApiProduct);
     setProducts((prev) => [normalized, ...prev]);
+  };
+
+  // Mismo patrón que supplier-products-list.tsx para alimentar ProductDetailsModal.
+  const getSupplierName = (product: Product) =>
+    suppliers.find((s) => String(s.id) === product.supplierId)
+      ?.businessName ?? "Desconocido";
+
+  const getClientName = (product: Product) => {
+    if (!product.clientId) return undefined;
+    const client = clients.find((c) => c.id === product.clientId);
+    return client?.name;
   };
 
   // FUNCIÓN ACTUALIZADA: Ahora abre el modal de selección de cliente
@@ -172,15 +188,58 @@ export default function Page() {
       return matchesSearch && matchesSupplier && matchesStatus;
     });
 
-  const filteredProducts = applyFilters(productItems);
-  const filteredServices = applyFilters(serviceItems);
+  const applySort = (list: Product[]) => {
+    const sorted = [...list];
+    switch (sortOrder) {
+      case "reciente":
+        return sorted; // orden de llegada = más reciente primero
+      case "antiguos":
+        return sorted.reverse();
+      case "precio-desc":
+        return sorted.sort((a, b) => b.price - a.price);
+      case "precio-asc":
+        return sorted.sort((a, b) => a.price - b.price);
+    }
+  };
+
+  const filteredProducts = applySort(applyFilters(productItems));
+  const filteredServices = applySort(applyFilters(serviceItems));
 
   const visibleItems =
     activeTab === "productos" ? filteredProducts : filteredServices;
 
+  // DD/MM/YY explícito en vez de toLocaleDateString: el formato exacto no
+  // depende del locale del navegador de quien vea la página.
+  const today = new Date();
+  const formattedDate = [
+    String(today.getDate()).padStart(2, "0"),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getFullYear()).slice(-2),
+  ].join("/");
+
+  // Mismo loader que suppliers/[id]: products y suppliers vienen de
+  // DashboardContext (fetch en layout.tsx). Esta tabla necesita ambos —
+  // productos para las filas, proveedores para nombres/logo/filtro.
+  if (isLoadingProducts || isLoadingSuppliers) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 h-full">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando inventario...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+        {/* Mismo tratamiento que "Lista de Proveedores": texto propio, no el
+            mismo literal que el nombre de la sección en el sidebar. */}
+        <h1 className="text-2xl font-bold">
+          Mi Inventario Hoy {formattedDate}
+        </h1>
+
         {/* Pestañas Productos / Servicios */}
         <div className="flex border-b">
           <button
@@ -218,9 +277,33 @@ export default function Page() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
+          <Select
+            value={sortOrder}
+            onValueChange={(v) => setSortOrder(v as SortOrder)}
+          >
+            <SelectTrigger className="w-48 cursor-pointer">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent className="cursor-pointer">
+              <SelectItem value="reciente">Recientes primero</SelectItem>
+              <SelectItem value="antiguos">Antiguos primero</SelectItem>
+              <SelectItem value="precio-desc">
+                Precio: mayor a menor
+              </SelectItem>
+              <SelectItem value="precio-asc">
+                Precio: menor a mayor
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-            <SelectTrigger className="w-45 cursor-pointer">
-              <SelectValue placeholder="Filtrar por proveedor" />
+            {/* w-45 recortaba "Todos los proveedores" a la mitad. truncate
+                queda además como red de seguridad por si se elige un
+                proveedor con nombre largo. */}
+            <SelectTrigger className="w-60 cursor-pointer">
+              <SelectValue
+                placeholder="Filtrar por proveedor"
+                className="truncate"
+              />
             </SelectTrigger>
             <SelectContent className="cursor-pointer">
               <SelectItem value="todos">Todos los proveedores</SelectItem>
@@ -246,7 +329,17 @@ export default function Page() {
           )}
           <div className="ml-auto">
             <Button className="cursor-pointer" onClick={() => setIsAddModalOpen(true)}>
-              {activeTab === "productos" ? "Agregar Producto" : "Agregar Servicio"}
+              {activeTab === "productos" ? (
+                <>
+                  <PackagePlus />
+                  Agregar Producto
+                </>
+              ) : (
+                <>
+                  <Wrench />
+                  Agregar Servicio
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -255,9 +348,8 @@ export default function Page() {
           products={visibleItems}
           suppliers={suppliers}
           mode={activeTab === "servicios" ? "service" : "product"}
-          onEdit={handleOpenEditModal}
-          onWithdraw={handleOpenWithdrawModal}
           onAssign={handleOpenAssignModal}
+          onRowClick={handleOpenDetailsModal}
         />
       </div>
 
@@ -277,18 +369,20 @@ export default function Page() {
         suppliers={suppliers}
         type={activeTab === "servicios" ? "SERVICE" : "PRODUCT"}
       />
-      <EditProductModal
-        isOpen={isEditModalOpen}
+      {/* Click en cualquier parte de la fila → el mismo modal de detalle que
+          usa la página de proveedor, abierto en modo lectura. Editar,
+          Eliminar producto y los movimientos de stock viven dentro de él. */}
+      <ProductDetailsModal
+        isOpen={isDetailsModalOpen}
         onClose={handleCloseModals}
-        onSave={handleSaveProduct}
+        onChanged={reloadProducts}
         product={productToAssign}
-        suppliers={suppliers}
-      />
-      <WithdrawProductModal
-        isOpen={isWithdrawModalOpen}
-        onClose={handleCloseModals}
-        onConfirm={handleWithdrawProduct}
-        product={productToAssign}
+        supplierName={
+          productToAssign ? getSupplierName(productToAssign) : undefined
+        }
+        clientName={
+          productToAssign ? getClientName(productToAssign) : undefined
+        }
       />
     </>
   );
