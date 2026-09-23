@@ -1,39 +1,24 @@
 // app/api/me/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { supabaseServerClient } from "@/lib/supabase/server";
-
-async function getSessionUserId() {
-  const supabase = await supabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user.id;
-}
+import { requireUser, unsyncedUserResponse } from "@/lib/auth/require-user";
+import { Prisma } from "@/generated/prisma/client";
 
 export async function GET() {
-  const userId = await getSessionUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  const { user, response } = await requireUser();
+  if (response) return response;
 
-  const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   if (!dbUser) {
-    return NextResponse.json(
-      { error: "Usuario no encontrado" },
-      { status: 404 }
-    );
+    return unsyncedUserResponse();
   }
   return NextResponse.json(dbUser);
 }
 
 export async function PATCH(req: Request) {
-  const userId = await getSessionUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  const { user, response } = await requireUser();
+  if (response) return response;
+  const userId = user.id;
 
   let body: unknown;
   try {
@@ -64,10 +49,18 @@ export async function PATCH(req: Request) {
       data: { name },
     });
     return NextResponse.json(updated);
-  } catch (error) {
-    const details = error instanceof Error ? error.message : "Error desconocido";
+  } catch (err) {
+    // Sin fila en User todavía: mismo contrato que payments y liquidate.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2025"
+    ) {
+      return unsyncedUserResponse();
+    }
+    // No se devuelve el mensaje crudo de Prisma al cliente.
+    console.error("PATCH perfil falló", err);
     return NextResponse.json(
-      { error: "No se pudo actualizar el perfil", details },
+      { error: "No se pudo actualizar el perfil" },
       { status: 500 }
     );
   }

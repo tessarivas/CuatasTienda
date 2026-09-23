@@ -1,19 +1,12 @@
 // app/api/sync-user/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { supabaseServerClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 
 export async function POST() {
   try {
-    const supabase = await supabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+    const { user, response } = await requireUser();
+    if (response) return response;
 
     const email = user.email;
     if (!email) {

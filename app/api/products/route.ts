@@ -6,16 +6,49 @@ import {
 } from "@/lib/cloudinary/product";
 import { randomBytes } from "crypto";
 import { Prisma } from "@/generated/prisma/client";
+import { supabaseServerClient } from "@/lib/supabase/server";
+
+// Proyección para consumidores anónimos (catálogo público). Deja fuera
+// supplierId, soldCount, code, quantity y reservedCount: son datos internos.
+function toPublicProduct(p: {
+  id: number;
+  title: string;
+  price: Prisma.Decimal;
+  picture: string | null;
+  type: string;
+}) {
+  return {
+    id: p.id,
+    title: p.title,
+    price: p.price,
+    picture: p.picture,
+    type: p.type,
+  };
+}
 
 // GET: el POS usa la variante por defecto — sólo productos "Disponible" con
 // stock libre (quantity > reservedCount). Admin (`?include=all`) devuelve
 // todo excepto "Retirado" con el conteo de reservas para que el UI muestre
 // disponibilidad. Cada producto incluye `reservedCount` = LayawayItem en
 // Layaways activos.
+//
+// Esta ruta es la única de /api que el middleware deja pasar sin sesión, para
+// servir de catálogo público. Sin sesión se devuelve la proyección recortada y
+// `?include=all` se rechaza; con sesión el comportamiento es el de siempre.
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const includeAll = url.searchParams.get("include") === "all";
+
+    const supabase = await supabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const isAuthenticated = Boolean(user);
+
+    if (includeAll && !isAuthenticated) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
 
     const where = includeAll
       ? { status: { not: "Retirado" } }
@@ -50,6 +83,10 @@ export async function GET(req: Request) {
             ? true
             : (p.quantity ?? 0) - p.reservedCount > 0
         );
+
+    if (!isAuthenticated) {
+      return NextResponse.json(filtered.map(toPublicProduct));
+    }
 
     return NextResponse.json(filtered);
   } catch (err) {

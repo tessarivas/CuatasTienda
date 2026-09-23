@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
-import { supabaseServerClient } from "@/lib/supabase/server";
+import {
+  requireUser,
+  isUnsyncedUserError,
+  unsyncedUserResponse,
+} from "@/lib/auth/require-user";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,13 +38,8 @@ export async function POST(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
 
-  const supabase = await supabaseServerClient();
-  const {
-    data: { user: sessionUser },
-  } = await supabase.auth.getUser();
-  if (!sessionUser) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  const { user: sessionUser, response } = await requireUser();
+  if (response) return response;
 
   let body: unknown;
   try {
@@ -213,17 +212,8 @@ export async function POST(req: Request, { params }: Ctx) {
       layaway: result.layaway,
     });
   } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2003"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Tu usuario aún no está sincronizado. Vuelve a iniciar sesión e intenta de nuevo.",
-        },
-        { status: 409 }
-      );
+    if (isUnsyncedUserError(err)) {
+      return unsyncedUserResponse();
     }
     console.error("POST liquidate falló", err);
     return NextResponse.json(
