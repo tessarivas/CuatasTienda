@@ -8,7 +8,12 @@ Spanish-language (es-MX) retail back-office for a small consignment store: suppl
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work (currently: a per-supplier inventory history screen,
-and a real "permanently delete" action distinct from today's soft-delete "Eliminar producto").
+what to do with a client's leftover credit / a "limpiar saldo" option, a "liquidar toda la
+cuenta" button, showing each apartado's date on its card, checking other pages for
+empty states that flash while loading, small raw-color / typo cleanups in the add-* modals, dropping Estado/Apartados from the inventory Servicios tab (and later a
+"registrar servicio" action), hiding the "Disponible" badge when every unit is reserved, and a
+real "permanently
+delete" action distinct from today's soft-delete "Eliminar producto").
 
 ## Commands
 
@@ -188,8 +193,14 @@ Enum values are **Spanish**: `LayawayStatus (Activo | Liquidado | Cancelado)`,
 
 Rules enforced in route handlers, **not** in the schema — preserve them:
 
-- **Reservations are derived from row counts** (`LayawayItem` whose `Layaway.status = "Activo"`),
-  never from `Product.status`. Availability = `quantity - reservedCount`.
+- **Reservations are derived from row counts** (`LayawayItem` with `status = "Activo"` whose
+  `Layaway.status = "Activo"`), never from `Product.status`. Availability = `quantity - reservedCount`.
+  **`LayawayItem` rows are never deleted** (since migration `layaway_item_history`): liquidating sets
+  `status = "Liquidado"` + `resolvedAt` + `saleId`, removing an apartado sets `status = "Cancelado"`.
+  They're the "+ apartado" lines of the client's history. **Every reservation count or listing must
+  filter `status: "Activo"`** — forgetting it counts sold/cancelled items and breaks availability.
+  A `Sale` with no linked `LayawayItem` predates this change (its items were deleted); the movements
+  endpoint flags it `legacy: true`.
 - `Product.status` is a plain `String` (`"Disponible" | "Vendido" | "Retirado"`), never settable via
   API: `POST` forces `"Disponible"`, `PATCH` rejects a `status` key outright, `DELETE` is a **soft
   delete** to `"Retirado"`, and `POST /api/products/[id]/restore` is the only way back. Retired
@@ -297,6 +308,15 @@ creation uploads *before* insert and cleans up orphans on code collision.
 
 ## Conventions
 
+- **Visual reference pages** — when building or restyling any page, match
+  `clients/[id]/page.tsx` and `suppliers/[id]/page.tsx` rather than inventing new styling:
+  `Card`/`CardHeader` (icon + title, neutral `variant="secondary"` count `Badge`), ledger rows
+  (Historial de Movimientos) as **plain text colored `text-my-{color}-dark` — no background box,
+  no per-row badge** — with the total below a `border-t-2` in foreground color, empty states as a
+  `bg-muted` circle around a
+  `text-muted-foreground` icon, sober buttons (`cursor-pointer`, bare icons), and for a
+  fixed-height scroll area `flex-1 min-h-0 overflow-y-auto` on the growing region with
+  `shrink-0` on pinned headers/footers (`min-h-0` needed at every ancestor flex/grid level).
 - **Spanish-first**: UI copy, API error messages, commit messages, and most comments are Spanish.
   Identifiers and Prisma model/field names are English (except the Spanish enum values). Write
   user-facing strings and API errors in Spanish; keep new identifiers English.
