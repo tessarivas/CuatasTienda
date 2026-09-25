@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, DollarSign } from "lucide-react";
+import { DollarSign, Plus } from "lucide-react";
 
 export type PaymentMethod = "Efectivo" | "Tarjeta" | "Transferencia";
 
@@ -27,6 +28,8 @@ interface AddPaymentModalProps {
   onClose: () => void;
   onAddPayment: (amount: number, method: PaymentMethod) => void | Promise<void>;
 }
+
+const QUICK_AMOUNTS = [100, 200, 500, 1000];
 
 export function AddPaymentModal({
   isOpen,
@@ -37,8 +40,6 @@ export function AddPaymentModal({
   const [method, setMethod] = React.useState<PaymentMethod>("Efectivo");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const quickAmounts = [100, 200, 500, 1000];
-
   React.useEffect(() => {
     if (!isOpen) {
       setAmount("");
@@ -47,9 +48,11 @@ export function AddPaymentModal({
     }
   }, [isOpen]);
 
+  const numericAmount = parseFloat(amount);
+  const isValidAmount = !isNaN(numericAmount) && numericAmount > 0;
+
   const handleSubmit = async () => {
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
+    if (!isValidAmount) {
       alert("Por favor, ingrese un monto válido mayor a 0.");
       return;
     }
@@ -61,54 +64,51 @@ export function AddPaymentModal({
     }
   };
 
-  const handleQuickAmount = (value: number) => {
-    setAmount(value.toString());
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Plus className="h-6 w-6 text-green-600" />
-            </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
             Agregar Abono
           </DialogTitle>
+          <DialogDescription>
+            El monto se suma al saldo a favor del cliente.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-3">
-            <Label htmlFor="amount" className="text-lg font-semibold">
-              ¿Cuánto dinero va a abonar?
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="amount" className="text-right">
+              Monto <span className="-ml-1 text-my-red">*</span>
             </Label>
-            <div className="relative">
-              <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+            <div className="relative col-span-3">
+              <DollarSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              {/* text + inputMode en vez de type="number": mismo teclado
+                  numérico en móvil, sin las flechitas de incremento. */}
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="text-3xl font-bold h-20 pl-14 text-center"
+                className="pl-9"
                 autoFocus
               />
             </div>
-            <p className="text-sm text-muted-foreground text-center">
-              Ingresa la cantidad en pesos mexicanos (MXN)
-            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Cantidades rápidas:</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {quickAmounts.map((value) => (
+          <div className="grid grid-cols-4 items-center gap-4">
+            <div className="col-span-3 col-start-2 grid grid-cols-4 gap-2">
+              {QUICK_AMOUNTS.map((value) => (
                 <Button
                   key={value}
                   type="button"
                   variant="outline"
-                  className="h-14 text-lg font-semibold cursor-pointer hover:bg-green-50 hover:border-green-300"
-                  onClick={() => handleQuickAmount(value)}
+                  size="sm"
+                  className="cursor-pointer"
+                  onClick={() => setAmount(value.toString())}
                 >
                   ${value}
                 </Button>
@@ -116,13 +116,15 @@ export function AddPaymentModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Método de pago</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="method" className="text-right">
+              Método
+            </Label>
             <Select
               value={method}
               onValueChange={(v) => setMethod(v as PaymentMethod)}
             >
-              <SelectTrigger className="h-12 cursor-pointer">
+              <SelectTrigger id="method" className="col-span-3 w-full cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -132,38 +134,22 @@ export function AddPaymentModal({
               </SelectContent>
             </Select>
           </div>
-
-          {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
-            <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-              <p className="text-sm text-green-800 mb-1">Se va a abonar:</p>
-              <p className="text-3xl font-bold text-green-700">
-                ${parseFloat(amount).toFixed(2)} MXN
-              </p>
-              <p className="text-xs text-green-700 mt-1">Método: {method}</p>
-            </div>
-          )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 h-12 text-lg cursor-pointer"
+            className="cursor-pointer"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={
-              isSubmitting ||
-              !amount ||
-              isNaN(parseFloat(amount)) ||
-              parseFloat(amount) <= 0
-            }
-            className="flex-1 h-12 text-lg cursor-pointer bg-green-600 hover:bg-green-700"
+            disabled={isSubmitting || !isValidAmount}
+            className="cursor-pointer"
           >
-            <Plus className="mr-2 h-5 w-5" />
             {isSubmitting ? "Guardando..." : "Guardar Abono"}
           </Button>
         </DialogFooter>

@@ -1,20 +1,27 @@
 "use client";
 
 import * as React from "react";
-import { type Product, type Client } from "@/lib/data";
+import { type Product, type Client, type Supplier } from "@/lib/data";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Image from "next/image";
 import { Search, ShoppingBag, Package } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AssignProductModalProps {
   isOpen: boolean;
@@ -22,6 +29,7 @@ interface AssignProductModalProps {
   onAssign: (productId: string, clientId: string) => void;
   client: Client | null;
   availableProducts: Product[];
+  suppliers: Supplier[];
 }
 
 export function AssignProductModal({
@@ -30,132 +38,178 @@ export function AssignProductModal({
   onAssign,
   client,
   availableProducts,
+  suppliers,
 }: AssignProductModalProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [supplierFilter, setSupplierFilter] = React.useState("todos");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm("");
+      setSupplierFilter("todos");
+      setSelectedId(null);
+    }
+  }, [isOpen]);
+
+  // Sólo proveedores con algo que apartar; los demás darían una lista vacía.
+  const suppliersWithStock = React.useMemo(() => {
+    const ids = new Set(availableProducts.map((p) => String(p.supplierId)));
+    return suppliers.filter((s) => ids.has(String(s.id)));
+  }, [suppliers, availableProducts]);
 
   if (!client) return null;
 
-  const filteredProducts = availableProducts.filter((product) =>
-    product.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = availableProducts.filter(
+    (product) =>
+      product.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (supplierFilter === "todos" ||
+        String(product.supplierId) === supplierFilter)
   );
 
-  const handleAssignClick = (productId: string) => {
-    onAssign(productId, client.id);
-    setSearchTerm("");
+  const handleAssign = () => {
+    if (!selectedId) return;
+    onAssign(selectedId, client.id);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <ShoppingBag className="h-6 w-6 text-amber-600" />
-            </div>
-            Apartar Producto para {client.name}
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            Apartar Producto
           </DialogTitle>
+          <DialogDescription>
+            Elige el producto que se le va a apartar a {client.name}.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Buscador */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar producto por nombre..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12 text-lg"
-            />
+        <div className="grid gap-3 py-4">
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar producto..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              {/* Ancho según el texto (w-fit, default del trigger) para que
+                  "Todos los proveedores" no se corte; max-w-56 evita que un
+                  nombre largo de proveedor aplaste el buscador. */}
+              <SelectTrigger className="max-w-56 shrink-0 cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los proveedores</SelectItem>
+                {suppliersWithStock.map((supplier) => (
+                  <SelectItem key={supplier.id} value={String(supplier.id)}>
+                    {supplier.businessName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Contador */}
-          <div className="flex items-center justify-between px-2">
-            <p className="text-sm text-muted-foreground">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'producto disponible' : 'productos disponibles'}
-            </p>
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSearchTerm("")}
-                className="cursor-pointer"
-              >
-                Limpiar búsqueda
-              </Button>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {filteredProducts.length}{" "}
+            {filteredProducts.length === 1
+              ? "producto disponible"
+              : "productos disponibles"}
+          </p>
 
-          {/* Grid de productos */}
-          <ScrollArea className="h-[450px]">
-            {filteredProducts.length > 0 ? (
-              <div className="grid gap-3 pr-4">
-                {filteredProducts.map((product) => (
-                  <div
+          {filteredProducts.length > 0 ? (
+            // div con overflow y no ScrollArea: el wrapper display:table de
+            // Radix rompe el truncate de los títulos (ver "UI gotchas").
+            // max-h-72 (288px) = 4 filas de 66px + 3 huecos de 8px; a partir
+            // de la 5ª se activa el scroll dentro de este espacio.
+            <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+              {filteredProducts.map((product) => {
+                const isSelected = product.id === selectedId;
+                // Lo que de verdad se puede apartar, no el total en bodega.
+                const available =
+                  product.quantity - (product.reservedCount ?? 0);
+                return (
+                  <button
                     key={product.id}
-                    className="p-4 border-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    type="button"
+                    onClick={() =>
+                      setSelectedId((prev) =>
+                        prev === product.id ? null : product.id
+                      )
+                    }
+                    className={cn(
+                      "flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2 text-left transition-colors hover:border-primary/50",
+                      isSelected && "border-primary bg-primary/5"
+                    )}
                   >
-                    <div className="flex gap-4">
-                      {/* Imagen */}
-                      <div className="relative w-24 h-24 flex-shrink-0">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                      {product.photoUrl ? (
                         <Image
                           src={product.photoUrl}
                           alt={product.title}
-                          fill
-                          className="rounded-lg object-cover border-2"
+                          width={48}
+                          height={48}
+                          className="h-full w-full object-cover"
                         />
-                        <Badge className="absolute -top-2 -right-2 bg-green-500">
-                          Stock: {product.quantity}
-                        </Badge>
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg mb-2 line-clamp-2">
-                          {product.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-3xl font-bold text-blue-600">
-                            ${product.price.toFixed(2)}
-                          </span>
-                          <span className="text-sm text-muted-foreground">MXN</span>
-                        </div>
-                        <Button
-                          size="lg"
-                          className="w-full cursor-pointer bg-amber-600 hover:bg-amber-700"
-                          onClick={() => handleAssignClick(product.id)}
-                        >
-                          <ShoppingBag className="mr-2 h-5 w-5" />
-                          Apartar este producto
-                        </Button>
-                      </div>
+                      ) : (
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      )}
                     </div>
-                  </div>
-                ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {product.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {available}{" "}
+                        {available === 1 ? "disponible" : "disponibles"}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold">
+                      ${product.price.toFixed(2)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="mb-4 rounded-full bg-muted p-6">
+                <Package className="h-10 w-10 text-muted-foreground" />
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[400px] text-center">
-                <Package className="h-20 w-20 text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">
-                  {searchTerm ? "No se encontraron productos" : "No hay productos disponibles"}
-                </h3>
-                <p className="text-muted-foreground max-w-md">
-                  {searchTerm
-                    ? "Intenta con otro término de búsqueda"
-                    : "Todos los productos están apartados o vendidos"}
-                </p>
-              </div>
-            )}
-          </ScrollArea>
+              <p className="font-medium text-muted-foreground">
+                {searchTerm
+                  ? "No se encontraron productos"
+                  : "No hay productos disponibles"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {searchTerm
+                  ? "Intenta con otro término de búsqueda"
+                  : "Todos los productos están apartados o vendidos"}
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1 h-12 text-lg cursor-pointer"
+            className="cursor-pointer"
           >
-            Cerrar
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleAssign}
+            disabled={!selectedId}
+            className="cursor-pointer"
+          >
+            Apartar Producto
           </Button>
         </DialogFooter>
       </DialogContent>
