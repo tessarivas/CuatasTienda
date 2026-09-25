@@ -131,6 +131,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   // Refuse if they still have an active Layaway with items.
   const activeItems = await prisma.layawayItem.count({
     where: {
+      status: "Activo",
       Layaway: { clientId: id, status: "Activo" },
     },
   });

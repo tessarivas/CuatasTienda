@@ -32,13 +32,28 @@ model Layaway {
   LayawayItem LayawayItem[]
 }
 
+// Cada renglón "+ apartado" de la cuenta del cliente. No se borra al liquidar
+// ni al quitarlo: cambia `status` (Liquidado / Cancelado), para que el
+// historial pueda mostrarse como la lista en papel. Toda reserva vigente es
+// un item con status = Activo — cualquier conteo de reservas DEBE filtrar por
+// ese status, o los items ya vendidos/cancelados descuadran la disponibilidad.
 model LayawayItem {
-  id        Int     @id @default(autoincrement())
-  layawayId Int
-  productId Int
-  price     Decimal @db.Decimal(10, 2)
-  Layaway   Layaway @relation(fields: [layawayId], references: [id])
-  Product   Product @relation(fields: [productId], references: [id])
+  id         Int           @id @default(autoincrement())
+  layawayId  Int
+  productId  Int
+  price      Decimal       @db.Decimal(10, 2)
+  status     LayawayStatus @default(Activo)
+  createdAt  DateTime      @default(now())
+  // Cuándo se liquidó o canceló; null mientras sigue Activo.
+  resolvedAt DateTime?
+  // Venta que lo liquidó. Una Sale sin items ligados es de antes de este
+  // cambio (los items se borraban) — el historial la trata distinto.
+  saleId     Int?
+  Layaway    Layaway       @relation(fields: [layawayId], references: [id])
+  Product    Product       @relation(fields: [productId], references: [id])
+  Sale       Sale?         @relation(fields: [saleId], references: [id])
+
+  @@index([productId, status])
 }
 
 model Payment {
@@ -75,11 +90,11 @@ model Product {
 // sólo guarda el saldo actual, así que sin esta tabla el historial no se puede
 // reconstruir.
 model StockMovement {
-  id        Int               @id @default(autoincrement())
-  productId Int
-  type      StockMovementType
-  quantity  Int // Siempre positivo; el signo lo da `type`.
-  reason    String?
+  id         Int               @id @default(autoincrement())
+  productId  Int
+  type       StockMovementType
+  quantity   Int // Siempre positivo; el signo lo da `type`.
+  reason     String?
   // Nombre de quien recoge físicamente la mercancía (repartidor, transportista).
   // Sólo aplica a `Retiro` — en `Alta` no hay nadie que "recoja" nada, entra
   // mercancía. Texto libre: no hay catálogo de repartidores.
@@ -93,14 +108,15 @@ model StockMovement {
 }
 
 model Sale {
-  id       Int        @id @default(autoincrement())
-  total    Decimal    @db.Decimal(10, 2)
-  date     DateTime   @default(now())
-  userId   String     @db.Uuid
-  clientId Int?
-  Client   Client?    @relation(fields: [clientId], references: [id])
-  User     User       @relation(fields: [userId], references: [id])
-  SaleItem SaleItem[]
+  id          Int           @id @default(autoincrement())
+  total       Decimal       @db.Decimal(10, 2)
+  date        DateTime      @default(now())
+  userId      String        @db.Uuid
+  clientId    Int?
+  Client      Client?       @relation(fields: [clientId], references: [id])
+  User        User          @relation(fields: [userId], references: [id])
+  SaleItem    SaleItem[]
+  LayawayItem LayawayItem[]
 }
 
 model SaleItem {

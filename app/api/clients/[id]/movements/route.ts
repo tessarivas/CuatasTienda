@@ -9,8 +9,14 @@ function parseId(raw: string) {
 }
 
 // GET /api/clients/[id]/movements
-// Historial merged: Payments (abonos) + Sales (liquidaciones de apartado).
-// Devuelve un arreglo ordenado por fecha DESC, con shape discriminado por `type`.
+// Historial merged, la lista en papel del cliente: LayawayItems (+ apartado),
+// Payments (− abono) y Sales (liquidaciones). Devuelve un arreglo ordenado por
+// fecha DESC, con shape discriminado por `type`.
+//
+// `legacy` en una liquidación = venta sin LayawayItems ligados, de antes de
+// que los items dejaran de borrarse. Su renglón "+ apartado" ya no existe, así
+// que el cliente debe tratar esa liquidación como apartado y venta a la vez
+// para que el resta corriente cuadre con el saldo real.
 export async function GET(_req: Request, { params }: Ctx) {
   const { id: rawId } = await params;
   const clientId = parseId(rawId);
@@ -29,7 +35,11 @@ export async function GET(_req: Request, { params }: Ctx) {
     );
   }
 
-  const [payments, sales] = await Promise.all([
+  const [items, payments, sales] = await Promise.all([
+    prisma.layawayItem.findMany({
+      where: { Layaway: { clientId } },
+      include: { Product: { select: { title: true } } },
+    }),
     prisma.payment.findMany({
       where: { clientId },
       orderBy: { date: "desc" },
@@ -41,11 +51,20 @@ export async function GET(_req: Request, { params }: Ctx) {
         SaleItem: {
           include: { Product: { select: { id: true, title: true } } },
         },
+        _count: { select: { LayawayItem: true } },
       },
     }),
   ]);
 
   type Movement =
+    | {
+        type: "apartado";
+        id: number;
+        date: Date;
+        amount: string;
+        title: string;
+        status: "Activo" | "Liquidado" | "Cancelado";
+      }
     | {
         type: "abono";
         id: number;
@@ -59,9 +78,18 @@ export async function GET(_req: Request, { params }: Ctx) {
         date: Date;
         amount: string;
         items: { productId: number; title: string; finalPrice: string }[];
+        legacy: boolean;
       };
 
   const movements: Movement[] = [
+    ...items.map<Movement>((i) => ({
+      type: "apartado",
+      id: i.id,
+      date: i.createdAt,
+      amount: i.price.toFixed(2),
+      title: i.Product.title,
+      status: i.status,
+    })),
     ...payments.map<Movement>((p) => ({
       type: "abono",
       id: p.id,
@@ -79,10 +107,17 @@ export async function GET(_req: Request, { params }: Ctx) {
         title: si.Product.title,
         finalPrice: si.finalPrice.toFixed(2),
       })),
+      legacy: s._count.LayawayItem === 0,
     })),
   ];
 
-  movements.sort((a, b) => b.date.getTime() - a.date.getTime());
+  // Empates de fecha: en orden de lectura va primero el apartado, luego el
+  // abono, luego la liquidación. Como aquí es DESC, el rango va invertido.
+  const rank = { apartado: 0, abono: 1, liquidacion: 2 } as const;
+  movements.sort(
+    (a, b) =>
+      b.date.getTime() - a.date.getTime() || rank[b.type] - rank[a.type]
+  );
 
   return NextResponse.json(movements);
 }

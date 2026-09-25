@@ -160,7 +160,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
       // No se pueden retirar unidades que ya están apartadas por un cliente.
       const reservedCount = await tx.layawayItem.count({
-        where: { productId, Layaway: { status: "Activo" } },
+        where: { productId, status: "Activo", Layaway: { status: "Activo" } },
       });
       if (next < reservedCount) {
         return {

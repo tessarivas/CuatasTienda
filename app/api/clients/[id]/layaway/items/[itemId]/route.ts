@@ -9,9 +9,10 @@ function parseId(raw: string) {
 }
 
 // DELETE /api/clients/[id]/layaway/items/[itemId]
-// Libera un producto apartado: elimina el LayawayItem y devuelve el Producto
-// al estatus "Disponible". Si al removerlo el Layaway queda vacío, no cambia
-// de estatus (sigue "Activo") — se liquidará más adelante o se cancelará a mano.
+// Libera un producto apartado: marca el LayawayItem como "Cancelado" (no lo
+// borra — queda en el historial del cliente, tachado) y así deja de contar
+// como reserva. Si el Layaway queda sin items activos, no cambia de estatus
+// (sigue "Activo") — el siguiente apartado del cliente se suma ahí.
 export async function DELETE(_req: Request, { params }: Ctx) {
   const { id: rawClientId, itemId: rawItemId } = await params;
   const clientId = parseId(rawClientId);
@@ -41,9 +42,19 @@ export async function DELETE(_req: Request, { params }: Ctx) {
         };
       }
 
-      // Al liberar sólo eliminamos el LayawayItem. El Product.status queda
-      // intacto porque no representa reservas — esas se cuentan vía rows.
-      await tx.layawayItem.delete({ where: { id: itemId } });
+      if (item.status !== "Activo") {
+        return {
+          error: "Este producto ya no está apartado." as const,
+          status: 409,
+        };
+      }
+
+      // El Product.status queda intacto porque no representa reservas —
+      // esas se cuentan vía items con status "Activo".
+      await tx.layawayItem.update({
+        where: { id: itemId },
+        data: { status: "Cancelado", resolvedAt: new Date() },
+      });
 
       return { error: null };
     });

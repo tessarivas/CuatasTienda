@@ -16,6 +16,7 @@ async function countActiveReservations(productId: number) {
   return prisma.layawayItem.count({
     where: {
       productId,
+      status: "Activo",
       Layaway: { status: "Activo" },
     },
   });

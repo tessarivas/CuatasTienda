@@ -28,8 +28,11 @@ function parseId(raw: string | number) {
 //      pactado al momento del apartado).
 //   4. Para cada producto: status="Vendido" si la cantidad resultante es 0,
 //      si no "Disponible"; quantity = max(0, quantity-1); soldCount += 1.
-//   5. Eliminar los LayawayItem liquidados.
-//   6. Si ya no quedan items en el Layaway, pasarlo a status="Liquidado".
+//   5. Marcar los LayawayItem como status="Liquidado", ligados a la venta.
+//      No se borran: son los renglones "+ apartado" del historial del
+//      cliente (la lista en papel).
+//   6. Si ya no quedan items Activos en el Layaway, pasarlo a
+//      status="Liquidado".
 //   7. Restar el total del currentBalance del cliente.
 export async function POST(req: Request, { params }: Ctx) {
   const { id: rawClientId } = await params;
@@ -114,6 +117,14 @@ export async function POST(req: Request, { params }: Ctx) {
           status: 409,
         };
       }
+      // Un item ya liquidado o cancelado sigue existiendo (historial); sin
+      // este chequeo se podría cobrar dos veces el mismo producto.
+      if (items.some((i) => i.status !== "Activo")) {
+        return {
+          error: "Alguno de los productos ya no está apartado" as const,
+          status: 409,
+        };
+      }
 
       const total = items.reduce(
         (acc, item) => acc.plus(item.price),
@@ -163,10 +174,13 @@ export async function POST(req: Request, { params }: Ctx) {
         });
       }
 
-      await tx.layawayItem.deleteMany({ where: { id: { in: itemIds } } });
+      await tx.layawayItem.updateMany({
+        where: { id: { in: itemIds } },
+        data: { status: "Liquidado", resolvedAt: new Date(), saleId: sale.id },
+      });
 
       const remaining = await tx.layawayItem.count({
-        where: { layawayId },
+        where: { layawayId, status: "Activo" },
       });
       let updatedLayaway;
       if (remaining === 0) {

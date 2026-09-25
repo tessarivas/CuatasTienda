@@ -61,7 +61,7 @@ export async function GET(req: Request) {
         _count: {
           select: {
             LayawayItem: {
-              where: { Layaway: { status: "Activo" } },
+              where: { status: "Activo", Layaway: { status: "Activo" } },
             },
           },
         },

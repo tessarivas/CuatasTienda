@@ -32,7 +32,10 @@ export async function GET(_req: Request, { params }: Ctx) {
   const layaway = await prisma.layaway.findFirst({
     where: { clientId, status: "Activo" },
     include: {
+      // Sólo lo vigente: los items liquidados/cancelados se conservan para el
+      // historial, pero ya no son apartados.
       LayawayItem: {
+        where: { status: "Activo" },
         include: { Product: true },
         orderBy: { id: "asc" },
       },

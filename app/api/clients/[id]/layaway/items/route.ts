@@ -65,7 +65,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
       // Verificar que queden unidades libres (quantity - reservas activas).
       const activeReservations = await tx.layawayItem.count({
-        where: { productId, Layaway: { status: "Activo" } },
+        where: { productId, status: "Activo", Layaway: { status: "Activo" } },
       });
       const available = (product.quantity ?? 0) - activeReservations;
       if (available <= 0) {

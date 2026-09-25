@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: Ctx) {
           _count: {
             select: {
               LayawayItem: {
-                where: { Layaway: { status: "Activo" } },
+                where: { status: "Activo", Layaway: { status: "Activo" } },
               },
             },
           },
