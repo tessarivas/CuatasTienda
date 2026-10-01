@@ -14,13 +14,70 @@ export default function Page() {
   const router = useRouter();
   const {
     suppliers,
+    products,
     reloadSuppliers,
     isAddSupplierModalOpen,
     setIsAddSupplierModalOpen,
     isLoadingSuppliers,
+    isLoadingProducts,
   } = React.useContext(DashboardContext);
 
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [salesBySupplier, setSalesBySupplier] = React.useState<
+    { supplierId: number; total: string }[] | null
+  >(null);
+
+  // Mes en curso en la hora local de quien ve la página (la de la tienda),
+  // no la del servidor.
+  const monthName = new Date().toLocaleDateString("es-MX", { month: "long" });
+  React.useEffect(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/suppliers/sales?from=${from.toISOString()}&to=${to.toISOString()}`
+        );
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (!cancelled) setSalesBySupplier(data);
+      } catch {
+        if (!cancelled) setSalesBySupplier([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const supplierName = (id: string | number) =>
+    suppliers.find((s) => String(s.id) === String(id))?.businessName ??
+    "Proveedor";
+
+  // Productos en tienda ahora: con unidades y no retirados. Los servicios no
+  // cuentan — no son artículos físicos.
+  const topByProducts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      if (p.type === "SERVICE" || p.status === "Retirado" || p.quantity <= 0)
+        continue;
+      counts.set(p.supplierId, (counts.get(p.supplierId) ?? 0) + 1);
+    }
+    let best: { supplierId: string; count: number } | null = null;
+    for (const [supplierId, count] of counts) {
+      if (!best || count > best.count) best = { supplierId, count };
+    }
+    return best;
+  }, [products]);
+
+  const topBySales = React.useMemo(() => {
+    if (!salesBySupplier || salesBySupplier.length === 0) return null;
+    return salesBySupplier.reduce((best, s) =>
+      Number(s.total) > Number(best.total) ? s : best
+    );
+  }, [salesBySupplier]);
 
   const handleCardClick = (supplier: Supplier) => {
     router.push(`/admin/dashboard/suppliers/${supplier.id}`);
@@ -75,6 +132,63 @@ export default function Page() {
               <UserRoundPlus className="h-4 w-4" />
               Agregar Proveedor
             </Button>
+          </div>
+        </div>
+
+        {/* Highlights: mismo formato que la página de Clientes. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
+            <p className="text-sm font-medium mb-1">Total de Proveedores</p>
+            <p className="text-3xl font-bold">{suppliers.length}</p>
+          </div>
+
+          <div className="min-w-0 rounded-xl p-5 bg-my-blue-light text-my-blue-dark">
+            <p className="text-sm font-medium mb-1">
+              Proveedor con más artículos
+            </p>
+            {isLoadingProducts ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : topByProducts ? (
+              <>
+                <p className="truncate text-3xl font-bold">
+                  {supplierName(topByProducts.supplierId)}
+                </p>
+                <p className="text-sm">
+                  {topByProducts.count}{" "}
+                  {topByProducts.count === 1
+                    ? "producto en tienda"
+                    : "productos en tienda"}
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold">—</p>
+            )}
+          </div>
+
+          <div className="min-w-0 rounded-xl p-5 bg-my-green-light text-my-green-dark">
+            <p className="text-sm font-medium mb-1">
+              Más ventas en {monthName}
+            </p>
+            {salesBySupplier === null ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : topBySales ? (
+              <>
+                <p className="truncate text-3xl font-bold">
+                  {supplierName(topBySales.supplierId)}
+                </p>
+                <p className="text-sm">
+                  ${Number(topBySales.total).toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                  })}{" "}
+                  vendidos
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-bold">—</p>
+                <p className="text-sm">Aún no hay ventas este mes</p>
+              </>
+            )}
           </div>
         </div>
 

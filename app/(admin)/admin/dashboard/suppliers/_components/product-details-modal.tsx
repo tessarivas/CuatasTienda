@@ -93,6 +93,14 @@ export function ProductDetailsModal({
   const totalUnits = product?.quantity ?? 0;
   const availableUnits = Math.max(0, totalUnits - reserved);
   const isSoldOut = !isService && !isRetirado && availableUnits === 0;
+  // Product.status no ve reservas: con todas las unidades apartadas seguiría
+  // diciendo "Disponible" aunque no se pueda vender. En ese caso el badge del
+  // encabezado dice "Apartado" (naranja) — misma regla que la tabla de
+  // inventario, que ahí oculta "Disponible".
+  const displayStatus =
+    product?.status === "Disponible" && hasReservations && isSoldOut
+      ? "Apartado"
+      : product?.status;
 
   React.useEffect(() => {
     if (product) {
@@ -281,9 +289,12 @@ export function ProductDetailsModal({
               {/* Visible también en edición: si desaparece, el encabezado da
                   un salto de layout al entrar y salir del modo editar. */}
               <Badge
-                className={cn("mt-1 shrink-0", getStatusClasses(product.status))}
+                className={cn(
+                  "mt-1 shrink-0",
+                  getStatusClasses(displayStatus ?? product.status)
+                )}
               >
-                {product.status}
+                {displayStatus}
               </Badge>
             </div>
             {/* Subtítulo: proveedor */}
