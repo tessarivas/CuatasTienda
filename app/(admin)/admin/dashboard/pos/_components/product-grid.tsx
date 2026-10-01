@@ -69,7 +69,7 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Barra de búsqueda y filtros */}
-      <div className="p-4 border-b bg-background space-y-3">
+      <div className="shrink-0 p-4 border-b bg-background space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -95,7 +95,7 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
       </div>
 
       {/* Grid de productos */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 min-h-0 overflow-auto p-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredProducts.map((product) => (
             <Card

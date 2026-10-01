@@ -199,9 +199,12 @@ export default function POSPage() {
 
   return (
     <>
-      <div className="flex h-full">
+      {/* h-full toma el alto real de <main>; cada columna queda acotada a
+          ese alto (min-h-0 + overflow-hidden) y scrollea por dentro, así la
+          búsqueda, el encabezado del carrito y los totales nunca se pierden. */}
+      <div className="flex h-full min-h-0">
         {/* Columna Izquierda - Grid de Productos (70%) */}
-        <div className="w-[70%] border-r">
+        <div className="w-[70%] min-h-0 overflow-hidden border-r">
           <ProductGrid
             products={products}
             onAddToCart={handleAddToCart}
@@ -209,7 +212,7 @@ export default function POSPage() {
         </div>
 
         {/* Columna Derecha - Carrito (30%) */}
-        <div className="w-[30%]">
+        <div className="w-[30%] min-h-0 overflow-hidden">
           <Cart
             cart={cart}
             onUpdateQuantity={handleUpdateQuantity}

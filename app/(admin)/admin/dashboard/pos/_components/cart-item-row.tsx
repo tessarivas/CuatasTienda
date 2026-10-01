@@ -60,11 +60,17 @@ export function CartItemRow({
 
   return (
     <>
-      <Card className="p-3 space-y-2">
+      {/* gap-2 (no el gap-6 del Card base) y el subtotal en la misma línea
+          que los controles: cada fila mide ~2 renglones, para que quepan al
+          menos 3 productos en el carrito sin quitar ninguna opción. */}
+      <Card className="gap-2 p-3">
         {/* Nombre y precio */}
         <div className="flex justify-between items-start">
-          <div className="flex-1 pr-2">
-            <h4 className="font-medium text-sm line-clamp-2">
+          <div className="min-w-0 flex-1 pr-2">
+            <h4
+              className="truncate text-sm font-medium"
+              title={item.product.title}
+            >
               {item.product.title}
             </h4>
             <p className="text-xs text-muted-foreground">
@@ -112,16 +118,21 @@ export function CartItemRow({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 ml-auto cursor-pointer"
+            title="Descuento"
+            className="h-8 w-8 cursor-pointer"
             onClick={() => setShowDiscountModal(true)}
           >
             <Percent className="h-3 w-3" />
           </Button>
+          {/* Subtotal del renglón, a la derecha de los controles. */}
+          <span className="ml-auto font-semibold tabular-nums">
+            ${itemTotal.toFixed(2)}
+          </span>
         </div>
 
         {/* Descuento aplicado */}
         {item.discount && (
-          <div className="text-xs text-green-600">
+          <div className="text-xs text-my-green-dark">
             Descuento:{" "}
             {item.discount.type === "percentage"
               ? `${item.discount.value}%`
@@ -129,12 +140,6 @@ export function CartItemRow({
             (-${itemDiscount.toFixed(2)})
           </div>
         )}
-
-        {/* Subtotal */}
-        <div className="flex justify-between items-center pt-1 border-t">
-          <span className="text-sm text-muted-foreground">Subtotal:</span>
-          <span className="font-semibold">${itemTotal.toFixed(2)}</span>
-        </div>
       </Card>
 
       {/* Modal de descuento */}

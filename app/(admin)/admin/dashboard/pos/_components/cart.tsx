@@ -53,7 +53,7 @@ export function Cart({
     <>
       <div className="flex flex-col h-full bg-muted/30">
         {/* Header */}
-        <div className="p-4 border-b bg-background">
+        <div className="shrink-0 p-4 border-b bg-background">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
             <h2 className="text-lg font-semibold">Carrito</h2>
@@ -64,7 +64,12 @@ export function Cart({
         </div>
 
         {/* Items del carrito */}
-        <ScrollArea className="flex-1">
+        {/* min-h-0: sin él, el ScrollArea (hijo flex) crece al alto de su
+            contenido en vez de encogerse, y el carrito entero se estira más
+            alto que la pantalla — la página scrollea y corta la cuadrícula
+            de productos. Así sólo scrollea la lista y el encabezado y los
+            totales quedan fijos. */}
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-4 space-y-3">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
@@ -88,7 +93,7 @@ export function Cart({
 
         {/* Totales y acciones */}
         {cart.length > 0 && (
-          <div className="p-4 border-t bg-background space-y-3">
+          <div className="shrink-0 p-4 border-t bg-background space-y-3">
             {/* Subtotal */}
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal:</span>
