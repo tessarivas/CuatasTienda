@@ -10,7 +10,12 @@ clients with credit balances, layaways ("apartados"), and a POS screen.
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
 its dated **Completado** section at the bottom (don't just delete them). Currently open: a
 per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card; what to do with a client's leftover credit (a "limpiar saldo"
-option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios tab; a real
+option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios tab;
+the "Corte de Caja" screen; printable barcode labels (PDF) from
+`Product.code`; attaching payment receipts (comprobantes) to card/transfer sales and abonos during the "Corte de
+Caja" (not at checkout); time-boxed
+per-supplier discounts (promociones) applied automatically at checkout; a store-expenses module
+(gastos) that feeds the cash closing; a real
 "permanently delete" action distinct from today's soft-delete "Eliminar producto"; and small
 cleanups (flashing empty states on other pages, raw colors / a typo in the add-* modals).
 
@@ -68,8 +73,8 @@ Next.js 16 App Router · React 19 · TypeScript strict · Tailwind v4 · shadcn/
 · Prisma 7 + driver adapter over Postgres (Supabase) · Supabase Auth · Cloudinary · npm.
 
 Tailwind v4 has **no config file** — theme tokens are declared in CSS in `app/globals.css`
-(`@import 'tailwindcss'`, `@custom-variant dark`, oklch vars, plus 6 brand tokens: `--my-blue`,
-`--my-yellow`, `--my-red`, `--my-green`, `--my-orange`, `--my-purple`). Do not create a
+(`@import 'tailwindcss'`, `@custom-variant dark`, oklch vars, plus 7 brand tokens: `--my-blue`,
+`--my-yellow`, `--my-red`, `--my-green`, `--my-orange`, `--my-purple`, `--my-pink`). Do not create a
 `tailwind.config.*`.
 
 Each brand color has three shades — base, `-light`, `-dark` — chosen to share OKLCH chroma
@@ -300,13 +305,27 @@ manual `reload*()` calls or local `setState` patching, so cache coherence is han
 
 Check which one a file already imports before adding a consumer.
 
-### POS is not persisted
+### Sales (POS + liquidations)
 
-There is **no `/api/sales` route**. The POS page keeps carts, discounts, and completed sales in
-`DashboardContext` in memory only. `Sale` rows are created solely by the layaway `liquidate`
-endpoint. Don't assume checkout writes to the database. Consequently `GET /api/suppliers/sales`
-(per-supplier sales total for a `from`/`to` range, used by the "Más ventas en {mes}" card on the
-suppliers page) only counts liquidated apartados until POS sales are persisted.
+`POST /api/sales` persists a POS checkout (migration `sale_folio_and_pos`): it re-reads prices from
+the DB (never trusts the client's), checks free units (`quantity − active reservations`), applies
+per-item discounts, and creates `Sale` + `SaleItem` + stock decrement in one transaction (a guarded
+`updateMany ... quantity >= n` rolls the sale back if stock changed mid-sale). Services carry no
+stock. The cart/discount UI still lives in `DashboardContext`, but checkout writes to the DB.
+
+- **Folio** `DDMMYY-NNN` (`lib/sales/folio.ts`): date in `America/Tijuana` (store is in Baja California, Pacific time) + per-day sequence,
+  **shared by POS sales and layaway liquidations**. Unique index on `Sale.folio`; callers retry the
+  whole transaction on a folio `P2002` (`isFolioCollision`, `FOLIO_RETRIES`).
+- **Totals:** `SaleItem.finalPrice` is the unit price snapshot; line = `finalPrice × quantity −
+  SaleItem.discount`; `Sale.total` = Σ lines − `Sale.discount`.
+- **Ticket-level discount (`Sale.discount`) is only allowed when every item belongs to one supplier**
+  — the store doesn't split discounts across consignment suppliers. Enforced in the cart UI (button
+  disabled + tooltip) and in `POST /api/sales` (400). So the whole ticket discount is charged to that
+  one supplier, which is how `GET /api/suppliers/sales` attributes it.
+- `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
+- `GET /api/sales?from&to` lists a period's sales (POS + liquidations) for the "Historial de Ventas"
+  page (`dashboard/sales/`); method/origin/search filters are client-side so the highlight cards
+  always summarize the whole period. "Corte de Caja" doesn't exist yet (sidebar link is `#`).
 
 ### Images
 
@@ -350,6 +369,12 @@ creation uploads *before* insert and cleans up orphans on code collision.
   an `isEditing` prop there.
 
 ### UI gotchas already paid for once
+
+- **New theme token not showing up in dev:** after adding a token to `app/globals.css` (e.g.
+  `--my-pink`), the dev server kept serving the old CSS — same chunk hash — even after a restart,
+  because Next 16's Turbopack dev cache lives on disk in `.next/dev`. Fix: stop `npm run dev`,
+  delete `.next`, start again. Also **don't run `npm run build` while the dev server is running**;
+  that's what left it stale the first time.
 
 - **Icon-button spacing:** `Button` (and anything built on `buttonVariants()`, including
   `AlertDialogAction`/`AlertDialogCancel`) already has `gap-2` between children. Pass icons bare —

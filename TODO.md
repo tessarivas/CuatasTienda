@@ -80,9 +80,11 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
 - [ ] **Servicios → darle funcionalidad al botón "Registrar"** (hoy está
       deshabilitado a propósito, "Próximamente"): anotar que se hizo un
       servicio (p. ej. una copia, un acta), incluyendo servicios
-      **personalizados** con descripción y precio propios. Ojo: hoy no hay
-      dónde guardarlo — el POS no guarda ventas (no existe `/api/sales`) y
-      los `Sale` sólo se crean al liquidar apartados.
+      **personalizados** con descripción y precio propios. Ya no está
+      bloqueado: puede registrarse como venta con `POST /api/sales`. Los
+      servicios personalizados (precio propio, sin estar en catálogo)
+      necesitarán decidir cómo se guardan, porque hoy `SaleItem` apunta a un
+      producto existente.
 
 ## Eliminar producto: separar "retirar" (ya existe) de "eliminar permanentemente" (no existe)
 
@@ -105,16 +107,129 @@ limpiar productos retirados viejos:
       dado que es irreversible — a diferencia del "Retirar" actual, que se
       puede deshacer con `POST /api/products/[id]/restore`.
 
+## Gastos de la tienda
+
+Hoy los gastos del negocio que no son de proveedores (p. ej. luz, renta,
+limpieza, papelería, comida, gasolina, un pago a alguien que ayudó) nunca
+quedan registrados. Un módulo sencillo para anotarlos al momento.
+
+- [ ] Migración: tabla `Expense` — fecha, monto, concepto/descripción,
+      categoría, método de pago (efectivo / tarjeta / transferencia), quién
+      lo registró (de la sesión, como `receivedBy` en abonos) y comprobante
+      opcional (Cloudinary, como los comprobantes de pago).
+- [ ] Pantalla de gastos con el layout de las páginas de lista: periodo,
+      tarjetas de resumen (total del periodo, por categoría o por método),
+      tabla y botón "Registrar gasto" (modal).
+- [ ] Integrarlo al **Corte de Caja**: lo que se pagó en efectivo sale de la
+      caja, así que el efectivo esperado = ventas en efectivo + abonos en
+      efectivo − gastos en efectivo.
+- [ ] Decidir antes de construirlo:
+  - Categorías: ¿una lista fija (p. ej. Servicios, Renta, Insumos, Comida,
+    Transporte, Otro) o que se puedan crear desde la app?
+  - ¿Se separan los gastos de la tienda de los personales/familiares, o
+    todo es "gasto" con su categoría?
+  - ¿Quién puede registrar y borrar gastos? (Hoy cualquier usuario puede
+    todo; ver roles en `CLAUDE.md`.)
+
+## Promociones por proveedor (descuento por periodo)
+
+Desde la página del proveedor, definir un descuento para **todos sus
+productos** durante un periodo (fecha de inicio y fin), por **porcentaje** o
+**cantidad fija**. Mientras esté vigente, la caja lo aplica sola.
+
+- [ ] Migración: tabla nueva (p. ej. `SupplierDiscount`: proveedor, tipo
+      `percentage`/`fixed`, valor, `startsAt`, `endsAt`, activa).
+- [ ] UI en `suppliers/[id]`: crear, ver y cancelar la promoción vigente o
+      programada (¿una tarjeta propia, o dentro de "Corte Mensual"?).
+- [ ] `POST /api/sales` debe aplicarla del lado del servidor (no confiar en
+      la pantalla) y guardarla en `SaleItem.discount`, para que el corte del
+      proveedor ya salga con el descuento.
+- [ ] Decidir antes de construirlo:
+  - "Cantidad fija": ¿es por pieza ($20 menos en cada producto) o por
+    ticket?
+  - ¿Se puede sumar con el descuento manual por producto de la caja, o uno
+    reemplaza al otro (p. ej. gana el mayor)?
+  - ¿Aplica también a la liquidación de apartados? Esos ya tienen el precio
+    pactado al apartar (`LayawayItem.price`), así que lo natural sería que
+    no.
+  - ¿Pueden empalmarse dos promociones del mismo proveedor?
+  - Mostrarlo en la caja: precio tachado o etiqueta "Promo" en la tarjeta y
+    en el carrito.
+
+## Comprobantes de pago (tarjeta / transferencia)
+
+Cuando un cobro es con **Tarjeta** o **Transferencia**, poder adjuntar el
+comprobante (foto del voucher o captura de la transferencia) y guardarlo
+ligado a ese cobro, para consultarlo después.
+
+**Se piden en el Corte de Caja, no al cobrar.** La caja registradora y los
+modales de abono no cambian: cobrar sigue siendo rápido. Al hacer el corte,
+se listan los cobros del periodo con tarjeta/transferencia y ahí se adjunta
+el comprobante de cada uno (y se ve cuáles faltan).
+
+Cobros que entran a esa lista:
+- Ventas de caja (`Sale.paymentMethod`).
+- Abonos a clientes (`Payment.method`), incluido el abono que genera
+  "Liquidar Cuenta" al cobrar lo faltante.
+
+Depende de que exista la pantalla de Corte de Caja (sección "Caja
+registradora").
+
+- [ ] Guardar el archivo en Cloudinary, como las fotos de productos y
+      logos (`lib/cloudinary/`), con un id determinista por cobro (p. ej.
+      `comprobantes/ventas/{folio}` y `comprobantes/abonos/{paymentId}`).
+- [ ] Migración: columna para la URL del comprobante en `Sale` y en
+      `Payment` (nullable — en efectivo no aplica).
+- **Decidido:** el corte **se puede cerrar con comprobantes faltantes**;
+  esos cobros quedan marcados como **pendientes** y se pueden completar
+  después (p. ej. cuando el cliente manda la captura más tarde).
+- [ ] Mostrar los comprobantes pendientes de cortes anteriores (un aviso o
+      lista) para que no se olviden.
+- [ ] Dónde más se consulta: en el historial del cliente (abonos) y en el
+      futuro Historial de Ventas (ventas de caja).
+
+## Etiquetas con código de barras para imprimir
+
+Cada producto ya tiene un código único al crearse (`Product.code`,
+`CT-XXXXXXXX`; hoy los 11 lo tienen) y la caja ya busca por código. Lo que
+falta es poder **imprimirlo como código de barras** para pegarlo en la
+mercancía, sin salir de la app.
+
+- [ ] Generar la imagen del código de barras a partir de `Product.code`
+      (Code 128 lee letras y guiones, así que el formato actual sirve tal
+      cual). Verlo en el detalle del producto.
+- [ ] Generar un PDF de etiquetas listo para la impresora de etiquetas, para
+      un grupo de productos — p. ej. "los registrados hoy" (por
+      `createdAt`) o los de un proveedor — y mandarlo a imprimir desde la
+      app.
+- [ ] Decidir antes de construirlo:
+  - Modelo de impresora y **medida de la etiqueta** (p. ej. 50×25 mm), para
+    armar el PDF a ese tamaño exacto.
+  - Qué lleva cada etiqueta además del código: ¿título, precio, proveedor?
+  - ¿Una etiqueta por producto o una por unidad (si entran 10 piezas, 10
+    etiquetas)?
+  - Productos que reciben más unidades después ("Agregar unidades"):
+    ¿también se les imprimen etiquetas para las piezas nuevas?
+- [ ] Confirmar que el lector de la caja lee bien la etiqueta impresa (el
+      buscador de la caja ya acepta el código).
+
+## Inventario: filtro de estatus se cuela a Servicios (bug)
+
+- [ ] En Productos se elige un estatus (p. ej. "Con apartados"), se cambia a
+      la pestaña Servicios y no sale ningún servicio: el filtro sigue activo
+      aunque en Servicios no se muestra. Los servicios no tienen estatus, así
+      que no deben filtrarse por él. Causa: `applyFilters` en
+      `inventory/page.tsx` aplica `statusFilter` a ambas pestañas; debe
+      aplicarlo sólo a productos (o ignorarlo en Servicios), sin perder la
+      selección al regresar a Productos.
+
 ## Caja registradora (POS)
 
-- [ ] El filtro de proveedor de `pos/_components/product-grid.tsx` muestra
-      "Proveedor 3", "Proveedor 5"… (el id), no el nombre del proveedor.
-- [ ] Colores crudos `text-green-600` para descuentos en `cart.tsx`,
-      `cart-item-row.tsx`, `discount-modal.tsx` y `sale-complete-modal.tsx`
-      — pasar a `text-my-green-dark`.
-- [ ] Recordatorio: la caja **no guarda ventas** (no existe `/api/sales`);
-      al cobrar sólo cambia el estado en memoria. Bloquea también
-      "registrar servicio" y que "Más ventas en {mes}" cuente la caja.
+- [ ] Probar una venta real en la caja: el modal debe mostrar el folio
+      `DDMMYY-001` y el stock bajar; probar también una con descuento total
+      (un solo proveedor).
+- [ ] Pantalla "Corte de Caja" (en el menú sigue apuntando a `#`). Ahí se
+      piden los comprobantes (ver sección de comprobantes).
 
 ## Notificaciones (toasts) y spinner
 
@@ -140,6 +255,29 @@ entró; sigue en el historial para retomarlo (`git show 4fcab11`).
 ## Completado
 
 ### 2026-10-01
+- [x] **Historial de Ventas** (`/admin/dashboard/sales`, enlazado en el
+      menú): periodo (hoy, ayer, semana, mes, rango), tarjetas de ventas /
+      total / más vendido y desglose Efectivo / Banco / Apartados, filtros de método y origen, búsqueda por folio o
+      producto, y el ticket completo al dar clic. `GET /api/sales?from&to`.
+      El encabezado de la app ahora reconoce subsecciones del menú.
+- [x] Primera venta de caja guardada y verificada: `011026-003` (después
+      de las liquidaciones `-001` y `-002`, mismo consecutivo).
+- [x] **La caja guarda las ventas** (migración `sale_folio_and_pos`,
+      aplicada): `POST /api/sales` recalcula precios, valida stock libre,
+      descuenta inventario y genera folio `DDMMYY-NNN` (hora del Pacífico,
+      consecutivo diario compartido con las liquidaciones). Descuento al
+      total sólo con un proveedor (UI con tooltip + validación en servidor).
+      "Más ventas en {mes}" ya cuenta la caja con cantidades y descuentos.
+- [x] Carrito: proveedor en pequeño en cada artículo y nombres largos
+      cortados con "…" (arreglo del `ScrollArea`).
+- [x] Modales de descuento y método de pago con ícono en el encabezado, sin
+      fondos grises y con la mitad de espacio entre métodos de pago. La caja
+      ya no usa verdes de Tailwind (todo `text-my-green-dark`).
+- [x] Caja: filtros como en inventario (búsqueda, ordenar, proveedor por
+      nombre — antes "Proveedor 9" — y tipo Productos/Servicios en lugar de
+      estatus). Tarjetas homogéneas: stock libre en la esquina de la foto
+      (rojo con 5 o menos), ícono de herramienta en servicios, título de
+      alto fijo a 2 renglones con "…" para que el precio quede alineado.
 - [x] Botón "Liquidar Cuenta" (outline) en Productos Apartados, con diálogo
       que muestra Total apartado / Abonado / A cobrar y pide el método si
       falta dinero. El abono por lo que falta y la liquidación de todo van
