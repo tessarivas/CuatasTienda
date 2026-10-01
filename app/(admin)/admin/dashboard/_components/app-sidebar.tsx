@@ -37,7 +37,7 @@ export const data = {
       title: "Caja Registradora",
       url: "/admin/dashboard/pos",
       items: [
-        { title: "Historial de Ventas", url: "#" },
+        { title: "Historial de Ventas", url: "/admin/dashboard/sales" },
         { title: "Corte de Caja", url: "#" },
       ],
     },

@@ -26,7 +26,7 @@
   /* Secundarios: misma familia que blue/yellow/red — croma OKLCH ~0.17-0.20,
      con los tonos repartidos para que ninguno se confunda con otro.
      Rueda completa (H en OKLCH): red 32° · orange 66° · yellow 101° ·
-     green 150° · blue 258° · purple 302°.
+     green 150° · blue 258° · purple 302° · pink 350°.
      Ojo: sobre el tono base sólo va texto oscuro (green y orange dan 8.8:1 y
      8.5:1 contra el foreground). El morado base se queda en ~4.2:1 contra
      ambos, así que para texto usa --my-purple-dark (10.8:1 en blanco). */
@@ -41,6 +41,13 @@
   --my-purple: #9B5DE5;
   --my-purple-light: #D7BEF5;
   --my-purple-dark: #512682;
+
+  /* Rosa (H 350°): llena el hueco entre purple y red. Mismos L/C que el
+     resto — base L 0.69 C 0.20, light L 0.86 C 0.076, dark L 0.43 C 0.14.
+     Un "durazno" (~45°) se habría confundido con red y orange. */
+  --my-pink: #F15CAD;
+  --my-pink-light: #F9BDD8;
+  --my-pink-dark: #84255A;
 
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
@@ -117,6 +124,13 @@
   --my-purple-light: #D7BEF5;
   --my-purple-dark: #512682;
 
+  /* Rosa (H 350°): llena el hueco entre purple y red. Mismos L/C que el
+     resto — base L 0.69 C 0.20, light L 0.86 C 0.076, dark L 0.43 C 0.14.
+     Un "durazno" (~45°) se habría confundido con red y orange. */
+  --my-pink: #F15CAD;
+  --my-pink-light: #F9BDD8;
+  --my-pink-dark: #84255A;
+
   --card: oklch(0.216 0.006 56.043);
   --card-foreground: var(--foreground);
 
@@ -176,6 +190,9 @@
   --color-my-purple: var(--my-purple);
   --color-my-purple-light: var(--my-purple-light);
   --color-my-purple-dark: var(--my-purple-dark);
+  --color-my-pink: var(--my-pink);
+  --color-my-pink-light: var(--my-pink-light);
+  --color-my-pink-dark: var(--my-pink-dark);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

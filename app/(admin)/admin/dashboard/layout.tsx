@@ -85,9 +85,12 @@ export default function DashboardLayout({
 }) {
   console.log("Username en dashboard/layout 1:", username);
   const pathname = usePathname();
-  const currentPage = data.navMain.find((item) =>
-    pathname.startsWith(item.url)
-  );
+  // Las subsecciones (p. ej. "Historial de Ventas" dentro de Caja
+  // Registradora) se buscan primero para que el encabezado diga su nombre;
+  // las que aún no tienen página apuntan a "#" y se ignoran.
+  const currentPage = data.navMain
+    .flatMap((item) => [...(item.items ?? []), item])
+    .find((item) => item.url !== "#" && pathname.startsWith(item.url));
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
