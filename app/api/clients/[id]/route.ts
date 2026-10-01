@@ -145,6 +145,25 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     );
   }
 
+  // Sólo se borra un cliente sin historial. Sus ventas cuentan para el corte
+  // mensual de los proveedores (consignación) y los abonos/apartados son su
+  // cuenta: borrarlos los haría desaparecer de esos registros. Además el
+  // schema no tiene onDelete: Cascade, así que el delete fallaría igual.
+  const [payments, layaways, sales] = await Promise.all([
+    prisma.payment.count({ where: { clientId: id } }),
+    prisma.layaway.count({ where: { clientId: id } }),
+    prisma.sale.count({ where: { clientId: id } }),
+  ]);
+  if (payments + layaways + sales > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "No se puede eliminar un cliente con historial (abonos, apartados o ventas).",
+      },
+      { status: 409 }
+    );
+  }
+
   try {
     await prisma.client.delete({ where: { id } });
     return NextResponse.json({ success: true });
