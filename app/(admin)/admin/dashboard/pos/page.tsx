@@ -9,6 +9,20 @@ import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
 import { Loader2 } from "lucide-react";
 
+// Respuesta de POST /api/sales. Decimal llega como string.
+type ApiSale = {
+  folio: string;
+  date: string;
+  total: string;
+  SaleItem: {
+    productId: number;
+    finalPrice: string;
+    quantity: number;
+    discount: string;
+    Product: { title: string };
+  }[];
+};
+
 export default function POSPage() {
   const { products, setProducts, sales, setSales, isLoadingProducts } =
     React.useContext(DashboardContext);
@@ -85,65 +99,81 @@ export default function POSPage() {
     );
   };
 
-  // Procesar venta
-  const handleProcessSale = (paymentMethod: PaymentMethod) => {
-    if (cart.length === 0) return;
+  // Procesar venta: se guarda en la BD (POST /api/sales), que recalcula
+  // precios y descuentos, valida stock y genera el folio DDMMYY-NNN. La
+  // pantalla sólo refleja lo que devolvió el servidor.
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const handleProcessSale = async (paymentMethod: PaymentMethod) => {
+    if (cart.length === 0 || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map((item) => ({
+            productId: Number(item.product.id),
+            quantity: item.quantity,
+            discount: item.discount,
+          })),
+          totalDiscount,
+          paymentMethod,
+        }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo registrar la venta");
+        return;
+      }
+      const { sale }: { sale: ApiSale } = await res.json();
 
-    // Crear la venta
-    const saleId = `sale-${Date.now()}`;
-    const newSale = {
-      id: saleId,
-      date: new Date().toISOString(),
-      items: cart.map((item) => {
-        const itemTotal = item.product.price * item.quantity;
-        let itemDiscount = 0;
-        
-        if (item.discount) {
-          if (item.discount.type === "percentage") {
-            itemDiscount = itemTotal * (item.discount.value / 100);
-          } else {
-            itemDiscount = item.discount.value;
-          }
-        }
-
-        return {
-          productId: item.product.id,
-          productTitle: item.product.title,
-          quantity: item.quantity,
-          unitPrice: item.product.price,
-          discount: item.discount,
-          subtotal: itemTotal - itemDiscount,
-        };
-      }),
-      totalDiscount,
-      total: calculateTotal(),
-      paymentMethod,
-    };
-
-    // Actualizar stock de productos. Los servicios no descuentan inventario.
-    setProducts((prevProducts) =>
-      prevProducts.map((product) => {
-        const cartItem = cart.find((item) => item.product.id === product.id);
-        if (cartItem && product.type !== "SERVICE") {
+      const newSale = {
+        id: sale.folio,
+        date: sale.date,
+        items: sale.SaleItem.map((si) => {
+          const unitPrice = Number(si.finalPrice);
           return {
-            ...product,
-            quantity: product.quantity - cartItem.quantity,
+            productId: String(si.productId),
+            productTitle: si.Product.title,
+            quantity: si.quantity,
+            unitPrice,
+            discount: cart.find((c) => c.product.id === String(si.productId))
+              ?.discount,
+            subtotal: unitPrice * si.quantity - Number(si.discount),
           };
-        }
-        return product;
-      })
-    );
+        }),
+        totalDiscount,
+        total: Number(sale.total),
+        paymentMethod,
+      };
 
-    // Guardar venta
-    setSales((prevSales) => [newSale, ...prevSales]);
+      // Reflejar el stock que ya descontó el servidor. Los servicios no
+      // descuentan inventario; un producto en 0 pasa a "Vendido".
+      setProducts((prevProducts) =>
+        prevProducts.map((product) => {
+          const cartItem = cart.find((item) => item.product.id === product.id);
+          if (cartItem && product.type !== "SERVICE") {
+            const quantity = product.quantity - cartItem.quantity;
+            return {
+              ...product,
+              quantity,
+              status: quantity === 0 ? ("Vendido" as const) : product.status,
+            };
+          }
+          return product;
+        })
+      );
 
-    // Mostrar modal de confirmación
-    setLastSaleId(saleId);
-    setShowCompleteModal(true);
-
-    // Limpiar carrito
-    setCart([]);
-    setTotalDiscount(undefined);
+      setSales((prevSales) => [newSale, ...prevSales]);
+      setLastSaleId(sale.folio);
+      setShowCompleteModal(true);
+      setCart([]);
+      setTotalDiscount(undefined);
+    } catch {
+      alert("No se pudo registrar la venta");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Calcular subtotal sin descuentos

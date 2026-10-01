@@ -107,23 +107,40 @@ model StockMovement {
   @@index([productId, createdAt])
 }
 
+// Una venta: de la caja (clientId null) o la liquidación de apartados de un
+// cliente. total = Σ (finalPrice × quantity − discount) de sus items − discount.
 model Sale {
-  id          Int           @id @default(autoincrement())
-  total       Decimal       @db.Decimal(10, 2)
-  date        DateTime      @default(now())
-  userId      String        @db.Uuid
-  clientId    Int?
-  Client      Client?       @relation(fields: [clientId], references: [id])
-  User        User          @relation(fields: [userId], references: [id])
-  SaleItem    SaleItem[]
-  LayawayItem LayawayItem[]
+  id            Int            @id @default(autoincrement())
+  // DDMMYY-NNN: fecha (hora del Pacífico, la tienda está en Baja California) +
+  // consecutivo del día, compartido por
+  // caja y liquidaciones. Lo genera lib/sales/folio.ts. Nullable sólo para
+  // ventas anteriores a esta columna; toda venta nueva lo lleva.
+  folio         String?        @unique
+  total         Decimal        @db.Decimal(10, 2)
+  // Descuento al total del ticket. Sólo se permite con productos de un solo
+  // proveedor (la tienda no reparte descuentos entre proveedores), así que
+  // siempre se le carga completo a ese proveedor.
+  discount      Decimal        @default(0) @db.Decimal(10, 2)
+  // null = liquidación de apartados (se paga con el saldo del cliente).
+  paymentMethod PaymentMethod?
+  date          DateTime       @default(now())
+  userId        String         @db.Uuid
+  clientId      Int?
+  Client        Client?        @relation(fields: [clientId], references: [id])
+  User          User           @relation(fields: [userId], references: [id])
+  SaleItem      SaleItem[]
+  LayawayItem   LayawayItem[]
 }
 
 model SaleItem {
   id         Int     @id @default(autoincrement())
   saleId     Int
   productId  Int
+  // Precio unitario pactado (snapshot), no el precio actual del producto.
   finalPrice Decimal @db.Decimal(10, 2)
+  quantity   Int     @default(1)
+  // Descuento aplicado a esta línea (en pesos, ya calculado).
+  discount   Decimal @default(0) @db.Decimal(10, 2)
   Product    Product @relation(fields: [productId], references: [id])
   Sale       Sale    @relation(fields: [saleId], references: [id])
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { Prisma, PaymentMethod } from "@/generated/prisma/client";
+import { nextFolio, isFolioCollision, FOLIO_RETRIES } from "@/lib/sales/folio";
 import {
   requireUser,
   isUnsyncedUserError,
@@ -97,7 +98,7 @@ export async function POST(req: Request, { params }: Ctx) {
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const run = () => prisma.$transaction(async (tx) => {
       const client = await tx.client.findUnique({
         where: { id: clientId },
         select: { id: true, currentBalance: true },
@@ -187,6 +188,8 @@ export async function POST(req: Request, { params }: Ctx) {
 
       const sale = await tx.sale.create({
         data: {
+          // Mismo consecutivo del día que las ventas de caja.
+          folio: await nextFolio(tx),
           total,
           clientId,
           userId: sessionUser.id,
@@ -266,6 +269,19 @@ export async function POST(req: Request, { params }: Ctx) {
         payment: shortfallPayment,
       };
     });
+
+    // Si otra venta tomó el mismo folio al mismo tiempo, la transacción
+    // entera se deshace (P2002) y se reintenta con el siguiente número.
+    let result: Awaited<ReturnType<typeof run>>;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        result = await run();
+        break;
+      } catch (err) {
+        if (isFolioCollision(err) && attempt < FOLIO_RETRIES) continue;
+        throw err;
+      }
+    }
 
     if (result.error) {
       return NextResponse.json(
