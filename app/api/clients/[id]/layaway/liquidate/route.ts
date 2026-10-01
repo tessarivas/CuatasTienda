@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, PaymentMethod } from "@/generated/prisma/client";
 import {
   requireUser,
   isUnsyncedUserError,
@@ -14,9 +14,22 @@ function parseId(raw: string | number) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+const VALID_METHODS: ReadonlyArray<PaymentMethod> = [
+  PaymentMethod.Efectivo,
+  PaymentMethod.Tarjeta,
+  PaymentMethod.Transferencia,
+];
+
 // POST /api/clients/[id]/layaway/liquidate
-// Payload: { itemIds: number[] }. Uno o varios LayawayItem ids del apartado
-// activo del cliente.
+// Payload: { itemIds: number[], payShortfall?: { method } }. Uno o varios
+// LayawayItem ids del apartado activo del cliente.
+//
+// `payShortfall` es para "Liquidar Cuenta": si el saldo no alcanza, antes de
+// liquidar se registra un Payment por exactamente lo que falta (lo calcula el
+// servidor, no se confía en un monto del cliente), dentro de la misma
+// transacción. Así nunca queda un abono suelto si la liquidación falla, ni
+// una liquidación a medias si el abono falla. Sin `payShortfall`, un saldo
+// insuficiente sigue siendo 409 como siempre.
 //
 // Flujo transaccional (todo-o-nada):
 //   1. Verificar que todos los items existen, pertenecen al Layaway activo
@@ -68,6 +81,19 @@ export async function POST(req: Request, { params }: Ctx) {
       );
     }
     itemIds.push(parsed);
+  }
+
+  const rawPayShortfall = (body as { payShortfall?: unknown }).payShortfall;
+  let shortfallMethod: PaymentMethod | null = null;
+  if (rawPayShortfall !== undefined) {
+    const method = (rawPayShortfall as { method?: unknown } | null)?.method;
+    if (!(VALID_METHODS as readonly unknown[]).includes(method)) {
+      return NextResponse.json(
+        { error: "Método de pago inválido" },
+        { status: 400 }
+      );
+    }
+    shortfallMethod = method as PaymentMethod;
   }
 
   try {
@@ -130,6 +156,27 @@ export async function POST(req: Request, { params }: Ctx) {
         (acc, item) => acc.plus(item.price),
         new Prisma.Decimal(0)
       );
+
+      // Abono por lo que falta, sólo si se pidió y de verdad falta.
+      let shortfallPayment = null;
+      if (shortfallMethod && client.currentBalance.lessThan(total)) {
+        const shortfall = total.minus(client.currentBalance);
+        shortfallPayment = await tx.payment.create({
+          data: {
+            clientId,
+            amount: shortfall,
+            method: shortfallMethod,
+            receivedBy: sessionUser.id,
+          },
+        });
+        const withPayment = await tx.client.update({
+          where: { id: clientId },
+          data: { currentBalance: { increment: shortfall } },
+          select: { id: true, currentBalance: true },
+        });
+        client.currentBalance = withPayment.currentBalance;
+      }
+
       if (client.currentBalance.lessThan(total)) {
         return {
           error: "El saldo del cliente no alcanza para liquidar" as const,
@@ -153,9 +200,21 @@ export async function POST(req: Request, { params }: Ctx) {
         include: { SaleItem: true },
       });
 
+      // Unidades a descontar por producto. Agrupado porque varios items
+      // pueden ser del mismo producto (2 plumas apartadas): restar 1 por item
+      // a partir de la cantidad leída al inicio dejaba el stock en 39 en vez
+      // de 38 — cada item partía del mismo valor viejo.
+      const unitsByProduct = new Map<number, number>();
       for (const item of items) {
-        const currentQty = item.Product.quantity ?? 1;
-        const newQty = Math.max(0, currentQty - 1);
+        unitsByProduct.set(
+          item.productId,
+          (unitsByProduct.get(item.productId) ?? 0) + 1
+        );
+      }
+      for (const [productId, units] of unitsByProduct) {
+        const product = items.find((i) => i.productId === productId)!.Product;
+        const currentQty = product.quantity ?? units;
+        const newQty = Math.max(0, currentQty - units);
         // Sólo levanta la bandera "Vendido" cuando el SKU queda sin stock.
         // Si aún quedan unidades, status se deja intacto (sigue "Disponible");
         // esto evita pisar un producto que pudo haber sido soft-deleted.
@@ -165,11 +224,11 @@ export async function POST(req: Request, { params }: Ctx) {
           status?: "Vendido";
         } = {
           quantity: newQty,
-          soldCount: { increment: 1 },
+          soldCount: { increment: units },
         };
         if (newQty === 0) data.status = "Vendido";
         await tx.product.update({
-          where: { id: item.productId },
+          where: { id: productId },
           data,
         });
       }
@@ -204,6 +263,7 @@ export async function POST(req: Request, { params }: Ctx) {
         sale,
         client: updatedClient,
         layaway: updatedLayaway,
+        payment: shortfallPayment,
       };
     });
 
@@ -224,6 +284,7 @@ export async function POST(req: Request, { params }: Ctx) {
       sale: result.sale,
       client: result.client,
       layaway: result.layaway,
+      payment: result.payment,
     });
   } catch (err) {
     if (isUnsyncedUserError(err)) {

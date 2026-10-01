@@ -14,6 +14,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -24,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AssignProductModal } from "../_components/assign-product-modal";
+import { EditClientModal } from "../_components/edit-client-modal";
 import {
   AddPaymentModal,
   type PaymentMethod,
@@ -31,6 +39,9 @@ import {
 import {
   ArrowLeft,
   HandCoins,
+  ReceiptText,
+  Trash2,
+  Pencil,
   X,
   Plus,
   ShoppingBag,
@@ -132,6 +143,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [selectedProductIds, setSelectedProductIds] = React.useState<
     number[]
   >([]);
+  // Diálogo de "Liquidar Cuenta" y el método con el que se pagaría lo que
+  // falte (sólo se usa si el saldo no alcanza).
+  const [isLiquidarOpen, setIsLiquidarOpen] = React.useState(false);
+  const [liquidarMethod, setLiquidarMethod] =
+    React.useState<PaymentMethod>("Efectivo");
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   // Grupo cuyo apartado se va a cancelar; abre el diálogo de confirmación.
   const [cancelTarget, setCancelTarget] = React.useState<ReservedGroup | null>(
     null
@@ -329,14 +347,24 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }
   };
 
-  const liquidateItems = async (itemIds: number[]) => {
-    if (actionInFlight || itemIds.length === 0) return;
+  // `shortfallMethod`: para "Liquidar Cuenta" — el servidor abona lo que
+  // falta con ese método y liquida, todo en una transacción. Devuelve si
+  // salió bien, para que el diálogo sepa si cerrarse.
+  const liquidateItems = async (
+    itemIds: number[],
+    shortfallMethod?: PaymentMethod
+  ): Promise<boolean> => {
+    if (actionInFlight || itemIds.length === 0) return false;
     setActionInFlight(true);
     try {
       const res = await fetch(`/api/clients/${id}/layaway/liquidate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemIds }),
+        body: JSON.stringify(
+          shortfallMethod
+            ? { itemIds, payShortfall: { method: shortfallMethod } }
+            : { itemIds }
+        ),
       });
       if (!res.ok) {
         const { error: message, faltante } = await res.json();
@@ -345,7 +373,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             ? `${message} Faltan $${faltante} MXN.`
             : (message ?? "No se pudo liquidar")
         );
-        return;
+        return false;
       }
       const { client: updatedClient }: { client: ApiClient } = await res.json();
       setClients((prev) =>
@@ -353,17 +381,22 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           c.id === id ? normalizeClient(updatedClient) : c
         )
       );
-      // Cada item liquidado consume 1 unidad y 1 reserva del producto.
+      // Cada item liquidado consume 1 unidad y 1 reserva de su producto —
+      // contadas por producto, porque puede haber varias unidades del mismo.
       // Si el stock queda en 0 el backend flipea a "Vendido"; en otro caso
       // mantiene "Disponible".
-      const liquidatedProductIds = reservedItems
-        .filter((r) => itemIds.includes(r.itemId))
-        .map((r) => String(r.productId));
+      const unitsByProduct = new Map<string, number>();
+      for (const r of reservedItems) {
+        if (!itemIds.includes(r.itemId)) continue;
+        const key = String(r.productId);
+        unitsByProduct.set(key, (unitsByProduct.get(key) ?? 0) + 1);
+      }
       setProducts((prev) =>
         prev.map((p) => {
-          if (!liquidatedProductIds.includes(p.id)) return p;
-          const newQty = Math.max(0, p.quantity - 1);
-          const newReserved = Math.max(0, (p.reservedCount ?? 0) - 1);
+          const units = unitsByProduct.get(p.id);
+          if (!units) return p;
+          const newQty = Math.max(0, p.quantity - units);
+          const newReserved = Math.max(0, (p.reservedCount ?? 0) - units);
           return {
             ...p,
             quantity: newQty,
@@ -373,8 +406,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         })
       );
       await Promise.all([reloadLayaway(), reloadMovements()]);
+      return true;
     } catch {
       alert("No se pudo liquidar");
+      return false;
     } finally {
       setActionInFlight(false);
     }
@@ -387,6 +422,42 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     if (!canLiquidateSelection) return;
     await liquidateItems(selectedTargets.map((t) => t.itemId));
     setSelectedProductIds([]);
+  };
+
+  // Liquida TODOS los apartados del cliente. Si el saldo no alcanza, el
+  // servidor registra un abono por lo que falta con el método elegido, en la
+  // misma transacción (ver liquidate/route.ts).
+  const handleLiquidarCuenta = async () => {
+    const ok = await liquidateItems(
+      reservedItems.map((r) => r.itemId),
+      liquidarMethod
+    );
+    if (ok) {
+      setSelectedProductIds([]);
+      setIsLiquidarOpen(false);
+    }
+  };
+
+  // Sólo se puede borrar un cliente sin historial: el historial (movements)
+  // ya incluye apartados de cualquier estado, abonos y ventas — es la misma
+  // regla que valida DELETE /api/clients/[id].
+  const handleDeleteClient = async () => {
+    if (actionInFlight) return;
+    setActionInFlight(true);
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        alert(message ?? "No se pudo eliminar el cliente");
+        return;
+      }
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      router.push("/admin/dashboard/clients");
+    } catch {
+      alert("No se pudo eliminar el cliente");
+    } finally {
+      setActionInFlight(false);
+    }
   };
 
   // Cancela la unidad apartada más reciente del grupo (la última en entrar);
@@ -505,6 +576,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
           <div className="mt-4 md:mt-0 md:ml-auto flex items-center gap-2">
+            {/* Editar abre el modal de datos del cliente; eliminar vive
+                dentro de ese modal (mismo patrón que proveedores), para no
+                tener un botón rojo en la pantalla principal. */}
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => setIsEditOpen(true)}
+            >
+              <Pencil />
+              Editar
+            </Button>
             <Button
               variant="outline"
               className="cursor-pointer"
@@ -650,9 +732,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                   </div>
 
-                  {/* Se habilita sólo si el saldo cubre la suma de todo lo
-                      seleccionado. */}
+                  {/* "Liquidar Cuenta" no depende de la selección: liquida
+                      todo, abonando lo que falte (con confirmación).
+                      "Abono Completo" se habilita sólo si el saldo cubre la
+                      suma de lo seleccionado. */}
                   <div className="shrink-0 flex justify-end gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      className="cursor-pointer"
+                      disabled={actionInFlight}
+                      onClick={() => {
+                        setLiquidarMethod("Efectivo");
+                        setIsLiquidarOpen(true);
+                      }}
+                    >
+                      <ReceiptText />
+                      Liquidar Cuenta
+                    </Button>
                     <Button
                       className="cursor-pointer"
                       disabled={!canLiquidateSelection || actionInFlight}
@@ -831,6 +927,176 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Modales */}
+      <EditClientModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        client={client}
+        onSaved={(updated) =>
+          setClients((prev) =>
+            prev.map((c) => (c.id === id ? normalizeClient(updated) : c))
+          )
+        }
+        onDelete={() => {
+          // Se cierra primero para no anidar el AlertDialog dentro del Dialog.
+          setIsEditOpen(false);
+          setIsDeleteOpen(true);
+        }}
+      />
+      {/* Eliminar cliente: con historial sólo explica por qué no se puede;
+          sin historial confirma con el botón destructivo, como los demás
+          diálogos de borrar. */}
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !actionInFlight) setIsDeleteOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {movements.length > 0
+                ? "Este cliente no se puede eliminar"
+                : "¿Eliminar cliente?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {movements.length > 0 ? (
+                <>
+                  {client.name} tiene historial (abonos, apartados o ventas).
+                  Ese historial forma parte de su cuenta y de los cortes de
+                  los proveedores, así que no se borra.
+                </>
+              ) : (
+                <>
+                  Se eliminará a{" "}
+                  <span className="font-medium text-foreground">
+                    {client.name}
+                  </span>{" "}
+                  de forma permanente. Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {movements.length > 0 ? (
+              <AlertDialogCancel className="cursor-pointer">
+                Entendido
+              </AlertDialogCancel>
+            ) : (
+              <>
+                <AlertDialogCancel
+                  className="cursor-pointer"
+                  disabled={actionInFlight}
+                >
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="cursor-pointer bg-destructive text-white hover:bg-destructive/90"
+                  disabled={actionInFlight}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDeleteClient();
+                  }}
+                >
+                  <Trash2 />
+                  {actionInFlight ? "Eliminando..." : "Eliminar cliente"}
+                </AlertDialogAction>
+              </>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmación de "Liquidar Cuenta": muestra las tres cuentas del pie
+          y, si falta dinero, pide con qué método se cobra. */}
+      <AlertDialog
+        open={isLiquidarOpen}
+        onOpenChange={(open) => {
+          if (!open && !actionInFlight) setIsLiquidarOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Liquidar toda la cuenta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se marcarán como vendidos los {reservedItems.length}{" "}
+              {reservedItems.length === 1
+                ? "producto apartado"
+                : "productos apartados"}{" "}
+              de {client.name}.
+              {faltaCents > 0
+                ? ` Primero se registrará un abono por ${formatMoney(faltaCents)}, lo que falta por pagar.`
+                : " El saldo abonado ya alcanza; no se cobra nada más."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-1 rounded-lg border p-3 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Total apartado</span>
+              <span>{formatMoney(reservedTotalCents)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Abonado</span>
+              <span>{formatMoney(balanceCents)}</span>
+            </div>
+            <div className="mt-2 flex justify-between border-t pt-2">
+              <span>{faltaCents > 0 ? "A cobrar ahora" : "Falta por pagar"}</span>
+              <span
+                className={cn(
+                  "font-bold",
+                  faltaCents > 0 && "text-my-red-dark"
+                )}
+              >
+                {formatMoney(faltaCents)}
+              </span>
+            </div>
+          </div>
+
+          {faltaCents > 0 && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <span className="text-right text-sm font-medium">Método</span>
+              <Select
+                value={liquidarMethod}
+                onValueChange={(v) => setLiquidarMethod(v as PaymentMethod)}
+              >
+                <SelectTrigger className="col-span-3 w-full cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Efectivo">Efectivo</SelectItem>
+                  <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                  <SelectItem value="Transferencia">Transferencia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="cursor-pointer"
+              disabled={actionInFlight}
+            >
+              Volver
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              disabled={actionInFlight}
+              onClick={(e) => {
+                // Abierto hasta que responda la API; handleLiquidarCuenta
+                // lo cierra si salió bien.
+                e.preventDefault();
+                handleLiquidarCuenta();
+              }}
+            >
+              {actionInFlight
+                ? "Liquidando..."
+                : faltaCents > 0
+                  ? `Cobrar ${formatMoney(faltaCents)} y liquidar`
+                  : "Liquidar Cuenta"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Misma estructura que los diálogos de borrar, pero con el botón
           normal (no rojo): cancelar un apartado es reversible — se puede
           volver a apartar — y no toca dinero. */}
