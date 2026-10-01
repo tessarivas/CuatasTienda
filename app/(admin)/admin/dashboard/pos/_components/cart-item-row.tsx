@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { DiscountModal } from "./discount-modal";
+import { DashboardContext } from "../../layout";
 import { Minus, Plus, Trash2, Percent } from "lucide-react";
 
 interface CartItemRowProps {
@@ -23,6 +24,10 @@ export function CartItemRow({
   onApplyDiscount,
 }: CartItemRowProps) {
   const [showDiscountModal, setShowDiscountModal] = React.useState(false);
+  const { suppliers } = React.useContext(DashboardContext);
+  const supplierName = suppliers.find(
+    (s) => String(s.id) === String(item.product.supplierId)
+  )?.businessName;
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -73,8 +78,11 @@ export function CartItemRow({
             >
               {item.product.title}
             </h4>
-            <p className="text-xs text-muted-foreground">
+            {/* Proveedor junto al precio: en un ticket con varios
+                proveedores ayuda a saber a quién se le carga cada venta. */}
+            <p className="truncate text-xs text-muted-foreground">
               ${item.product.price.toFixed(2)} c/u
+              {supplierName && <> · {supplierName}</>}
             </p>
           </div>
           <Button

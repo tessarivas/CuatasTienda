@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Percent } from "lucide-react";
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -81,7 +82,10 @@ export function DiscountModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Percent className="h-5 w-5" />
+            {title}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -126,7 +130,7 @@ export function DiscountModal({
 
           {/* Vista previa */}
           {discountValue && !isNaN(parseFloat(discountValue)) && (
-            <div className="p-3 bg-muted rounded-md">
+            <div className="p-3 border rounded-md">
               <p className="text-sm text-muted-foreground">Vista previa:</p>
               <p className="font-semibold">
                 {discountType === "percentage"
@@ -135,7 +139,7 @@ export function DiscountModal({
               </p>
               <p className="text-sm text-muted-foreground">
                 Descuento:{" "}
-                <span className="text-green-600 font-medium">
+                <span className="text-my-green-dark font-medium">
                   -$
                   {discountType === "percentage"
                     ? (maxAmount * (parseFloat(discountValue) / 100)).toFixed(2)

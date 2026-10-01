@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CreditCard, Banknote, ArrowLeftRight } from "lucide-react";
+import { CreditCard, Banknote, ArrowLeftRight, Wallet } from "lucide-react";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -60,12 +60,15 @@ export function PaymentModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Método de Pago</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5" />
+            Método de Pago
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Total a pagar */}
-          <div className="p-4 bg-primary/10 rounded-lg text-center">
+          <div className="p-4 border rounded-lg text-center">
             <p className="text-sm text-muted-foreground mb-1">Total a cobrar</p>
             <p className="text-3xl font-bold text-primary">
               ${total.toFixed(2)}
@@ -78,7 +81,9 @@ export function PaymentModal({
             <RadioGroup
               value={paymentMethod}
               onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
-              className="space-y-2"
+              // gap-2.5 reemplaza el gap-3 del RadioGroup (sin space-y
+              // encima, que lo duplicaba): la mitad del espacio de antes.
+              className="gap-2.5"
             >
               {paymentMethods.map((method) => {
                 const Icon = method.icon;
@@ -87,7 +92,7 @@ export function PaymentModal({
                     key={method.value}
                     className={`flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                       paymentMethod === method.value
-                        ? "border-primary bg-primary/5"
+                        ? "border-primary"
                         : "border-border hover:border-primary/50"
                     }`}
                     onClick={() => setPaymentMethod(method.value)}

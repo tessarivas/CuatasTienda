@@ -65,7 +65,7 @@ export function SaleCompleteModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex flex-col items-center gap-2">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
+            <CheckCircle2 className="h-12 w-12 text-my-green-dark" />
             <DialogTitle className="text-2xl">¡Venta Completada!</DialogTitle>
           </div>
         </DialogHeader>
@@ -95,7 +95,7 @@ export function SaleCompleteModal({
                     <span>${(item.unitPrice * item.quantity).toFixed(2)}</span>
                   </div>
                   {item.discount && (
-                    <div className="text-xs text-green-600 pl-4">
+                    <div className="text-xs text-my-green-dark pl-4">
                       Descuento:{" "}
                       {item.discount.type === "percentage"
                         ? `${item.discount.value}%`
@@ -117,14 +117,14 @@ export function SaleCompleteModal({
             </div>
 
             {itemsDiscount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-my-green-dark">
                 <span>Descuentos en items:</span>
                 <span>-${itemsDiscount.toFixed(2)}</span>
               </div>
             )}
 
             {sale.totalDiscount && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-my-green-dark">
                 <span>
                   Descuento total (
                   {sale.totalDiscount.type === "percentage"

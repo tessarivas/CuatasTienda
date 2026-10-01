@@ -6,6 +6,11 @@ import { type CartItem, type Discount, type PaymentMethod } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CartItemRow } from "./cart-item-row";
 import { DiscountModal } from "./discount-modal";
 import { PaymentModal } from "./payment-modal";
@@ -39,6 +44,15 @@ export function Cart({
   const [showTotalDiscountModal, setShowTotalDiscountModal] = React.useState(false);
   const [showPaymentModal, setShowPaymentModal] = React.useState(false);
 
+  const hasMultipleSuppliers =
+    new Set(cart.map((item) => item.product.supplierId)).size > 1;
+
+  // Si ya había descuento total y se agrega un producto de otro proveedor,
+  // el descuento deja de ser válido: se quita en vez de dejarlo aplicado.
+  React.useEffect(() => {
+    if (hasMultipleSuppliers && totalDiscount) onApplyTotalDiscount(undefined);
+  }, [hasMultipleSuppliers, totalDiscount, onApplyTotalDiscount]);
+
   const handleApplyTotalDiscount = (discount?: Discount) => {
     onApplyTotalDiscount(discount);
     setShowTotalDiscountModal(false);
@@ -69,7 +83,10 @@ export function Cart({
             alto que la pantalla — la página scrollea y corta la cuadrícula
             de productos. Así sólo scrollea la lista y el encabezado y los
             totales quedan fijos. */}
-        <ScrollArea className="flex-1 min-h-0">
+        {/* El selector [&>…>div]:block! anula el display:table que Radix
+            pone dentro del ScrollArea: sin él la fila crece al ancho del
+            nombre y el truncate nunca corta (ver "UI gotchas" en CLAUDE.md). */}
+        <ScrollArea className="flex-1 min-h-0 [&>[data-slot=scroll-area-viewport]>div]:block!">
           <div className="p-4 space-y-3">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
@@ -102,7 +119,7 @@ export function Cart({
 
             {/* Descuentos en items */}
             {itemsDiscount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-my-green-dark">
                 <span>Descuentos en items:</span>
                 <span>-${itemsDiscount.toFixed(2)}</span>
               </div>
@@ -110,7 +127,7 @@ export function Cart({
 
             {/* Descuento total */}
             {totalDiscount && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-my-green-dark">
                 <span>
                   Descuento total (
                   {totalDiscount.type === "percentage"
@@ -135,15 +152,40 @@ export function Cart({
               <span className="text-primary">${total.toFixed(2)}</span>
             </div>
 
-            {/* Botón de descuento total */}
-            <Button
-              variant="outline"
-              className="w-full cursor-pointer"
-              onClick={() => setShowTotalDiscountModal(true)}
-            >
-              <Percent className="mr-2 h-4 w-4" />
-              {totalDiscount ? "Editar" : "Aplicar"} Descuento Total
-            </Button>
+            {/* Botón de descuento total. Sólo con un proveedor en el ticket:
+                con varios no hay a quién cargarle un descuento al total (la
+                tienda no maneja descuentos proporcionales), así que sólo se
+                descuenta por producto. */}
+            {hasMultipleSuppliers ? (
+              // Un botón deshabilitado no recibe el mouse (pointer-events-none),
+              // así que el tooltip va en un span que lo envuelve; tabIndex
+              // para que también se muestre al llegar con el teclado.
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="block">
+                    <Button variant="outline" className="w-full" disabled>
+                      <Percent />
+                      Aplicar Descuento Total
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {/* A la izquierda: arriba tapaba el total. max-w para que
+                    se acomode en 2 renglones sobre la cuadrícula. */}
+                <TooltipContent side="left" className="max-w-56">
+                  Con productos de varios proveedores sólo se descuenta por
+                  producto.
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full cursor-pointer"
+                onClick={() => setShowTotalDiscountModal(true)}
+              >
+                <Percent />
+                {totalDiscount ? "Editar" : "Aplicar"} Descuento Total
+              </Button>
+            )}
 
             {/* Botón de cobrar */}
             <Button
