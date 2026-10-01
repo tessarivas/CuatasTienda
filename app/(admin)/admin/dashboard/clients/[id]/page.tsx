@@ -233,24 +233,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     : 0;
 
   // El API entrega lo más nuevo primero; aquí va al revés, como un cuaderno
-  // donde cada anotación nueva se escribe abajo, junto al saldo. Cada renglón
-  // lleva el RESTA corriente de la lista en papel: apartar suma, abonar
-  // resta, cancelar no cuenta (queda tachado) y liquidar no lo mueve — salvo
-  // las liquidaciones `legacy`, cuyo renglón de apartado ya no existe y por
-  // eso cuentan como apartado y venta a la vez. Así el último RESTA coincide
-  // con el del pie (apartados activos − saldo). En centavos.
-  const ledgerMovements = React.useMemo(() => {
-    let restaCents = 0;
-    return [...movements].reverse().map((m) => {
-      const cents = Math.round(Number(m.amount) * 100);
-      let delta: number | null = null;
-      if (m.type === "apartado" && m.status !== "Cancelado") delta = cents;
-      if (m.type === "abono") delta = -cents;
-      if (m.type === "liquidacion" && m.legacy) delta = cents;
-      if (delta !== null) restaCents += delta;
-      return { movement: m, restaCents: delta !== null ? restaCents : null };
-    });
-  }, [movements]);
+  // donde cada anotación nueva se escribe abajo, junto a los totales. Los
+  // renglones no llevan un resta corriente: confundía (cambia renglón por
+  // renglón y las ventas `legacy` lo descuadran al principio). Las cuentas
+  // viven sólo en el pie.
+  const ledgerMovements = React.useMemo(
+    () => [...movements].reverse(),
+    [movements]
+  );
   const ledgerScrollRef = React.useRef<HTMLDivElement>(null);
   // hasClient e isLoadingMovements en deps: la lista puede montarse después
   // de que llegan los movimientos (esperando al cliente o quitando el
@@ -329,7 +319,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             : p
         )
       );
-      await reloadLayaway();
+      // El apartado nuevo también es un renglón del historial ("Apartó: …").
+      await Promise.all([reloadLayaway(), reloadMovements()]);
       setIsAssignModalOpen(false);
     } catch {
       alert("No se pudo apartar el producto");
@@ -471,29 +462,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
-  // El RESTA de la lista en papel: lo apartado suma, lo abonado resta.
-  // Liquidar no lo mueve (baja apartados y saldo por el mismo monto). En
-  // centavos para no arrastrar errores de flotante.
+  // Las tres preguntas del mostrador, cada una con su propio renglón para no
+  // tener que interpretar un solo número: cuánto cuesta lo apartado, cuánto
+  // efectivo dejó, y cuánto le falta (o le sobra). Liquidar no cambia la
+  // diferencia: baja apartado y abonado por el mismo monto. En centavos.
   const reservedTotalCents = reservedItems.reduce(
     (sum, r) => sum + Math.round(r.price * 100),
     0
   );
-  const restaCents = reservedTotalCents - Math.round(client.balance * 100);
-  // Lo que muestra el pie. Mientras haya algo apartado sin marcar vendido,
-  // siempre se ve un "Resta": si el saldo no alcanza, lo que falta; si ya
-  // alcanza, lo que cuestan los apartados pendientes (siguen sin venderse).
-  // "Saldo a favor" / "Sin adeudos" sólo aparecen sin apartados.
-  const hasPendingApartados = reservedItems.length > 0;
-  const footerCents = hasPendingApartados
-    ? restaCents > 0
-      ? restaCents
-      : reservedTotalCents
-    : Math.abs(restaCents);
-  const footerLabel = hasPendingApartados
-    ? "Resta"
-    : restaCents < 0
-      ? "Saldo a favor"
-      : "Sin adeudos";
+  const balanceCents = Math.round(client.balance * 100);
+  const faltaCents = Math.max(0, reservedTotalCents - balanceCents);
+  const sobranCents = Math.max(0, balanceCents - reservedTotalCents);
+  const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   return (
     <>
@@ -725,11 +705,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   ref={ledgerScrollRef}
                   className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1"
                 >
-                  {ledgerMovements.map(({ movement: m, restaCents: rowResta }) => {
+                  {ledgerMovements.map((m) => {
                     const isCancelled =
                       m.type === "apartado" && m.status === "Cancelado";
                     // Venta con apartado propio en la lista: sólo es la nota
-                    // "se sacó de caja y se anotó vendido"; no mueve el resta.
+                    // "se sacó de caja y se anotó vendido".
                     const isQuietSale = m.type === "liquidacion" && !m.legacy;
                     const label =
                       m.type === "apartado"
@@ -773,22 +753,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                               {isCancelled && " · cancelado"}
                             </p>
                           </div>
-                          <div className="shrink-0 text-right">
-                            <p
-                              className={cn(
-                                isQuietSale ? "text-sm" : "font-bold",
-                                isCancelled && "line-through"
-                              )}
-                            >
-                              ${Number(m.amount).toFixed(2)}
-                            </p>
-                            {rowResta !== null && (
-                              <p className="text-xs text-muted-foreground">
-                                {rowResta > 0 ? "Resta" : rowResta < 0 ? "A favor" : "Resta"}{" "}
-                                ${(Math.abs(rowResta) / 100).toFixed(2)}
-                              </p>
+                          <p
+                            className={cn(
+                              "shrink-0",
+                              isQuietSale ? "text-sm" : "font-bold",
+                              isCancelled && "line-through"
                             )}
-                          </div>
+                          >
+                            ${Number(m.amount).toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     );
@@ -805,37 +778,52 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 </div>
               )}
 
-              {/* Resumen: el saldo que el cliente ya dejó (dinero que la
-                  tienda tiene guardado a su nombre) y el último RESTA de la
-                  lista en papel. El RESTA depende de los apartados, así que
-                  espera a que carguen para no mostrar un monto equivocado. */}
-              <div className="shrink-0 mt-3 pt-3 border-t-2 space-y-1">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Saldo actual</span>
-                <span>${client.balance.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">
-                  {isLoadingLayaway ? "Resta" : footerLabel}
-                </span>
-                {isLoadingLayaway ? (
-                  // h-6 = alto del monto en negritas; sin esto el pie crece
-                  // al terminar de cargar y deja cortado el último renglón
-                  // del historial, que ya se había bajado al final.
-                  <span className="flex h-6 items-center">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      "font-bold",
-                      hasPendingApartados && "text-my-red-dark"
-                    )}
-                  >
-                    ${(footerCents / 100).toFixed(2)}
-                  </span>
+              {/* Resumen. Lo que depende de los apartados espera a que
+                  carguen para no mostrar un monto equivocado; los loaders
+                  ocupan el mismo alto que el número (h-5 / h-6), si no el pie
+                  crece al terminar de cargar y deja cortado el último
+                  renglón del historial, que ya se había bajado al final. */}
+              <div className="shrink-0 mt-3 pt-3 border-t-2 space-y-1 text-sm">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Total apartado</span>
+                  {isLoadingLayaway ? (
+                    <span className="flex h-5 items-center">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </span>
+                  ) : (
+                    <span>{formatMoney(reservedTotalCents)}</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Abonado</span>
+                  <span>{formatMoney(balanceCents)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t pt-2 mt-2">
+                  <span>Falta por pagar</span>
+                  {isLoadingLayaway ? (
+                    <span className="flex h-6 items-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-base font-bold",
+                        faltaCents > 0 && "text-my-red-dark"
+                      )}
+                    >
+                      {formatMoney(faltaCents)}
+                    </span>
+                  )}
+                </div>
+                {/* Caso raro: abonó más de lo que tiene apartado. */}
+                {!isLoadingLayaway && sobranCents > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span>Le sobran</span>
+                    <span className="font-medium text-my-green-dark">
+                      {formatMoney(sobranCents)}
+                    </span>
+                  </div>
                 )}
-              </div>
               </div>
             </CardContent>
           </Card>

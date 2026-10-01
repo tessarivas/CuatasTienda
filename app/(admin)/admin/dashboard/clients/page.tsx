@@ -73,36 +73,37 @@ export default function Page() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        {/* Mismo tratamiento que "Lista de Proveedores" y "Mi Inventario
-            Hoy": texto propio, no el nombre literal de la sección. */}
-        <h1 className="text-2xl font-bold">Apartados y Crédito de Clientes</h1>
-
-        {/* Barra de Búsqueda y Acciones */}
-        <div className="flex flex-col justify-between sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-white/80 border-slate-200"
-            />
+      <div className="p-4 space-y-4">
+        {/* Mismo layout que "Lista de Proveedores": título a la izquierda,
+            búsqueda + CTA a la derecha, en la misma línea. */}
+        <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+          <h1 className="text-2xl font-bold">Apartados y Crédito de Clientes</h1>
+          <div className="mt-4 md:mt-0 md:ml-auto flex items-center gap-2">
+            <div className="relative grow">
+              <Input
+                placeholder="Buscar por nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-lg pl-10"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </div>
+            <Button
+              className="cursor-pointer"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <UserPlus />
+              Agregar Cliente
+            </Button>
           </div>
-          <Button
-            className="cursor-pointer"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Agregar Cliente
-          </Button>
         </div>
 
-        {/* Tokens de marca, misma pareja bg-{color}-light/text-{color}-dark
-            y el mismo color por posición que Corte Mensual en
-            suppliers/[id] (amarillo → azul → rojo) — antes usaba la paleta
-            genérica de Tailwind (yellow-100/sky-100/rose-100). */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Mismos colores por posición que los highlights de Proveedores
+            (amarillo → azul → verde): el saldo es dinero a favor, no deuda,
+            así que no va en rojo. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total de clientes */}
           <div className="relative overflow-hidden rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
             <div className="flex items-start justify-between">
@@ -126,7 +127,7 @@ export default function Page() {
           </div>
 
           {/* Saldo total */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-my-red-light text-my-red-dark">
+          <div className="relative overflow-hidden rounded-xl p-5 bg-my-green-light text-my-green-dark">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium mb-1">
@@ -141,7 +142,7 @@ export default function Page() {
         </div>
         {/* Grid de Clientes */}
         {filteredClients.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {filteredClients.map((client, index) => (
               <ClientCard
                 key={client.id}

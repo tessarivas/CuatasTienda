@@ -23,7 +23,7 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
             <User className="h-6 w-6 text-stone-600" />
           </div>
           {hasBalance && (
-            <div className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+            <div className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-my-green rounded-full border-2 border-background animate-pulse" />
           )}
         </div>
 
