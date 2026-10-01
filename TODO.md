@@ -126,6 +126,16 @@ limpiar productos retirados viejos:
       al cobrar sólo cambia el estado en memoria. Bloquea también
       "registrar servicio" y que "Más ventas en {mes}" cuente la caja.
 
+## Notificaciones (toasts) y spinner
+
+El commit `4fcab11` ("UI small changes", 2026-04-19) agregaba `sonner`
+(toasts), un componente `spinner` y ajustes a `button` / `alert-dialog`. Al
+juntar con `main` (2026-10-01) se le dio prioridad a la rama y ese código no
+entró; sigue en el historial para retomarlo (`git show 4fcab11`).
+
+- [ ] Agregar toasts para confirmar acciones (abono registrado, apartado,
+      liquidado, etc.) en lugar de `alert()`.
+
 ## Detalles chicos
 
 - [ ] Revisar si otras páginas con estados vacíos muestran "No hay…" por un
