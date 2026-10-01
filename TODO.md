@@ -241,6 +241,13 @@ entró; sigue en el historial para retomarlo (`git show 4fcab11`).
 - [ ] Agregar toasts para confirmar acciones (abono registrado, apartado,
       liquidado, etc.) en lugar de `alert()`.
 
+## Agregar producto: "guardar y agregar otro" (a contemplar)
+
+Del issue #25 (cerrado): poder dar de alta varios productos seguidos sin que
+`add-product-modal.tsx` se cierre al guardar — p. ej. un botón "Guardar y
+agregar otro" que limpia los campos y conserva el proveedor. Útil cuando
+llega mercancía nueva de un proveedor. Sólo para contemplar después.
+
 ## Detalles chicos
 
 - [ ] Revisar si otras páginas con estados vacíos muestran "No hay…" por un
