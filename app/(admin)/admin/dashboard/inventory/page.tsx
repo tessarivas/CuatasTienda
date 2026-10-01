@@ -183,6 +183,16 @@ export default function Page() {
       const matchesStatus = (() => {
         if (statusFilter === "todos") return true;
         if (statusFilter === "apartados") return (product.reservedCount ?? 0) > 0;
+        // "Disponible" = queda al menos una unidad libre. Product.status no
+        // refleja reservas, así que uno con todo apartado seguiría diciendo
+        // "Disponible" aunque no se pueda vender; misma regla que el badge
+        // de la tabla.
+        if (statusFilter === "Disponible") {
+          return (
+            product.status === "Disponible" &&
+            product.quantity - (product.reservedCount ?? 0) > 0
+          );
+        }
         return product.status === statusFilter;
       })();
       return matchesSearch && matchesSupplier && matchesStatus;

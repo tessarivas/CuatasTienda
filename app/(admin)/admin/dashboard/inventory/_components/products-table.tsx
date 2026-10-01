@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Package, User, UserRoundCheck } from "lucide-react";
+import { ClipboardCheck, Package, User, UserRoundCheck } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,8 +26,8 @@ interface ProductsTableProps {
 }
 
 // Anchos en porcentaje del ancho total de la tabla (requiere table-fixed).
-// Dos sets porque en modo servicio no existe la columna Cantidad; si no se
-// redistribuyera, quedaría un hueco en blanco a la derecha.
+// Dos sets porque en modo servicio sólo hay Foto, Título, Proveedor y Precio;
+// si no se redistribuyera, quedaría un hueco en blanco a la derecha.
 const PRODUCT_WIDTHS = {
   foto: "w-[8%]",
   titulo: "w-[30%]",
@@ -38,12 +38,11 @@ const PRODUCT_WIDTHS = {
   apartados: "w-[12%]",
 };
 const SERVICE_WIDTHS = {
-  foto: "w-[9%]",
-  titulo: "w-[33%]",
-  proveedor: "w-[15%]",
-  estado: "w-[15%]",
+  foto: "w-[10%]",
+  titulo: "w-[40%]",
+  proveedor: "w-[20%]",
   precio: "w-[15%]",
-  apartados: "w-[13%]",
+  registrar: "w-[15%]",
 };
 
 export function ProductsTable({
@@ -68,10 +67,11 @@ export function ProductsTable({
     }).format(amount);
   };
 
-  // En modo servicio no existe la columna Cantidad (todas las filas dirían
-  // "Servicio" — no aporta nada), pero Apartados sigue presente en ambos
-  // modos, así que el conteo total sólo baja en 1.
-  const columnCount = isServiceMode ? 6 : 7;
+  // Un servicio no lleva inventario: no tiene cantidad, siempre saldría
+  // "Disponible" y no se puede apartar. En modo servicio se ocultan Estado,
+  // Cantidad y Apartados, y en su lugar va "Registrar" (aún sin
+  // funcionalidad: necesita que las ventas se guarden, ver TODO.md).
+  const columnCount = isServiceMode ? 5 : 7;
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -84,20 +84,33 @@ export function ProductsTable({
             <TableHead className={`${widths.foto} pl-4`}>Foto</TableHead>
             <TableHead className={widths.titulo}>Título</TableHead>
             <TableHead className={widths.proveedor}>Proveedor</TableHead>
-            <TableHead className={`${widths.estado} text-center`}>
-              Estado
-            </TableHead>
+            {!isServiceMode && (
+              <TableHead className={`${PRODUCT_WIDTHS.estado} text-center`}>
+                Estado
+              </TableHead>
+            )}
             <TableHead className={`${widths.precio} text-center`}>
               Precio
             </TableHead>
-            {!isServiceMode && (
-              <TableHead className={`${PRODUCT_WIDTHS.cantidad} text-center`}>
-                Cantidad
+            {isServiceMode && (
+              <TableHead
+                className={`${SERVICE_WIDTHS.registrar} pr-4 text-center`}
+              >
+                Registrar
               </TableHead>
             )}
-            <TableHead className={`${widths.apartados} pr-4 text-center`}>
-              Apartados
-            </TableHead>
+            {!isServiceMode && (
+              <>
+                <TableHead className={`${PRODUCT_WIDTHS.cantidad} text-center`}>
+                  Cantidad
+                </TableHead>
+                <TableHead
+                  className={`${PRODUCT_WIDTHS.apartados} pr-4 text-center`}
+                >
+                  Apartados
+                </TableHead>
+              </>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -164,20 +177,31 @@ export function ProductsTable({
                       </span>
                     </div>
                   </TableCell>
+                  {!isServiceMode && (
                   <TableCell>
                     {/* Mismos colores que la lista de productos del proveedor:
                         bg-{color}-light + text-{color}-dark. */}
                     <div className="flex flex-col items-center gap-1">
-                      <Badge
-                        variant="default"
-                        className={
-                          product.status === "Disponible"
-                            ? "bg-my-green-light text-my-green-dark"
-                            : "bg-my-red-light text-my-red-dark"
-                        }
-                      >
-                        {product.status}
-                      </Badge>
+                      {/* "Disponible" sólo si queda al menos una unidad libre;
+                          con todo apartado (p. ej. 1 de 1) sobra y confunde —
+                          queda sólo el badge "N Apartado(s)". Product.status
+                          no refleja reservas, así que se decide aquí. */}
+                      {!(
+                        product.status === "Disponible" &&
+                        product.quantity - (product.reservedCount ?? 0) <= 0 &&
+                        (product.reservedCount ?? 0) > 0
+                      ) && (
+                        <Badge
+                          variant="default"
+                          className={
+                            product.status === "Disponible"
+                              ? "bg-my-green-light text-my-green-dark"
+                              : "bg-my-red-light text-my-red-dark"
+                          }
+                        >
+                          {product.status}
+                        </Badge>
+                      )}
                       {(product.reservedCount ?? 0) > 0 && (
                         <Badge
                           variant="default"
@@ -189,34 +213,57 @@ export function ProductsTable({
                       )}
                     </div>
                   </TableCell>
+                  )}
                   <TableCell className="text-center">
                     {formatCurrency(product.price)}
                   </TableCell>
-                  {!isServiceMode && (
-                    <TableCell className="text-center">
-                      {/* Total en tienda, no disponible/total: un apartado no
-                          saca la unidad de la tienda, y el badge "N apartado(s)"
-                          ya deja claro que parte de este total no está libre. */}
-                      <span className="tabular-nums">{product.quantity}</span>
+                  {isServiceMode && (
+                    <TableCell
+                      className="pr-4"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex justify-center">
+                        {/* Apagado a propósito hasta que exista dónde guardar
+                            el servicio realizado (no hay /api/sales). */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          title="Próximamente"
+                        >
+                          <ClipboardCheck />
+                          Registrar
+                        </Button>
+                      </div>
                     </TableCell>
                   )}
-                  <TableCell
-                    className="pr-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex justify-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!canAssign}
-                        className="cursor-pointer"
-                        onClick={() => onAssign(product)}
+                  {!isServiceMode && (
+                    <>
+                      <TableCell className="text-center">
+                        {/* Total en tienda, no disponible/total: un apartado no
+                            saca la unidad de la tienda, y el badge "N apartado(s)"
+                            ya deja claro que parte de este total no está libre. */}
+                        <span className="tabular-nums">{product.quantity}</span>
+                      </TableCell>
+                      <TableCell
+                        className="pr-4"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <UserRoundCheck />
-                        Apartar
-                      </Button>
-                    </div>
-                  </TableCell>
+                        <div className="flex justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!canAssign}
+                            className="cursor-pointer"
+                            onClick={() => onAssign(product)}
+                          >
+                            <UserRoundCheck />
+                            Apartar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
               );
             })
