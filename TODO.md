@@ -59,16 +59,6 @@ abonado por el mismo monto. Precios = snapshot de `LayawayItem.price`.
 - [ ] **Fecha de apartado en la tarjeta** de Productos Apartados (p. ej.
       "Apartado el 1 oct"). El historial ya la muestra en "Apartó: …". Con
       varias unidades del mismo producto, cada una tiene su propia fecha.
-- [ ] Botón para **liquidar toda la cuenta**: el cliente paga lo que falta y
-      se liquidan todos sus apartados de una vez.
-  - Si el saldo ya alcanza, sólo liquida todo.
-  - Si no, registra un abono por lo que falta (con su método de pago) y
-    luego liquida todo — en el historial queda el abono y la liquidación.
-  - `POST /api/clients/[id]/layaway/liquidate` ya acepta varios `itemIds`.
-    Ojo: abono + liquidación son dos llamadas; si la segunda falla, el
-    abono ya quedó registrado como saldo (no se pierde, pero hay que
-    avisarlo claro). Evaluar un endpoint que haga ambas en una transacción.
-  - Confirmar antes de ejecutar mostrando el total que se va a cobrar.
 
 ## Saldo a favor del cliente: qué pasa con lo que sobra
 
@@ -148,6 +138,23 @@ entró; sigue en el historial para retomarlo (`git show 4fcab11`).
 ---
 
 ## Completado
+
+### 2026-10-01
+- [x] Botón "Liquidar Cuenta" (outline) en Productos Apartados, con diálogo
+      que muestra Total apartado / Abonado / A cobrar y pide el método si
+      falta dinero. El abono por lo que falta y la liquidación de todo van
+      en una sola transacción (`payShortfall` en el endpoint de liquidar).
+      Probado en la app; issue #18 cerrado.
+- [x] Corregido: al liquidar varias unidades del mismo producto, el stock
+      bajaba sólo 1 (servidor y pantalla).
+- [x] Eliminar cliente (#9): sólo si no tiene historial (abonos, apartados
+      ni ventas); con historial, 409 con mensaje claro. Se hace desde el
+      botón "Editar" del encabezado de `clients/[id]`, que abre
+      `edit-client-modal.tsx` (Nombre, Teléfono y "Eliminar", mismo patrón
+      que Editar Proveedor); el diálogo confirma (rojo) o explica por qué no
+      se puede. Probado en la app; issue #9 cerrado.
+- [x] Merge de la rama a `main` (prioridad a la rama) y 7 issues cerrados en
+      GitHub (#2, #21, #24, #26, #27, #28, #30).
 
 ### 2026-09-28
 - [x] Caja registradora: productos y carrito con la misma altura (la de la

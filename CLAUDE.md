@@ -9,8 +9,7 @@ clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
 its dated **Completado** section at the bottom (don't just delete them). Currently open: a
-per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card and a
-"liquidar toda la cuenta" button; what to do with a client's leftover credit (a "limpiar saldo"
+per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card; what to do with a client's leftover credit (a "limpiar saldo"
 option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios tab; a real
 "permanently delete" action distinct from today's soft-delete "Eliminar producto"; and small
 cleanups (flashing empty states on other pages, raw colors / a typo in the add-* modals).
@@ -223,7 +222,13 @@ Rules enforced in route handlers, **not** in the schema — preserve them:
 - `LayawayItem.price` and `SaleItem.finalPrice` are **price snapshots** taken at reservation time,
   not the product's current price.
 - `Client.currentBalance` is prepaid credit: incremented by `Payment` ("abono"), decremented on
-  liquidation. Deleting a client requires zero balance and zero reserved items.
+  liquidation. Deleting a client requires **no history at all** (no `Payment`, `Layaway` or `Sale`
+  rows) — its sales feed suppliers' monthly cutoffs, so clients with history are never deleted (409).
+- `POST /api/clients/[id]/layaway/liquidate` accepts an optional `payShortfall: { method }` (used by
+  "Liquidar Cuenta"): if the balance doesn't cover the items, it creates a `Payment` for exactly the
+  shortfall — computed server-side, never taken from the body — inside the same transaction before
+  liquidating. Stock is decremented **per product by unit count**, since several items can share a
+  product.
 - Product `code` is unique (`CT-XXXXXXXX`); creation retries on `P2002` with a new code.
 
 All money is `Decimal @db.Decimal(10, 2)` and serializes to a **string** over JSON — always
