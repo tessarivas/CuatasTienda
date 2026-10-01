@@ -7,13 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Spanish-language (es-MX) retail back-office for a small consignment store: suppliers, inventory,
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
-Check `TODO.md` for agreed-but-not-built work (currently: a per-supplier inventory history screen,
-what to do with a client's leftover credit / a "limpiar saldo" option, a "liquidar toda la
-cuenta" button, showing each apartado's date on its card, checking other pages for
-empty states that flash while loading, small raw-color / typo cleanups in the add-* modals, dropping Estado/Apartados from the inventory Servicios tab (and later a
-"registrar servicio" action), hiding the "Disponible" badge when every unit is reserved, and a
-real "permanently
-delete" action distinct from today's soft-delete "Eliminar producto").
+Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
+its dated **Completado** section at the bottom (don't just delete them). Currently open: a
+per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card and a
+"liquidar toda la cuenta" button; what to do with a client's leftover credit (a "limpiar saldo"
+option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios tab; a real
+"permanently delete" action distinct from today's soft-delete "Eliminar producto"; and small
+cleanups (flashing empty states on other pages, raw colors / a typo in the add-* modals).
+
+The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
+primary CTA right on the same row, then a 3-card highlights row (`bg-my-{yellow,blue,green}-light`
++ matching `-dark` text, in that order), then a `grid-cols-2 md:grid-cols-4` card grid. Keep new
+list pages consistent with it.
 
 ## Commands
 
@@ -294,7 +299,9 @@ Check which one a file already imports before adding a consumer.
 
 There is **no `/api/sales` route**. The POS page keeps carts, discounts, and completed sales in
 `DashboardContext` in memory only. `Sale` rows are created solely by the layaway `liquidate`
-endpoint. Don't assume checkout writes to the database.
+endpoint. Don't assume checkout writes to the database. Consequently `GET /api/suppliers/sales`
+(per-supplier sales total for a `from`/`to` range, used by the "Más ventas en {mes}" card on the
+suppliers page) only counts liquidated apartados until POS sales are persisted.
 
 ### Images
 
