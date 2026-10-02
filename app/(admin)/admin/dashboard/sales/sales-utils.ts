@@ -7,6 +7,7 @@ export type ApiSaleRow = {
   total: string;
   discount: string;
   paymentMethod: "Efectivo" | "Tarjeta" | "Transferencia" | null;
+  receiptUrl: string | null;
   Client: { id: number; name: string } | null;
   User: { name: string };
   SaleItem: {

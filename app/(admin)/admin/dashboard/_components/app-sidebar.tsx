@@ -38,7 +38,7 @@ export const data = {
       url: "/admin/dashboard/pos",
       items: [
         { title: "Historial de Ventas", url: "/admin/dashboard/sales" },
-        { title: "Corte de Caja", url: "#" },
+        { title: "Corte de Caja", url: "/admin/dashboard/cash-closing" },
       ],
     },
     {

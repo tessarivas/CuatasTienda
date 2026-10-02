@@ -63,6 +63,9 @@ model Payment {
   method     PaymentMethod @default(Efectivo)
   date       DateTime      @default(now())
   receivedBy String        @db.Uuid
+  // Comprobante (imagen en Cloudinary) para tarjeta/transferencia. Se
+  // adjunta en el Corte de Caja, no al cobrar; null = pendiente o efectivo.
+  receiptUrl String?
   Client     Client        @relation(fields: [clientId], references: [id])
   User       User          @relation(fields: [receivedBy], references: [id])
 }
@@ -123,6 +126,9 @@ model Sale {
   discount      Decimal        @default(0) @db.Decimal(10, 2)
   // null = liquidación de apartados (se paga con el saldo del cliente).
   paymentMethod PaymentMethod?
+  // Comprobante (imagen en Cloudinary) para tarjeta/transferencia. Se
+  // adjunta en el Corte de Caja, no al cobrar; null = pendiente o efectivo.
+  receiptUrl    String?
   date          DateTime       @default(now())
   userId        String         @db.Uuid
   clientId      Int?
@@ -166,6 +172,43 @@ model User {
   Payment       Payment[]
   Sale          Sale[]
   StockMovement StockMovement[]
+  CashClosing   CashClosing[]
+}
+
+// Corte de caja: uno por día de la tienda (hora del Pacífico). Cubre los
+// cobros desde el cierre anterior (periodStart) hasta el momento de cerrar
+// (periodEnd): lo cobrado después de cerrar cae solo en el corte siguiente.
+// Guarda el resumen del periodo, el efectivo contado y la diferencia. Es de
+// admin: se puede corregir después de cerrado (se recalcula dentro de la
+// misma ventana; updatedAt marca la corrección).
+model CashClosing {
+  id           Int      @id @default(autoincrement())
+  // Día de la tienda en que se cerró (sin hora). Único: un corte por día.
+  date         DateTime @unique @db.Date
+  // Ventana de cobros [periodStart, periodEnd). periodStart = periodEnd del
+  // corte anterior (o inicio del día si no hay); periodEnd = hora del cierre.
+  periodStart  DateTime
+  periodEnd    DateTime
+  // Fondo de caja con el que se abrió el día (usualmente $200).
+  openingCash  Decimal  @db.Decimal(10, 2)
+  // Ventas de caja en efectivo (no incluye liquidaciones: ese dinero ya
+  // entró antes como abono).
+  cashSales    Decimal  @db.Decimal(10, 2)
+  // Abonos de clientes en efectivo. Van a la caja de apartados, aparte:
+  // no forman parte del esperado en la caja principal.
+  cashPayments Decimal  @db.Decimal(10, 2)
+  // Tarjeta + transferencia (ventas y abonos); no pasa por la caja.
+  bankTotal    Decimal  @db.Decimal(10, 2)
+  // Caja principal: openingCash + cashSales.
+  expectedCash Decimal  @db.Decimal(10, 2)
+  countedCash  Decimal  @db.Decimal(10, 2)
+  // countedCash − expectedCash (negativo = faltante).
+  difference   Decimal  @db.Decimal(10, 2)
+  notes        String?
+  closedBy     String   @db.Uuid
+  closedAt     DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  User         User     @relation(fields: [closedBy], references: [id])
 }
 
 enum ProductType {

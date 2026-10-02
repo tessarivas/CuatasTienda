@@ -9,7 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ImageIcon, Receipt } from "lucide-react";
+import { ReceiptDialog } from "./receipt-dialog";
 import {
   type ApiSaleRow,
   formatMoney,
@@ -25,6 +27,7 @@ interface SaleDetailModalProps {
 // Ticket completo de una venta: mismo formato que "¡Venta Completada!" de la
 // caja, más origen y quién la cobró.
 export function SaleDetailModal({ sale, onClose }: SaleDetailModalProps) {
+  const [showReceipt, setShowReceipt] = React.useState(false);
   if (!sale) return null;
 
   const lines = sale.SaleItem.map((item) => {
@@ -44,7 +47,16 @@ export function SaleDetailModal({ sale, onClose }: SaleDetailModalProps) {
   const saleDiscount = Number(sale.discount);
 
   return (
-    <Dialog open={!!sale} onOpenChange={(open) => !open && onClose()}>
+    <>
+    <Dialog
+      open={!!sale}
+      onOpenChange={(open) => {
+        if (!open) {
+          setShowReceipt(false);
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -134,7 +146,25 @@ export function SaleDetailModal({ sale, onClose }: SaleDetailModalProps) {
             </span>
           </div>
         </div>
+        {/* Comprobante de tarjeta/transferencia, adjuntado en el Corte de
+            Caja. Sin comprobante (pendiente o efectivo) no se muestra. */}
+        {sale.receiptUrl && (
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer"
+            onClick={() => setShowReceipt(true)}
+          >
+            <ImageIcon />
+            Ver comprobante adjunto
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
+    <ReceiptDialog
+      url={showReceipt ? sale.receiptUrl : null}
+      title={`Venta ${sale.folio ?? `#${sale.id}`}`}
+      onClose={() => setShowReceipt(false)}
+    />
+    </>
   );
 }

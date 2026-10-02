@@ -1,14 +1,13 @@
 import { Prisma } from "@/generated/prisma/client";
+import { STORE_TIME_ZONE } from "@/lib/store-time";
 
 // Folio de venta: DDMMYY-NNN — fecha en hora de la tienda + consecutivo del
 // día (001, 002, …). Lo comparten la caja (POST /api/sales) y la liquidación
 // de apartados, así que hay un solo consecutivo por día.
 //
-// La fecha se toma en America/Tijuana (la tienda está en Baja California,
-// hora del Pacífico), no en la hora del servidor (que
-// puede correr en UTC): una venta a las 7 p.m. no debe caer en el día
-// siguiente.
-const STORE_TIME_ZONE = "America/Tijuana";
+// La fecha es la de la tienda (hora del Pacífico, lib/store-time.ts), no la
+// del servidor (que puede correr en UTC): una venta a las 11 p.m. no debe
+// caer en el día siguiente.
 
 export function folioPrefix(date: Date): string {
   const parts = new Intl.DateTimeFormat("es-MX", {

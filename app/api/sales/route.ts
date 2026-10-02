@@ -76,6 +76,7 @@ export async function GET(req: Request) {
         total: true,
         discount: true,
         paymentMethod: true,
+        receiptUrl: true,
         Client: { select: { id: true, name: true } },
         User: { select: { name: true } },
         SaleItem: {
