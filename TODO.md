@@ -156,37 +156,18 @@ productos** durante un periodo (fecha de inicio y fin), por **porcentaje** o
   - Mostrarlo en la caja: precio tachado o etiqueta "Promo" en la tarjeta y
     en el carrito.
 
-## Comprobantes de pago (tarjeta / transferencia)
+## Corte de Caja y comprobantes: lo que falta
 
-Cuando un cobro es con **Tarjeta** o **Transferencia**, poder adjuntar el
-comprobante (foto del voucher o captura de la transferencia) y guardarlo
-ligado a ese cobro, para consultarlo después.
+Ya están hechos (ver Completado). Quedan:
 
-**Se piden en el Corte de Caja, no al cobrar.** La caja registradora y los
-modales de abono no cambian: cobrar sigue siendo rápido. Al hacer el corte,
-se listan los cobros del periodo con tarjeta/transferencia y ahí se adjunta
-el comprobante de cada uno (y se ve cuáles faltan).
-
-Cobros que entran a esa lista:
-- Ventas de caja (`Sale.paymentMethod`).
-- Abonos a clientes (`Payment.method`), incluido el abono que genera
-  "Liquidar Cuenta" al cobrar lo faltante.
-
-Depende de que exista la pantalla de Corte de Caja (sección "Caja
-registradora").
-
-- [ ] Guardar el archivo en Cloudinary, como las fotos de productos y
-      logos (`lib/cloudinary/`), con un id determinista por cobro (p. ej.
-      `comprobantes/ventas/{folio}` y `comprobantes/abonos/{paymentId}`).
-- [ ] Migración: columna para la URL del comprobante en `Sale` y en
-      `Payment` (nullable — en efectivo no aplica).
-- **Decidido:** el corte **se puede cerrar con comprobantes faltantes**;
-  esos cobros quedan marcados como **pendientes** y se pueden completar
-  después (p. ej. cuando el cliente manda la captura más tarde).
-- [ ] Mostrar los comprobantes pendientes de cortes anteriores (un aviso o
-      lista) para que no se olviden.
-- [ ] Dónde más se consulta: en el historial del cliente (abonos) y en el
-      futuro Historial de Ventas (ventas de caja).
+- [ ] Probar en la app: cerrar el corte de hoy, corregirlo, y adjuntar un
+      comprobante a una venta o abono con tarjeta/transferencia (y verlo
+      después en el ticket del Historial de Ventas).
+- [ ] Aviso más visible de comprobantes pendientes de días anteriores (hoy
+      se ven en la columna "Pendientes" de "Cortes anteriores").
+- [ ] Ver el comprobante de un abono también desde el historial del cliente.
+- [ ] Restar los gastos en efectivo del esperado en caja cuando exista el
+      módulo de gastos (decidir de cuál caja salen: principal o apartados).
 
 ## Etiquetas con código de barras para imprimir
 
@@ -225,11 +206,8 @@ mercancía, sin salir de la app.
 
 ## Caja registradora (POS)
 
-- [ ] Probar una venta real en la caja: el modal debe mostrar el folio
-      `DDMMYY-001` y el stock bajar; probar también una con descuento total
-      (un solo proveedor).
-- [ ] Pantalla "Corte de Caja" (en el menú sigue apuntando a `#`). Ahí se
-      piden los comprobantes (ver sección de comprobantes).
+- [ ] Probar una venta con descuento total (un solo proveedor). La venta
+      normal ya se probó (`011026-003`).
 
 ## Notificaciones (toasts) y spinner
 
@@ -262,6 +240,29 @@ llega mercancía nueva de un proveedor. Sólo para contemplar después.
 ## Completado
 
 ### 2026-10-01
+- [x] Corte de Caja por ventana: cubre desde el cierre anterior hasta el
+      cierre (lo cobrado después de cerrar entra solo al corte siguiente,
+      con aviso). Sólo se cierra el de hoy; cualquiera se corrige.
+      Migración `cash_closing_period`.
+- [x] "Cortes anteriores": tabla con fecha, esperado, contado, diferencia,
+      comprobantes pendientes y quién cerró; clic para abrir ese corte.
+- [x] Caja de apartados aparte: los abonos en efectivo se muestran en su
+      propio renglón y ya no suman al esperado de la caja principal.
+- [x] Leyendas del corte en gris y sin rayas largas.
+- [x] **Corte de Caja** (`/admin/dashboard/cash-closing`, enlazado en el
+      menú): uno por día (hora del Pacífico), fondo inicial editable ($200
+      por defecto), ventas y abonos en efectivo, esperado vs. contado y
+      diferencia (faltante/sobrante), notas, "Cerrar corte" y corrección
+      posterior (es de admin). Tabla `CashClosing` (migración
+      `cash_closing_and_receipts`).
+- [x] **Comprobantes de pago** (sólo imágenes, en Cloudinary
+      `comprobantes/ventas/{folio}` y `comprobantes/abonos/{id}`): se
+      adjuntan o reemplazan desde el corte, también ya cerrado; el corte
+      marca cuántos faltan. En el ticket del Historial de Ventas aparece
+      "Ver comprobante adjunto".
+- [x] Fecha de hoy en los títulos de Historial de Ventas y Corte de Caja
+      (como Inventario), calculada en el navegador para no desfasarse con el
+      servidor en UTC (`hooks/use-today-label.ts`).
 - [x] **Historial de Ventas** (`/admin/dashboard/sales`, enlazado en el
       menú): periodo (hoy, ayer, semana, mes, rango), tarjetas de ventas /
       total / más vendido y desglose Efectivo / Banco / Apartados, filtros de método y origen, búsqueda por folio o

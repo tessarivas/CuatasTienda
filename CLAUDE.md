@@ -9,20 +9,24 @@ clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
 its dated **Completado** section at the bottom (don't just delete them). Currently open: a
-per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card; what to do with a client's leftover credit (a "limpiar saldo"
-option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios tab;
-the "Corte de Caja" screen; printable barcode labels (PDF) from
-`Product.code`; attaching payment receipts (comprobantes) to card/transfer sales and abonos during the "Corte de
-Caja" (not at checkout); time-boxed
-per-supplier discounts (promociones) applied automatically at checkout; a store-expenses module
-(gastos) that feeds the cash closing; a real
-"permanently delete" action distinct from today's soft-delete "Eliminar producto"; and small
-cleanups (flashing empty states on other pages, raw colors / a typo in the add-* modals).
+per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card; what to
+do with a client's leftover credit (a "limpiar saldo" option); wiring up the deliberately disabled
+"Registrar" button in the inventory Servicios tab; printable barcode labels (PDF) from
+`Product.code`; a reminder for receipts still pending from past days; time-boxed per-supplier
+discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
+feeds the cash closing; a real "permanently delete" action distinct from today's soft-delete
+"Eliminar producto"; and small cleanups (flashing empty states on other pages, raw colors / a typo
+in the add-* modals).
 
 The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
-primary CTA right on the same row, then a 3-card highlights row (`bg-my-{yellow,blue,green}-light`
-+ matching `-dark` text, in that order), then a `grid-cols-2 md:grid-cols-4` card grid. Keep new
-list pages consistent with it.
+primary CTA right on the same row, then a 3-card highlights row, then a `grid-cols-2
+md:grid-cols-4` card grid. Keep new list pages consistent with it.
+
+**Highlight cards always use `dashboard/_components/stat-card.tsx` (`StatCard`)** — icon + title,
+main value, small hint below — never a hand-built colored div. Used on suppliers, clients, sales
+history and cash closing. Colors by position: yellow → blue → green on suppliers/clients;
+yellow → blue → pink on sales and cash closing (green/purple/orange for the sales money row). Hints
+are short plain sentences (no em dashes).
 
 ## Commands
 
@@ -325,7 +329,30 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
 - `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
 - `GET /api/sales?from&to` lists a period's sales (POS + liquidations) for the "Historial de Ventas"
   page (`dashboard/sales/`); method/origin/search filters are client-side so the highlight cards
-  always summarize the whole period. "Corte de Caja" doesn't exist yet (sidebar link is `#`).
+  always summarize the whole period.
+
+### Store day, cash closing and receipts
+
+- **"What day is it" for the store** goes through `lib/store-time.ts` (`America/Tijuana`):
+  `storeDayRange("YYYY-MM-DD")` → UTC `[from, to)` (DST-safe), `storeDateString()`. The server may
+  run in UTC, so never derive the store's day from `new Date()` server-side. Client titles use
+  `hooks/use-today-label.ts`, which computes the date **after mount** to avoid hydration mismatches.
+- **Corte de Caja** (`dashboard/cash-closing/`, `GET/PUT /api/cash-closing`,
+  `GET /api/cash-closing/history`): one `CashClosing` row per store day (`date` is `@db.Date`,
+  unique), but it covers a **time window**, not the calendar day: `[periodStart, periodEnd)` = from
+  the previous closing's `periodEnd` (or start of today if none) to the moment it was closed. So a
+  sale made after closing lands in the next corte automatically. Only **today** can be closed; any
+  closed corte can be **corrected** (admin-only) — the window never moves, totals are re-snapshotted
+  inside it. A past day with no corte has no data (its cobros went to the next one).
+- **Two cash boxes:** the main drawer expects opening float (default $200, editable) + POS cash sales.
+  **Cash abonos go to a separate "caja de apartados"**, shown on its own line and not added to the
+  main expected cash or counted. Layaway liquidations are excluded entirely (that money already came
+  in as an abono).
+- **Receipts (comprobantes)**: images only, for card/transfer `Sale`s and `Payment`s (`receiptUrl`).
+  Uploaded from the cash closing — never at checkout — via `POST /api/sales/[id]/receipt` and
+  `POST /api/payments/[id]/receipt` (multipart `file`), to Cloudinary
+  `comprobantes/{ventas|abonos}/{folio|id}` (overwrite-in-place). A day can be closed with receipts
+  still pending. The sales ticket shows "Ver comprobante adjunto".
 
 ### Images
 
