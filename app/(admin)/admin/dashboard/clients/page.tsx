@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddClientModal } from "./_components/add-client-modal";
 import { ClientCard } from "./_components/client-card";
-import { Loader2, Search, UserPlus, Users } from "lucide-react";
+import { Loader2, Search, UserCheck, UserPlus, Users, Wallet } from "lucide-react";
+import { StatCard } from "../_components/stat-card";
+import { formatMoney } from "../sales/sales-utils";
 import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
 
 export default function Page() {
@@ -100,45 +102,30 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Mismos colores por posición que los highlights de Proveedores
-            (amarillo → azul → verde): el saldo es dinero a favor, no deuda,
-            así que no va en rojo. */}
+        {/* Highlights (StatCard), mismo formato en todas las páginas. El
+            saldo es dinero a favor, no deuda, así que va en verde. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Total de clientes */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium mb-1">Total de Clientes</p>
-                <p className="text-3xl font-bold">{totalClients}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Clientes con saldo */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-my-blue-light text-my-blue-dark">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium mb-1">
-                  Clientes con Saldo
-                </p>
-                <p className="text-3xl font-bold">{clientsWithBalance}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Saldo total */}
-          <div className="relative overflow-hidden rounded-xl p-5 bg-my-green-light text-my-green-dark">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium mb-1">
-                  Saldo Total entre todos los Clientes
-                </p>
-                <p className="text-3xl font-bold">
-                  ${totalBalance.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            color="yellow"
+            icon={Users}
+            title="Total de Clientes"
+            value={totalClients}
+            hint="Registrados en la tienda"
+          />
+          <StatCard
+            color="blue"
+            icon={UserCheck}
+            title="Clientes con Saldo"
+            value={clientsWithBalance}
+            hint="Con abonos a su favor"
+          />
+          <StatCard
+            color="green"
+            icon={Wallet}
+            title="Saldo Total entre todos los Clientes"
+            value={formatMoney(totalBalance)}
+            hint="Dinero abonado que la tienda guarda"
+          />
         </div>
         {/* Grid de Clientes */}
         {filteredClients.length > 0 ? (

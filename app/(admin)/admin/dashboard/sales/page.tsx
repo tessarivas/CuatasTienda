@@ -17,8 +17,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Banknote, Clock, Landmark, Loader2, Receipt, Search } from "lucide-react";
+import {
+  Banknote,
+  Clock,
+  Landmark,
+  Loader2,
+  Receipt,
+  Search,
+  Trophy,
+  Wallet,
+} from "lucide-react";
+import { StatCard } from "../_components/stat-card";
 import { SaleDetailModal } from "./_components/sale-detail-modal";
+import { useTodayLabel } from "@/hooks/use-today-label";
 import {
   type ApiSaleRow,
   formatMoney,
@@ -77,6 +88,7 @@ function periodRange(period: Period, rangeFrom: string, rangeTo: string) {
 }
 
 export default function SalesHistoryPage() {
+  const todayLabel = useTodayLabel();
   const [period, setPeriod] = React.useState<Period>("hoy");
   const [rangeFrom, setRangeFrom] = React.useState(() => toDateInput(new Date()));
   const [rangeTo, setRangeTo] = React.useState(() => toDateInput(new Date()));
@@ -166,7 +178,7 @@ export default function SalesHistoryPage() {
         {/* Mismo layout que las páginas de lista: título a la izquierda,
             búsqueda + periodo a la derecha. */}
         <div className="flex flex-col md:flex-row md:items-center md:gap-4">
-          <h1 className="text-2xl font-bold">Historial de Ventas</h1>
+          <h1 className="text-2xl font-bold">Historial de Ventas {todayLabel}</h1>
           <div className="mt-4 md:mt-0 md:ml-auto flex flex-wrap items-center gap-2">
             <div className="relative grow">
               <Input
@@ -213,89 +225,65 @@ export default function SalesHistoryPage() {
           </div>
         </div>
 
-        {/* Highlights: mismos colores por posición que proveedores y
-            clientes (amarillo → azul → verde). */}
+        {/* Highlights (StatCard): arriba el resumen del periodo, abajo el
+            dinero por destino. Apartados en naranja, el color que la app ya
+            usa para "apartado"; el rojo no se usa porque significa deuda. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
-            <p className="text-sm font-medium mb-1">
-              Ventas {PERIOD_LABEL[period]}
-            </p>
-            {isLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <p className="text-3xl font-bold">{periodSales.length}</p>
-            )}
-          </div>
-          <div className="rounded-xl p-5 bg-my-blue-light text-my-blue-dark">
-            <p className="text-sm font-medium mb-1">Total vendido</p>
-            {isLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <p className="text-3xl font-bold">{formatMoney(totalSold)}</p>
-            )}
-          </div>
-          {/* Rosa (no verde) para no repetir el verde de "Efectivo" abajo. */}
-          <div className="min-w-0 rounded-xl p-5 bg-my-pink-light text-my-pink-dark">
-            <p className="text-sm font-medium mb-1">
-              Más vendido {PERIOD_LABEL[period]}
-            </p>
-            {isLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : topProduct ? (
-              <>
-                <p className="truncate text-xl font-bold" title={topProduct.title}>
-                  {topProduct.title}
-                </p>
-                <p className="text-sm">
-                  {topProduct.units} {topProduct.units === 1 ? "pieza" : "piezas"}
-                </p>
-              </>
-            ) : (
-              <p className="text-3xl font-bold">—</p>
-            )}
-          </div>
+          <StatCard
+            color="yellow"
+            icon={Receipt}
+            title={`Ventas ${PERIOD_LABEL[period]}`}
+            value={periodSales.length}
+            hint="Caja y apartados liquidados"
+            loading={isLoading}
+          />
+          <StatCard
+            color="blue"
+            icon={Wallet}
+            title="Total vendido"
+            value={formatMoney(totalSold)}
+            hint="Suma de todas las ventas"
+            loading={isLoading}
+          />
+          <StatCard
+            color="pink"
+            icon={Trophy}
+            title={`Más vendido ${PERIOD_LABEL[period]}`}
+            value={topProduct?.title ?? "Sin ventas"}
+            valueTitle={topProduct?.title}
+            hint={
+              topProduct
+                ? `${topProduct.units} ${topProduct.units === 1 ? "pieza" : "piezas"}`
+                : "Todavía no hay ventas"
+            }
+            loading={isLoading}
+          />
         </div>
-
-        {/* Dinero por destino, con los otros tres colores de marca. Apartados
-            en naranja: es el color que la app ya usa para "apartado". El rojo
-            no se usa aquí porque en la app significa deuda. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              label: "Efectivo",
-              icon: Banknote,
-              amount: moneyBy.efectivo,
-              hint: "En caja",
-              color: "bg-my-green-light text-my-green-dark",
-            },
-            {
-              label: "Banco",
-              icon: Landmark,
-              amount: moneyBy.banco,
-              hint: "Tarjeta y transferencia",
-              color: "bg-my-purple-light text-my-purple-dark",
-            },
-            {
-              label: "Apartados",
-              icon: Clock,
-              amount: moneyBy.apartados,
-              hint: "Liquidados con saldo",
-              color: "bg-my-orange-light text-my-orange-dark",
-            },
-          ].map(({ label, icon: Icon, amount, hint, color }) => (
-            <div key={label} className={`rounded-xl p-5 ${color}`}>
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Icon className="h-4 w-4" />
-                {label}
-              </div>
-              {isLoading ? (
-                <Loader2 className="mt-1 h-7 w-7 animate-spin" />
-              ) : (
-                <p className="mt-1 text-2xl font-bold">{formatMoney(amount)}</p>
-              )}
-              <p className="text-xs opacity-75">{hint}</p>
-            </div>
-          ))}
+          <StatCard
+            color="green"
+            icon={Banknote}
+            title="Efectivo"
+            value={formatMoney(moneyBy.efectivo)}
+            hint="En caja"
+            loading={isLoading}
+          />
+          <StatCard
+            color="purple"
+            icon={Landmark}
+            title="Banco"
+            value={formatMoney(moneyBy.banco)}
+            hint="Tarjeta y transferencia"
+            loading={isLoading}
+          />
+          <StatCard
+            color="orange"
+            icon={Clock}
+            title="Apartados"
+            value={formatMoney(moneyBy.apartados)}
+            hint="Liquidados con saldo"
+            loading={isLoading}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

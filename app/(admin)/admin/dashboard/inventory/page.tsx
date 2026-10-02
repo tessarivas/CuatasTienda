@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardContext } from "../layout";
 import { type Product, type Client } from "@/lib/data";
+import { useTodayLabel } from "@/hooks/use-today-label";
 import { ProductsTable } from "./_components/products-table";
 import { ProductDetailsModal } from "../suppliers/_components/product-details-modal";
 import { AddProductModal } from "./_components/add-product-modal";
@@ -218,14 +219,8 @@ export default function Page() {
   const visibleItems =
     activeTab === "productos" ? filteredProducts : filteredServices;
 
-  // DD/MM/YY explícito en vez de toLocaleDateString: el formato exacto no
-  // depende del locale del navegador de quien vea la página.
-  const today = new Date();
-  const formattedDate = [
-    String(today.getDate()).padStart(2, "0"),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getFullYear()).slice(-2),
-  ].join("/");
+  // DD/MM/YY calculado sólo en el navegador (ver hooks/use-today-label.ts).
+  const formattedDate = useTodayLabel();
 
   // Mismo loader que suppliers/[id]: products y suppliers vienen de
   // DashboardContext (fetch en layout.tsx). Esta tabla necesita ambos —

@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, Loader2, UserRoundPlus, Search } from "lucide-react";
+import {
+  Loader2,
+  Package,
+  Search,
+  Store,
+  TrendingUp,
+  UserRoundPlus,
+} from "lucide-react";
+import { StatCard } from "../_components/stat-card";
 import { useRouter } from "next/navigation";
 import { SupplierCard } from "./_components/supplier-card";
 import { AddSupplierModal } from "./_components/add-supplier-modal";
@@ -135,61 +143,41 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Highlights: mismo formato que la página de Clientes. */}
+        {/* Highlights (StatCard), mismo formato en todas las páginas. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl p-5 bg-my-yellow-light text-my-yellow-dark">
-            <p className="text-sm font-medium mb-1">Total de Proveedores</p>
-            <p className="text-3xl font-bold">{suppliers.length}</p>
-          </div>
-
-          <div className="min-w-0 rounded-xl p-5 bg-my-blue-light text-my-blue-dark">
-            <p className="text-sm font-medium mb-1">
-              Proveedor con más artículos
-            </p>
-            {isLoadingProducts ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : topByProducts ? (
-              <>
-                <p className="truncate text-3xl font-bold">
-                  {supplierName(topByProducts.supplierId)}
-                </p>
-                <p className="text-sm">
-                  {topByProducts.count}{" "}
-                  {topByProducts.count === 1
-                    ? "producto en tienda"
-                    : "productos en tienda"}
-                </p>
-              </>
-            ) : (
-              <p className="text-3xl font-bold">—</p>
-            )}
-          </div>
-
-          <div className="min-w-0 rounded-xl p-5 bg-my-green-light text-my-green-dark">
-            <p className="text-sm font-medium mb-1">
-              Más ventas en {monthName}
-            </p>
-            {salesBySupplier === null ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : topBySales ? (
-              <>
-                <p className="truncate text-3xl font-bold">
-                  {supplierName(topBySales.supplierId)}
-                </p>
-                <p className="text-sm">
-                  ${Number(topBySales.total).toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                  })}{" "}
-                  vendidos
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-3xl font-bold">—</p>
-                <p className="text-sm">Aún no hay ventas este mes</p>
-              </>
-            )}
-          </div>
+          <StatCard
+            color="yellow"
+            icon={Store}
+            title="Total de Proveedores"
+            value={suppliers.length}
+            hint="Registrados en la tienda"
+          />
+          <StatCard
+            color="blue"
+            icon={Package}
+            title="Proveedor con más artículos"
+            value={topByProducts ? supplierName(topByProducts.supplierId) : "Sin productos"}
+            valueTitle={topByProducts ? supplierName(topByProducts.supplierId) : undefined}
+            hint={
+              topByProducts
+                ? `${topByProducts.count} ${topByProducts.count === 1 ? "producto en tienda" : "productos en tienda"}`
+                : "Ningún producto con unidades"
+            }
+            loading={isLoadingProducts}
+          />
+          <StatCard
+            color="green"
+            icon={TrendingUp}
+            title={`Más ventas en ${monthName}`}
+            value={topBySales ? supplierName(topBySales.supplierId) : "Sin ventas"}
+            valueTitle={topBySales ? supplierName(topBySales.supplierId) : undefined}
+            hint={
+              topBySales
+                ? `$${Number(topBySales.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })} vendidos`
+                : "Aún no hay ventas este mes"
+            }
+            loading={salesBySupplier === null}
+          />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
