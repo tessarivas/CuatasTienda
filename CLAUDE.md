@@ -9,14 +9,13 @@ clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
 its dated **Completado** section at the bottom (don't just delete them). Currently open: a
-per-supplier inventory history screen; on `clients/[id]`, each apartado's date on its card; what to
-do with a client's leftover credit (a "limpiar saldo" option); wiring up the deliberately disabled
-"Registrar" button in the inventory Servicios tab; printable barcode labels (PDF) from
-`Product.code`; a reminder for receipts still pending from past days; time-boxed per-supplier
+per-supplier inventory history screen; what to do with a client's leftover credit (a "limpiar
+saldo" option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios
+tab; printable barcode labels (PDF) from `Product.code`; toasts instead of `alert()` plus a reminder
+for receipts still pending from past days (planned as one iteration); time-boxed per-supplier
 discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
-feeds the cash closing; a real "permanently delete" action distinct from today's soft-delete
-"Eliminar producto"; and small cleanups (flashing empty states on other pages, raw colors / a typo
-in the add-* modals).
+feeds the cash closing; and a real "permanently delete" action distinct from today's soft-delete
+"Eliminar producto".
 
 The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
 primary CTA right on the same row, then a 3-card highlights row, then a `grid-cols-2

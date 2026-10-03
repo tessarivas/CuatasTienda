@@ -131,7 +131,7 @@ export function AddProductModal({
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="supplier" className="text-right">
-              Proveedor <span className="-ml-1 text-red-500">*</span>
+              Proveedor <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Select
               value={supplierId}
@@ -152,7 +152,7 @@ export function AddProductModal({
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="title" className="text-right">
-              Título <span className="-ml-1 text-red-500">*</span>
+              Título <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               id="title"
@@ -164,7 +164,7 @@ export function AddProductModal({
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">
-              Precio <span className="-ml-1 text-red-500">*</span>
+              Precio <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               id="price"
@@ -178,7 +178,7 @@ export function AddProductModal({
           {!isService && (
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="quantity" className="text-right">
-                Cantidad <span className="-ml-1 text-red-500">*</span>
+                Cantidad <span className="-ml-1 text-my-red">*</span>
               </Label>
               <Input
                 id="quantity"

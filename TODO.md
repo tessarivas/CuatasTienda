@@ -8,7 +8,12 @@ con la fecha, para que se vea de un vistazo qué ya está listo.
 
 **Objetivo:** una sección donde se vean todas las altas y retiros de
 inventario de los productos de un proveedor — la bitácora que hoy sólo vive
-en la base de datos.
+en la base de datos — **y también sus ventas, desglosadas**.
+
+**Decidido (2026-10-02):** va en `suppliers/[id]`, como una tabla **debajo de
+las dos columnas** (Corte Mensual y lista de Productos). Renglones de tres
+tipos: alta de productos (qué día y cuántos), retiro, y venta (folio, producto,
+cantidad, precio).
 
 Ya existe:
 - Modelo `StockMovement` (`prisma/schema.prisma`) — tipo, cantidad, motivo,
@@ -21,11 +26,13 @@ Falta:
       productos — probablemente un endpoint nuevo,
       `GET /api/suppliers/[id]/stock-movements`, que une por
       `Product.supplierId`.
-- [ ] Pantalla o sección donde mostrarlo — ¿tab nuevo en
-      `suppliers/[id]/page.tsx`, o ruta aparte?
-- [ ] Filtros razonables: por tipo (Alta/Retiro), rango de fechas, producto.
+- [ ] Juntar en una sola lista `StockMovement` (altas/retiros) y
+      `SaleItem` (ventas) de los productos del proveedor, por fecha.
+- [ ] La tabla debajo de las dos columnas de `suppliers/[id]/page.tsx`.
+- [ ] Filtros razonables: por tipo (Alta/Retiro/Venta), rango de fechas,
+      producto.
 - [ ] Columnas: fecha, producto, tipo, cantidad, motivo, quién lo registró,
-      y "Recogido por" cuando aplique.
+      y "Recogido por" cuando aplique; en ventas, folio y monto.
 - [ ] **Los productos retirados (soft-delete) deben seguir apareciendo en
       este historial.** Hoy el catálogo, el POS y "Ver todos" de inventario
       excluyen productos con `status = "Retirado"` — eso está bien y no se
@@ -56,9 +63,6 @@ abonado por el mismo monto. Precios = snapshot de `LayawayItem.price`.
 - [ ] Probar cancelar un apartado con la ✕ de la tarjeta: debe salir tachado
       en el historial, bajar "Falta por pagar" y la unidad volver a estar
       disponible en inventario.
-- [ ] **Fecha de apartado en la tarjeta** de Productos Apartados (p. ej.
-      "Apartado el 1 oct"). El historial ya la muestra en "Apartó: …". Con
-      varias unidades del mismo producto, cada una tiene su propia fecha.
 
 ## Saldo a favor del cliente: qué pasa con lo que sobra
 
@@ -163,11 +167,42 @@ Ya están hechos (ver Completado). Quedan:
 - [ ] Probar en la app: cerrar el corte de hoy, corregirlo, y adjuntar un
       comprobante a una venta o abono con tarjeta/transferencia (y verlo
       después en el ticket del Historial de Ventas).
-- [ ] Aviso más visible de comprobantes pendientes de días anteriores (hoy
-      se ven en la columna "Pendientes" de "Cortes anteriores").
-- [ ] Ver el comprobante de un abono también desde el historial del cliente.
 - [ ] Restar los gastos en efectivo del esperado en caja cuando exista el
       módulo de gastos (decidir de cuál caja salen: principal o apartados).
+
+## Reporte PDF de existencias por proveedor
+
+Los proveedores a veces necesitan saber qué tienen en tienda y en qué estado,
+más allá del corte. Un PDF (mismo formato de `lib/pdf/report-layout.tsx`) con
+todos sus productos:
+
+- **Lo que sigue en existencia sale siempre**, sin importar cuándo se dio de
+  alta. Ej.: 20 artículos en abril + 20 en mayo, se vendieron 10; al cerrar
+  mayo siguen apareciendo los 30 que quedan, aunque vengan de un corte
+  anterior.
+- **Lo vendido sólo sale si se vendió dentro del periodo de corte** (el
+  actual o el elegido). Lo vendido en un corte pasado ya se le entregó al
+  proveedor, así que ya no aparece.
+- Por producto: existencia, disponibles, apartados y vendidos en el periodo,
+  con su estado (Disponible / Apartado / Vendido).
+
+- [ ] Endpoint (o ampliar `GET /api/suppliers/[id]/cutoff`) que junte la
+      existencia actual (`quantity`, apartados activos) con lo vendido en el
+      periodo (`SaleItem` dentro del rango).
+- [ ] PDF y botón "Exportar existencias" en `suppliers/[id]` (tarjeta
+      Productos, con `CardActionButton`).
+
+Decidido (2026-10-02):
+- **Los productos retirados sí salen** (con estado "Retirado"), en este y en
+  los demás PDF.
+- **Los servicios no salen** en este reporte (no tienen existencia). Sí deben
+  contar, con su cantidad, en los cortes (el corte mensual ya suma sus
+  ventas; confirmarlo al construir esto).
+- **Se omite** un producto sin existencia y sin ventas en el periodo.
+- **El periodo es el del corte mensual, pero personalizable**: hay
+  proveedoras que vienen cada 15 días o cada 3 semanas, sin patrón fijo. Usar
+  el mismo selector de Inicio/Fin del Corte Mensual (por defecto, el periodo
+  en curso).
 
 ## Etiquetas con código de barras para imprimir
 
@@ -194,16 +229,6 @@ mercancía, sin salir de la app.
 - [ ] Confirmar que el lector de la caja lee bien la etiqueta impresa (el
       buscador de la caja ya acepta el código).
 
-## Inventario: filtro de estatus se cuela a Servicios (bug)
-
-- [ ] En Productos se elige un estatus (p. ej. "Con apartados"), se cambia a
-      la pestaña Servicios y no sale ningún servicio: el filtro sigue activo
-      aunque en Servicios no se muestra. Los servicios no tienen estatus, así
-      que no deben filtrarse por él. Causa: `applyFilters` en
-      `inventory/page.tsx` aplica `statusFilter` a ambas pestañas; debe
-      aplicarlo sólo a productos (o ignorarlo en Servicios), sin perder la
-      selección al regresar a Productos.
-
 ## Caja registradora (POS)
 
 - [ ] Probar una venta con descuento total (un solo proveedor). La venta
@@ -218,6 +243,9 @@ entró; sigue en el historial para retomarlo (`git show 4fcab11`).
 
 - [ ] Agregar toasts para confirmar acciones (abono registrado, apartado,
       liquidado, etc.) en lugar de `alert()`.
+- [ ] En la misma iteración: aviso más visible de comprobantes pendientes de
+      días anteriores (hoy sólo se ven en la columna "Pendientes" de "Cortes
+      anteriores" del Corte de Caja).
 
 ## Agregar producto: "guardar y agregar otro" (a contemplar)
 
@@ -226,20 +254,22 @@ Del issue #25 (cerrado): poder dar de alta varios productos seguidos sin que
 agregar otro" que limpia los campos y conserva el proveedor. Útil cuando
 llega mercancía nueva de un proveedor. Sólo para contemplar después.
 
-## Detalles chicos
-
-- [ ] Revisar si otras páginas con estados vacíos muestran "No hay…" por un
-      momento mientras cargan (en `clients/[id]` ya se corrigió).
-- [ ] `add-client-modal.tsx`: typo `cursor-ointer` en "Cancelar".
-- [ ] Asteriscos de campo obligatorio en `text-red-500` (add-client,
-      add-product, add/edit-supplier); `add-payment-modal.tsx` ya usa
-      `text-my-red`.
-
 ---
 
 ## Completado
 
 ### 2026-10-02
+- [x] Bug: el filtro de estatus de Productos ya no vacía la pestaña
+      Servicios (se ignora ahí y se conserva al regresar a Productos).
+- [x] Fecha de apartado en las tarjetas de Productos Apartados ("Apartado el
+      1 oct"; con unidades de días distintos, "Desde el …" y el tooltip con
+      todas las fechas).
+- [x] Ver el comprobante de un abono desde el historial del cliente (clip
+      junto al monto, sólo si tiene comprobante).
+- [x] Detalles chicos: typo `cursor-ointer`, asteriscos en `text-my-red`, y
+      el modal "Apartar Producto" muestra "Cargando productos..." en vez de
+      "No hay productos disponibles" mientras cargan (las demás páginas ya
+      esperaban a sus datos).
 - [x] Reportes PDF de corte de caja, historial de ventas y estado de cuenta
       del cliente, con el mismo formato que el del proveedor. Botón
       "Exportar" en cada página (en el cliente, en la tarjeta Historial de

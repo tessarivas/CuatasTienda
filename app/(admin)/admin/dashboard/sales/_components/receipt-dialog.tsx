@@ -17,8 +17,8 @@ interface ReceiptDialogProps {
   onClose: () => void;
 }
 
-// Muestra la imagen del comprobante de pago. Se usa en el Corte de Caja y en
-// el ticket del Historial de Ventas.
+// Muestra la imagen del comprobante de pago. Se usa en el Corte de Caja, en
+// el ticket del Historial de Ventas y en el historial del cliente (abonos).
 export function ReceiptDialog({ url, title, onClose }: ReceiptDialogProps) {
   return (
     <Dialog open={!!url} onOpenChange={(open) => !open && onClose()}>

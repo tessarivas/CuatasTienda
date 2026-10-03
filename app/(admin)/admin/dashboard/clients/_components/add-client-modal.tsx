@@ -63,7 +63,7 @@ export function AddClientModal({
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Nombre <span className="-ml-1 text-red-500">*</span>
+              Nombre <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               id="name"
@@ -74,7 +74,7 @@ export function AddClientModal({
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
-              Teléfono <span className="-ml-1 text-red-500">*</span>
+              Teléfono <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               id="phone"
@@ -85,7 +85,7 @@ export function AddClientModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-ointer">
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancelar
           </Button>
           <Button onClick={handleSubmit} className="cursor-pointer">

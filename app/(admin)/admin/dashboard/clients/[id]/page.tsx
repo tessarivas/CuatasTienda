@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AssignProductModal } from "../_components/assign-product-modal";
 import { EditClientModal } from "../_components/edit-client-modal";
+import { ReceiptDialog } from "../../sales/_components/receipt-dialog";
 import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import {
   AddPaymentModal,
@@ -51,6 +52,7 @@ import {
   Clock,
   Receipt,
   Loader2,
+  Paperclip,
 } from "lucide-react";
 import {
   normalizeClient,
@@ -65,6 +67,7 @@ type ActiveLayaway = {
     id: number;
     productId: number;
     price: string | number;
+    createdAt: string;
     Product: {
       id: number;
       title: string;
@@ -91,6 +94,7 @@ type Movement =
       date: string;
       amount: string;
       method: string;
+      receiptUrl: string | null;
     }
   | {
       type: "liquidacion";
@@ -110,10 +114,26 @@ type ReservedItem = {
   title: string;
   price: number;
   picture: string | null;
+  createdAt: string;
 };
 
 // Varias unidades del mismo producto se muestran como una sola tarjeta con
 // contador, en vez de una tarjeta repetida por unidad.
+// "1 oct": fecha corta para las tarjetas de apartados.
+const shortDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+
+// Fecha de apartado de una tarjeta. Con varias unidades apartadas en días
+// distintos se muestra la más antigua ("Desde") y el tooltip lista todas.
+function reservedDateLabel(items: { createdAt: string }[]) {
+  const days = items.map((i) => shortDay(i.createdAt));
+  const sameDay = days.every((d) => d === days[0]);
+  return {
+    text: sameDay ? `Apartado el ${days[0]}` : `Desde el ${days[0]}`,
+    title: sameDay ? undefined : `Apartados el ${days.join(", ")}`,
+  };
+}
+
 type ReservedGroup = {
   productId: number;
   title: string;
@@ -125,7 +145,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const { clients, setClients, products, setProducts, suppliers } =
+  const { clients, setClients, products, setProducts, suppliers, isLoadingProducts } =
     React.useContext(DashboardContext);
 
   const [layaway, setLayaway] = React.useState<ActiveLayaway>(null);
@@ -152,6 +172,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     React.useState<PaymentMethod>("Efectivo");
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
+  // Abono cuyo comprobante se está viendo.
+  const [viewingReceipt, setViewingReceipt] = React.useState<{
+    url: string;
+    title: string;
+  } | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   // Grupo cuyo apartado se va a cancelar; abre el diálogo de confirmación.
   const [cancelTarget, setCancelTarget] = React.useState<ReservedGroup | null>(
@@ -218,6 +243,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         title: item.Product.title,
         price: Number(item.price),
         picture: item.Product.picture,
+        createdAt: item.createdAt,
       }))
       .sort((a, b) => a.itemId - b.itemId);
   }, [layaway]);
@@ -777,6 +803,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                             >
                               ${group.items[0].price.toFixed(2)}
                             </p>
+                            {(() => {
+                              const date = reservedDateLabel(group.items);
+                              return (
+                                <p
+                                  className="truncate text-xs opacity-75"
+                                  title={date.title}
+                                >
+                                  {date.text}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </button>
                         </div>
@@ -911,6 +948,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                               {isCancelled && " · cancelado"}
                             </p>
                           </div>
+                          {/* Abono con tarjeta/transferencia con comprobante
+                              adjunto (se adjunta desde el Corte de Caja). */}
+                          {m.type === "abono" && m.receiptUrl && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Ver comprobante"
+                              aria-label="Ver comprobante"
+                              className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground"
+                              onClick={() =>
+                                setViewingReceipt({
+                                  url: m.receiptUrl!,
+                                  title: `Abono de ${client.name} · $${Number(m.amount).toFixed(2)}`,
+                                })
+                              }
+                            >
+                              <Paperclip />
+                            </Button>
+                          )}
                           <p
                             className={cn(
                               "shrink-0",
@@ -1214,6 +1270,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ReceiptDialog
+        url={viewingReceipt?.url ?? null}
+        title={viewingReceipt?.title ?? ""}
+        onClose={() => setViewingReceipt(null)}
+      />
       <AssignProductModal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
@@ -1221,6 +1282,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         client={client}
         availableProducts={availableProducts}
         suppliers={suppliers}
+        isLoading={isLoadingProducts}
       />
       <AddPaymentModal
         isOpen={isPaymentModalOpen}

@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
-import { Search, ShoppingBag, Package } from "lucide-react";
+import { Loader2, Search, ShoppingBag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AssignProductModalProps {
@@ -30,6 +30,9 @@ interface AssignProductModalProps {
   client: Client | null;
   availableProducts: Product[];
   suppliers: Supplier[];
+  // Productos todavía cargando (DashboardContext): sin esto se vería
+  // "No hay productos disponibles" por un momento.
+  isLoading?: boolean;
 }
 
 export function AssignProductModal({
@@ -39,6 +42,7 @@ export function AssignProductModal({
   client,
   availableProducts,
   suppliers,
+  isLoading = false,
 }: AssignProductModalProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [supplierFilter, setSupplierFilter] = React.useState("todos");
@@ -123,7 +127,12 @@ export function AssignProductModal({
               : "productos disponibles"}
           </p>
 
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Cargando productos...</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
             // div con overflow y no ScrollArea: el wrapper display:table de
             // Radix rompe el truncate de los títulos (ver "UI gotchas").
             // max-h-72 (288px) = 4 filas de 66px + 3 huecos de 8px; a partir

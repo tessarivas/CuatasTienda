@@ -71,6 +71,7 @@ export async function GET(_req: Request, { params }: Ctx) {
         date: Date;
         amount: string;
         method: string;
+        receiptUrl: string | null;
       }
     | {
         type: "liquidacion";
@@ -96,6 +97,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       date: p.date,
       amount: p.amount.toFixed(2),
       method: p.method,
+      receiptUrl: p.receiptUrl,
     })),
     ...sales.map<Movement>((s) => ({
       type: "liquidacion",

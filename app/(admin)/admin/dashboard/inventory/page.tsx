@@ -173,7 +173,10 @@ export default function Page() {
   const productItems = products.filter((p) => !isService(p));
   const serviceItems = products.filter(isService);
 
-  const applyFilters = (list: Product[]) =>
+  // `withStatus` = false en Servicios: no tienen estatus, y el filtro de
+  // estatus de Productos (que ahí no se ve) no debe vaciarlos. La selección
+  // se conserva al regresar a Productos.
+  const applyFilters = (list: Product[], withStatus: boolean) =>
     list.filter((product) => {
       const matchesSearch = product.title
         .toLowerCase()
@@ -182,7 +185,7 @@ export default function Page() {
         supplierFilter === "todos" ||
         String(product.supplierId) === supplierFilter;
       const matchesStatus = (() => {
-        if (statusFilter === "todos") return true;
+        if (!withStatus || statusFilter === "todos") return true;
         if (statusFilter === "apartados") return (product.reservedCount ?? 0) > 0;
         // "Disponible" = queda al menos una unidad libre. Product.status no
         // refleja reservas, así que uno con todo apartado seguiría diciendo
@@ -213,8 +216,8 @@ export default function Page() {
     }
   };
 
-  const filteredProducts = applySort(applyFilters(productItems));
-  const filteredServices = applySort(applyFilters(serviceItems));
+  const filteredProducts = applySort(applyFilters(productItems, true));
+  const filteredServices = applySort(applyFilters(serviceItems, false));
 
   const visibleItems =
     activeTab === "productos" ? filteredProducts : filteredServices;

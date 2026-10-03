@@ -138,7 +138,7 @@ export function EditSupplierModal({
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
-              Negocio <span className="-ml-1 text-red-500">*</span>
+              Negocio <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               value={businessName}
@@ -150,7 +150,7 @@ export function EditSupplierModal({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
-              Proveedor <span className="-ml-1 text-red-500">*</span>
+              Proveedor <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               value={name}
