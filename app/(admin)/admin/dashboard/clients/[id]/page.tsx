@@ -32,12 +32,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AssignProductModal } from "../_components/assign-product-modal";
 import { EditClientModal } from "../_components/edit-client-modal";
+import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import {
   AddPaymentModal,
   type PaymentMethod,
 } from "../_components/add-payment-modal";
 import {
   ArrowLeft,
+  FileDown,
   HandCoins,
   ReceiptText,
   Trash2,
@@ -149,6 +151,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [liquidarMethod, setLiquidarMethod] =
     React.useState<PaymentMethod>("Efectivo");
   const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   // Grupo cuyo apartado se va a cancelar; abre el diálogo de confirmación.
   const [cancelTarget, setCancelTarget] = React.useState<ReservedGroup | null>(
@@ -268,6 +271,56 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const el = ledgerScrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [ledgerMovements, hasClient, isLoadingMovements, isLoadingLayaway]);
+
+  // Estado de cuenta en PDF: apartados vigentes, saldo y el cuaderno
+  // completo, con las mismas etiquetas que la pantalla.
+  const handleExport = async () => {
+    if (!client || isExporting) return;
+    setIsExporting(true);
+    try {
+      const { exportClientStatementPdf } = await import(
+        "@/lib/pdf/client-statement-report"
+      );
+      await exportClientStatementPdf({
+        clientName: client.name,
+        phone: client.phone,
+        reserved: reservedGroups.map((g) => ({
+          title: g.title,
+          units: g.items.length,
+          total: g.items.reduce((sum, i) => sum + i.price, 0),
+        })),
+        reservedTotal: reservedItems.reduce((sum, r) => sum + r.price, 0),
+        balance: client.balance,
+        movements: ledgerMovements.map((m) => {
+          const amount = Number(m.amount);
+          if (m.type === "abono") {
+            return { date: m.date, label: `Abono (${m.method})`, kind: "abono" as const, amount };
+          }
+          if (m.type === "apartado") {
+            const cancelled = m.status === "Cancelado";
+            return {
+              date: m.date,
+              label: `Apartó: ${m.title}${cancelled ? " (cancelado)" : ""}`,
+              kind: cancelled ? ("nota" as const) : ("cargo" as const),
+              amount,
+            };
+          }
+          const titles = m.items.map((i) => i.title).join(", ");
+          return {
+            date: m.date,
+            label: `${m.legacy ? "Liquidación" : "Vendido"}: ${titles}`,
+            kind: m.legacy ? ("cargo" as const) : ("nota" as const),
+            amount,
+          };
+        }),
+      });
+    } catch (err) {
+      console.error("Exportar estado de cuenta falló", err);
+      alert("No se pudo generar el reporte");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const canLiquidateSelection =
     selectedTargets.length > 0 &&
@@ -779,11 +832,20 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               en el resumen del pie, no en una tarjeta destacada aparte. */}
           <Card className="flex flex-col h-full min-h-0">
             <CardHeader className="shrink-0">
-              <div className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                <CardTitle className="text-lg">
-                  Historial de Movimientos
-                </CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  <CardTitle className="text-lg">
+                    Historial de Movimientos
+                  </CardTitle>
+                </div>
+                <CardActionButton
+                  disabled={isLoadingMovements || isLoadingLayaway || isExporting}
+                  onClick={handleExport}
+                >
+                  {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
+                  {isExporting ? "Generando PDF..." : "Exportar"}
+                </CardActionButton>
               </div>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 flex flex-col">

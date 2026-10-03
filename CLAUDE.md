@@ -331,6 +331,38 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
   page (`dashboard/sales/`); method/origin/search filters are client-side so the highlight cards
   always summarize the whole period.
 
+### Supplier monthly cutoff
+
+Suppliers rent shelf space; the store takes **no commission**, so a supplier's "ganancia" for a
+period is simply the total sold of their products. `GET /api/suppliers/[id]/cutoff?from&to`
+(read-only, inclusive store dates; defaults to the current period) powers the "Corte Mensual" card
+in `suppliers/[id]`. Period rules live in `lib/suppliers/cutoff.ts` (pure, tested by hand):
+
+- `cutoffDay` defaults to the store day the supplier was created (set on `POST /api/suppliers`;
+  `effectiveCutoffDay` falls back to `createdAt` if it's ever null).
+- A period runs from the cutoff day to the day before the next one (day 16 → 16 sep – 15 oct).
+- If a month lacks the day (29/30/31), that month's cutoff moves to the **1st of the next month**.
+
+### PDF reports
+
+Letter-size PDFs generated **in the browser** with `@react-pdf/renderer`, loaded via dynamic
+`import()` only when the user clicks "Exportar" (keeps it out of page bundles). Every report wraps
+its content in `ReportDocument` from `lib/pdf/report-layout.tsx` — shared header (logo
+`public/LOGO_CUATAS.png`, a PNG rendered once from the SVG since react-pdf can't draw the SVG file;
+store data from `lib/store-info.ts`) and footer ("Generado el … por {usuario}", page numbers) — plus
+its `TableHeader`/`TableRow`/`SummaryBoxes`/`SignatureLines` pieces. Helvetica has accents and ñ but
+**no U+2212 minus**: use "-" for negative amounts (`pdfMoney`). No CSV exports (decided).
+
+Built: supplier cutoff (`supplier-cutoff-report.tsx`), cash closing (`cash-closing-report.tsx`,
+from what's on screen, so it works on an open corte too), sales history (`sales-history-report.tsx`,
+exactly the filtered table rows; summary recomputed from them so totals match) and client statement
+(`client-statement-report.tsx`, "Exportar" on the Historial de Movimientos card). Each page loads its
+`export*Pdf` with dynamic `import()`. `TableRow` takes `muted` for rows that don't move the account.
+
+To preview a report outside the browser, bundle it with esbuild to ESM
+(`--platform=node --format=esm --packages=external`) and `renderToFile` from Node — `tsx` can't load
+`@react-pdf/*` (CJS export-map error).
+
 ### Store day, cash closing and receipts
 
 - **"What day is it" for the store** goes through `lib/store-time.ts` (`America/Tijuana`):

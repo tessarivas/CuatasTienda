@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,6 +21,7 @@ import {
 import {
   Banknote,
   Clock,
+  FileDown,
   Landmark,
   Loader2,
   Receipt,
@@ -40,6 +42,15 @@ import {
 type Period = "hoy" | "ayer" | "semana" | "mes" | "rango";
 type MethodFilter = "todos" | "Efectivo" | "Tarjeta" | "Transferencia" | "Saldo";
 type OriginFilter = "todos" | "caja" | "apartados";
+
+// Nombre del periodo para el encabezado del PDF.
+const PERIOD_TITLE: Record<Period, string> = {
+  hoy: "Hoy",
+  ayer: "Ayer",
+  semana: "Esta semana",
+  mes: "Este mes",
+  rango: "Rango personalizado",
+};
 
 const PERIOD_LABEL: Record<Period, string> = {
   hoy: "de hoy",
@@ -97,6 +108,7 @@ export default function SalesHistoryPage() {
   const [originFilter, setOriginFilter] = React.useState<OriginFilter>("todos");
   const [sales, setSales] = React.useState<ApiSaleRow[] | null>(null);
   const [selectedSale, setSelectedSale] = React.useState<ApiSaleRow | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const rangeIsValid =
     period !== "rango" || (!!rangeFrom && !!rangeTo && rangeFrom <= rangeTo);
@@ -171,6 +183,41 @@ export default function SalesHistoryPage() {
   });
 
   const isLoading = sales === null && rangeIsValid;
+
+  // PDF con las ventas que muestra la tabla (filtros incluidos).
+  const handleExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const { from, to } = periodRange(period, rangeFrom, rangeTo);
+      const lastDay = new Date(to.getFullYear(), to.getMonth(), to.getDate() - 1);
+      const filters: string[] = [];
+      if (methodFilter !== "todos") filters.push(`Método: ${methodFilter}`);
+      if (originFilter !== "todos")
+        filters.push(originFilter === "caja" ? "Sólo caja" : "Sólo apartados");
+      if (term) filters.push(`Búsqueda: "${searchTerm.trim()}"`);
+      const { exportSalesHistoryPdf } = await import("@/lib/pdf/sales-history-report");
+      await exportSalesHistoryPdf({
+        periodLabel: PERIOD_TITLE[period],
+        from: toDateInput(from),
+        to: toDateInput(lastDay),
+        filters,
+        sales: visibleSales.map((s) => ({
+          folio: s.folio,
+          date: s.date,
+          origin: s.Client ? s.Client.name : "Caja",
+          products: s.SaleItem.map((i) => `${i.quantity}x ${i.Product.title}`).join(", "),
+          method: methodLabel(s.paymentMethod),
+          total: Number(s.total),
+        })),
+      });
+    } catch (err) {
+      console.error("Exportar historial de ventas falló", err);
+      alert("No se pudo generar el reporte");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <>
@@ -315,6 +362,15 @@ export default function SalesHistoryPage() {
               <SelectItem value="apartados">Sólo apartados</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            className="ml-auto cursor-pointer"
+            disabled={isLoading || !rangeIsValid || isExporting}
+            onClick={handleExport}
+          >
+            {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
+            {isExporting ? "Generando PDF..." : "Exportar"}
+          </Button>
         </div>
 
         <div className="border rounded-lg overflow-hidden">

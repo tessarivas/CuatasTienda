@@ -239,6 +239,29 @@ llega mercancía nueva de un proveedor. Sólo para contemplar después.
 
 ## Completado
 
+### 2026-10-02
+- [x] Reportes PDF de corte de caja, historial de ventas y estado de cuenta
+      del cliente, con el mismo formato que el del proveedor. Botón
+      "Exportar" en cada página (en el cliente, en la tarjeta Historial de
+      Movimientos). El de ventas lleva lo que muestra la tabla, con los
+      filtros anotados; el de caja, lo que se ve en pantalla aunque el corte
+      siga abierto.
+- [x] Issue #14 cerrado: sólo PDF, sin CSV.
+- [x] Reporte PDF del corte de proveedor ("Exportar Reporte" en Corte
+      Mensual): resumen, ventas por producto, detalle de cada venta y firmas
+      Entregó / Recibió. Formato compartido en `lib/pdf/report-layout.tsx`
+      y datos de la tienda en `lib/store-info.ts`.
+- [x] **Corte Mensual por proveedor con datos reales** (antes eran números
+      inventados): total vendido (= ganancia del proveedor, la tienda no
+      cobra comisión), productos disponibles y piezas vendidas. Por defecto,
+      el periodo en curso; con Inicio/Fin + "Actualizar Datos", cualquier
+      rango. `GET /api/suppliers/[id]/cutoff`, reglas en
+      `lib/suppliers/cutoff.ts`.
+- [x] Día de corte por defecto = día de alta del proveedor (nuevos al
+      crearse; Compuservi quedó en 16 por migración de datos). Cuatas
+      conserva su 15. Probado en la app (Full Moons, alta hoy, quedó en
+      día 2); issue #23 cerrado.
+
 ### 2026-10-01
 - [x] Corte de Caja por ventana: cubre desde el cierre anterior hasta el
       cierre (lo cobrado después de cerrar entra solo al corte siguiente,

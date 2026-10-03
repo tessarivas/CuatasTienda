@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Banknote,
   CheckCircle2,
+  FileDown,
   History,
   Landmark,
   Loader2,
@@ -116,6 +117,7 @@ export default function CashClosingPage() {
   const [uploadingKey, setUploadingKey] = React.useState<string | null>(null);
   const [viewing, setViewing] = React.useState<BankCharge | null>(null);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const uploadTarget = React.useRef<BankCharge | null>(null);
 
@@ -198,6 +200,56 @@ export default function CashClosingPage() {
       alert("No se pudo guardar el corte");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // PDF con lo que se ve en pantalla (fondo y contado aunque no se haya
+  // guardado todavía).
+  const handleExport = async () => {
+    if (!data || isExporting) return;
+    setIsExporting(true);
+    try {
+      const { exportCashClosingPdf } = await import("@/lib/pdf/cash-closing-report");
+      const closing = data.closing;
+      await exportCashClosingPdf({
+        date,
+        closing: closing && {
+          closedBy: closing.User.name,
+          closedAt: closing.closedAt,
+          correctedAt:
+            new Date(closing.updatedAt).getTime() - new Date(closing.closedAt).getTime() > 1000
+              ? closing.updatedAt
+              : null,
+        },
+        periodStart: data.periodStart,
+        periodEnd: data.periodEnd,
+        openingCash: openingValid ? Number(openingCash) : 0,
+        cashSales,
+        expectedCash,
+        countedCash: countedValid ? Number(countedCash) : null,
+        cashPayments,
+        bankTotal,
+        notes,
+        sales: data.sales.map((s) => ({
+          folio: s.folio,
+          date: s.date,
+          method: s.paymentMethod,
+          total: Number(s.total),
+          hasReceipt: !!s.receiptUrl,
+        })),
+        payments: data.payments.map((p) => ({
+          client: p.Client.name,
+          date: p.date,
+          method: p.method,
+          amount: Number(p.amount),
+          hasReceipt: !!p.receiptUrl,
+        })),
+      });
+    } catch (err) {
+      console.error("Exportar corte de caja falló", err);
+      alert("No se pudo generar el reporte");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -304,6 +356,15 @@ export default function CashClosingPage() {
             >
               <History />
               Cortes anteriores
+            </Button>
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              disabled={isLoading || noClosing || isExporting}
+              onClick={handleExport}
+            >
+              {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
+              {isExporting ? "Generando PDF..." : "Exportar"}
             </Button>
             <Button
               className="cursor-pointer"
