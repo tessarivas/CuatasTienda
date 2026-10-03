@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { uploadSupplierImage } from "@/lib/cloudinary/supplier";
+import { storeDateString } from "@/lib/store-time";
 
 export async function GET() {
   try {
@@ -39,6 +40,9 @@ export async function POST(req: Request) {
         cellphone,
         email,
         logo: null,
+        // Día de corte por defecto: el día del mes en que se da de alta (hora
+        // de la tienda). Se puede cambiar después desde "Corte Mensual".
+        cutoffDay: Number(storeDateString().slice(8, 10)),
       },
     });
 
