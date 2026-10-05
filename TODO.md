@@ -4,7 +4,24 @@ Lista viva de trabajo acordado. Arriba va lo pendiente (`- [ ]`); cuando algo
 se termina se marca `- [x]` y se mueve a la sección **Completado** al final,
 con la fecha, para que se vea de un vistazo qué ya está listo.
 
-## Historial de movimientos por proveedor
+## Pruebas pendientes en la app
+
+Cosas ya construidas que falta probar a mano (sin issue en GitHub):
+
+- [ ] Cancelar un apartado con la ✕ de la tarjeta: debe salir tachado en el
+      historial, bajar "Falta por pagar" y la unidad volver a estar
+      disponible en inventario.
+- [ ] Corte de Caja: cerrar el corte de hoy, corregirlo, y adjuntar un
+      comprobante a una venta o abono con tarjeta/transferencia (y verlo
+      después en el ticket del Historial de Ventas).
+- [ ] Caja: una venta con descuento al total (un solo proveedor). La venta
+      normal ya se probó (`011026-003`).
+- [ ] Descargar desde la app los PDF de corte de caja, historial de ventas
+      y estado de cuenta del cliente.
+- [ ] Fecha de apartado en las tarjetas y clip de comprobante en el
+      historial del cliente.
+
+## Historial de movimientos por proveedor (#16)
 
 **Objetivo:** una sección donde se vean todas las altas y retiros de
 inventario de los productos de un proveedor — la bitácora que hoy sólo vive
@@ -41,7 +58,7 @@ Falta:
       desaparecerían del registro. El historial es la única vista pensada
       para ser la excepción a esa regla.
 
-## Cliente: pendientes de la cuenta (`clients/[id]`)
+## Cliente: cómo se lleva la cuenta (`clients/[id]`, referencia)
 
 Cómo lleva la tienda cada cliente hoy, a pluma — la pantalla está pensada
 para reemplazar esta lista:
@@ -60,11 +77,8 @@ ABONO             − $50    RESTA $300
 Liquidar (marcar vendido) no cambia lo que falta por pagar: baja apartado y
 abonado por el mismo monto. Precios = snapshot de `LayawayItem.price`.
 
-- [ ] Probar cancelar un apartado con la ✕ de la tarjeta: debe salir tachado
-      en el historial, bajar "Falta por pagar" y la unidad volver a estar
-      disponible en inventario.
 
-## Saldo a favor del cliente: qué pasa con lo que sobra
+## Saldo a favor del cliente: qué pasa con lo que sobra (#36)
 
 Un cliente puede quedar sin apartados pero con saldo positivo (el pie lo
 muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
@@ -75,13 +89,10 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
       ser sólo poner `currentBalance` en 0 — tiene que dejar un movimiento en
       el historial (p. ej. "Devolución de saldo", con quién la hizo y
       cuándo), o el historial deja de cuadrar contra el total.
-- [ ] Hoy borrar un cliente exige saldo en cero (`DELETE /api/clients/[id]`
-      → 409), así que un cliente con saldo a favor no se puede borrar hasta
-      que exista esta opción.
 
 ## Inventario
 
-- [ ] **Servicios → darle funcionalidad al botón "Registrar"** (hoy está
+- [ ] **Servicios → darle funcionalidad al botón "Registrar"** (#37) (hoy está
       deshabilitado a propósito, "Próximamente"): anotar que se hizo un
       servicio (p. ej. una copia, un acta), incluyendo servicios
       **personalizados** con descripción y precio propios. Ya no está
@@ -90,7 +101,7 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
       necesitarán decidir cómo se guardan, porque hoy `SaleItem` apunta a un
       producto existente.
 
-## Eliminar producto: separar "retirar" (ya existe) de "eliminar permanentemente" (no existe)
+## Eliminar producto: separar "retirar" (ya existe) de "eliminar permanentemente" (no existe) (#6)
 
 Hoy "Eliminar producto" en `product-details-modal.tsx` es un soft-delete:
 pone `status = "Retirado"` y ya queda fuera de catálogo, POS y listas — eso
@@ -111,7 +122,7 @@ limpiar productos retirados viejos:
       dado que es irreversible — a diferencia del "Retirar" actual, que se
       puede deshacer con `POST /api/products/[id]/restore`.
 
-## Gastos de la tienda
+## Gastos de la tienda (#33)
 
 Hoy los gastos del negocio que no son de proveedores (p. ej. luz, renta,
 limpieza, papelería, comida, gasolina, un pago a alguien que ayudó) nunca
@@ -135,7 +146,7 @@ quedan registrados. Un módulo sencillo para anotarlos al momento.
   - ¿Quién puede registrar y borrar gastos? (Hoy cualquier usuario puede
     todo; ver roles en `CLAUDE.md`.)
 
-## Promociones por proveedor (descuento por periodo)
+## Promociones por proveedor (descuento por periodo) (#34)
 
 Desde la página del proveedor, definir un descuento para **todos sus
 productos** durante un periodo (fecha de inicio y fin), por **porcentaje** o
@@ -164,13 +175,10 @@ productos** durante un periodo (fecha de inicio y fin), por **porcentaje** o
 
 Ya están hechos (ver Completado). Quedan:
 
-- [ ] Probar en la app: cerrar el corte de hoy, corregirlo, y adjuntar un
-      comprobante a una venta o abono con tarjeta/transferencia (y verlo
-      después en el ticket del Historial de Ventas).
 - [ ] Restar los gastos en efectivo del esperado en caja cuando exista el
       módulo de gastos (decidir de cuál caja salen: principal o apartados).
 
-## Reporte PDF de existencias por proveedor
+## Reporte PDF de existencias por proveedor (#31)
 
 Los proveedores a veces necesitan saber qué tienen en tienda y en qué estado,
 más allá del corte. Un PDF (mismo formato de `lib/pdf/report-layout.tsx`) con
@@ -204,7 +212,7 @@ Decidido (2026-10-02):
   el mismo selector de Inicio/Fin del Corte Mensual (por defecto, el periodo
   en curso).
 
-## Etiquetas con código de barras para imprimir
+## Etiquetas con código de barras para imprimir (#35)
 
 Cada producto ya tiene un código único al crearse (`Product.code`,
 `CT-XXXXXXXX`; hoy los 11 lo tienen) y la caja ya busca por código. Lo que
@@ -229,12 +237,7 @@ mercancía, sin salir de la app.
 - [ ] Confirmar que el lector de la caja lee bien la etiqueta impresa (el
       buscador de la caja ya acepta el código).
 
-## Caja registradora (POS)
-
-- [ ] Probar una venta con descuento total (un solo proveedor). La venta
-      normal ya se probó (`011026-003`).
-
-## Notificaciones (toasts) y spinner
+## Notificaciones (toasts) y spinner (#32)
 
 El commit `4fcab11` ("UI small changes", 2026-04-19) agregaba `sonner`
 (toasts), un componente `spinner` y ajustes a `button` / `alert-dialog`. Al
@@ -247,7 +250,29 @@ entró; sigue en el historial para retomarlo (`git show 4fcab11`).
       días anteriores (hoy sólo se ven en la columna "Pendientes" de "Cortes
       anteriores" del Corte de Caja).
 
-## Agregar producto: "guardar y agregar otro" (a contemplar)
+## Formato de ticket (impresora de tickets y vista en pantalla) (#39)
+
+Un solo formato de ticket de venta que sirva para dos cosas:
+
+- [ ] **Versión para imprimir en la impresora de tickets** (papel térmico
+      angosto): datos de la tienda (`lib/store-info.ts`), folio, fecha y
+      hora, productos con cantidad y precio, descuentos, total, método de
+      pago y quién atendió.
+- [ ] **Usar esa misma vista como simulación del ticket** en los modales
+      donde hoy se ve una venta (p. ej. el ticket del Historial de Ventas y
+      el de venta completada en la caja), para que lo que se ve en pantalla
+      sea igual a lo que se imprime.
+- [ ] Decidir antes de construirlo: modelo de impresora y ancho del papel
+      (58 mm u 80 mm); si se imprime desde el navegador (`window.print()`
+      con CSS de impresión) o con otro método; si se imprime solo al cobrar
+      o con un botón.
+
+## Página 404 (#40)
+
+- [ ] Hacer una página 404 (`app/not-found.tsx`; hoy no existe) con el
+      estilo de la app y un botón para regresar al inicio.
+
+## Agregar producto: "guardar y agregar otro" (a contemplar) (#38)
 
 Del issue #25 (cerrado): poder dar de alta varios productos seguidos sin que
 `add-product-modal.tsx` se cierre al guardar — p. ej. un botón "Guardar y
@@ -259,6 +284,11 @@ llega mercancía nueva de un proveedor. Sólo para contemplar después.
 ## Completado
 
 ### 2026-10-02
+- [x] **Página de inicio** (antes vacía): saludo, Vendido hoy / Apartados
+      activos / En tienda, gráfica de ventas de 7/14/30 días por destino del
+      dinero con anillos, Pendientes (corte de hoy, comprobantes, cortes de
+      proveedor con su PDF, clientes que pueden liquidar, por agotarse),
+      actividad reciente y más vendidos. `GET /api/dashboard`.
 - [x] Bug: el filtro de estatus de Productos ya no vacía la pestaña
       Servicios (se ignora ahí y se conserva al regresar a Productos).
 - [x] Fecha de apartado en las tarjetas de Productos Apartados ("Apartado el
