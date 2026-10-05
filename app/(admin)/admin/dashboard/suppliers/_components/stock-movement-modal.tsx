@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Product } from "@/lib/data";
 import { AlertCircle, PackageMinus, PackagePlus } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export type StockMovementKind = "Alta" | "Retiro";
 
@@ -100,6 +101,11 @@ export function StockMovementModal({
 
       onDone();
       onClose();
+      toast.success(
+        isAlta
+          ? `${parsed} ${parsed === 1 ? "unidad agregada" : "unidades agregadas"}`
+          : `${parsed} ${parsed === 1 ? "unidad retirada" : "unidades retiradas"}`
+      );
     } catch {
       setError("No se pudo registrar el movimiento");
     } finally {

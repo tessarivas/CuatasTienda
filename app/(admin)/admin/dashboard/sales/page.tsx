@@ -38,6 +38,7 @@ import {
   formatSaleDate,
   methodLabel,
 } from "./sales-utils";
+import { toast } from "@/lib/toast";
 
 type Period = "hoy" | "ayer" | "semana" | "mes" | "rango";
 type MethodFilter = "todos" | "Efectivo" | "Tarjeta" | "Transferencia" | "Saldo";
@@ -213,7 +214,7 @@ export default function SalesHistoryPage() {
       });
     } catch (err) {
       console.error("Exportar historial de ventas falló", err);
-      alert("No se pudo generar el reporte");
+      toast.error("No se pudo generar el reporte");
     } finally {
       setIsExporting(false);
     }

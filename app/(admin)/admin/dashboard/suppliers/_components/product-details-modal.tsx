@@ -48,6 +48,7 @@ import {
   StockMovementModal,
   type StockMovementKind,
 } from "./stock-movement-modal";
+import { toast } from "@/lib/toast";
 
 interface ProductDetailsModalProps {
   product: Product | null;
@@ -170,6 +171,7 @@ export function ProductDetailsModal({
       onChanged?.();
       setIsEditing(false);
       onClose();
+      toast.success("Cambios guardados");
     } catch {
       setError("No se pudo actualizar el producto");
     } finally {
@@ -195,14 +197,15 @@ export function ProductDetailsModal({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo retirar el producto");
+        toast.error(message ?? "No se pudo eliminar el producto");
         return;
       }
       onChanged?.();
       setShowDeleteDialog(false);
       onClose();
+      toast.success("Producto eliminado");
     } catch {
-      alert("No se pudo retirar el producto");
+      toast.error("No se pudo eliminar el producto");
     } finally {
       setIsSaving(false);
     }
@@ -217,13 +220,14 @@ export function ProductDetailsModal({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo restaurar el producto");
+        toast.error(message ?? "No se pudo restaurar el producto");
         return;
       }
       onChanged?.();
       onClose();
+      toast.success("Producto restaurado");
     } catch {
-      alert("No se pudo restaurar el producto");
+      toast.error("No se pudo restaurar el producto");
     } finally {
       setIsSaving(false);
     }

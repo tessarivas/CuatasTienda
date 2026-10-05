@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
 import { X, UserRoundPlus } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export function AddSupplierModal({
 
   const handleSubmit = async () => {
     if (!name || !businessName) {
-      alert("Proveedor y negocio son obligatorios");
+      toast.warning("Proveedor y negocio son obligatorios");
       return;
     }
 
@@ -69,6 +70,7 @@ export function AddSupplierModal({
 
       const supplier: Supplier = await res.json();
       onAdd(supplier);
+      toast.success("Proveedor agregado");
 
       setName("");
       setBusinessName("");
@@ -77,7 +79,7 @@ export function AddSupplierModal({
       setImage(null);
       onClose();
     } catch {
-      alert("Error creando proveedor");
+      toast.error("Error creando proveedor");
     } finally {
       setLoading(false);
     }

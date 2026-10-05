@@ -59,6 +59,7 @@ import {
   type ApiClient,
 } from "@/lib/clients/normalize";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 type ActiveLayaway = {
   id: number;
@@ -342,7 +343,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
     } catch (err) {
       console.error("Exportar estado de cuenta falló", err);
-      alert("No se pudo generar el reporte");
+      toast.error("No se pudo generar el reporte");
     } finally {
       setIsExporting(false);
     }
@@ -376,7 +377,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo registrar el abono");
+        toast.error(message ?? "No se pudo registrar el abono");
         return;
       }
       const { client: updatedClient }: { client: ApiClient } = await res.json();
@@ -387,8 +388,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       );
       await reloadMovements();
       setIsPaymentModalOpen(false);
+      toast.success(`Abono de $${amount.toFixed(2)} registrado`);
     } catch {
-      alert("No se pudo registrar el abono");
+      toast.error("No se pudo registrar el abono");
     } finally {
       setActionInFlight(false);
     }
@@ -405,7 +407,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo apartar el producto");
+        toast.error(message ?? "No se pudo apartar el producto");
         return;
       }
       // Reflejar en contexto: subimos el conteo de reservas del producto.
@@ -419,8 +421,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       // El apartado nuevo también es un renglón del historial ("Apartó: …").
       await Promise.all([reloadLayaway(), reloadMovements()]);
       setIsAssignModalOpen(false);
+      toast.success("Producto apartado");
     } catch {
-      alert("No se pudo apartar el producto");
+      toast.error("No se pudo apartar el producto");
     } finally {
       setActionInFlight(false);
     }
@@ -447,7 +450,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       if (!res.ok) {
         const { error: message, faltante } = await res.json();
-        alert(
+        toast.error(
           faltante
             ? `${message} Faltan $${faltante} MXN.`
             : (message ?? "No se pudo liquidar")
@@ -485,9 +488,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         })
       );
       await Promise.all([reloadLayaway(), reloadMovements()]);
+      toast.success(
+        itemIds.length === 1
+          ? "Apartado liquidado"
+          : `${itemIds.length} apartados liquidados`
+      );
       return true;
     } catch {
-      alert("No se pudo liquidar");
+      toast.error("No se pudo liquidar");
       return false;
     } finally {
       setActionInFlight(false);
@@ -527,13 +535,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo eliminar el cliente");
+        toast.error(message ?? "No se pudo eliminar el cliente");
         return;
       }
       setClients((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Cliente eliminado");
       router.push("/admin/dashboard/clients");
     } catch {
-      alert("No se pudo eliminar el cliente");
+      toast.error("No se pudo eliminar el cliente");
     } finally {
       setActionInFlight(false);
     }
@@ -554,7 +563,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       );
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo cancelar el apartado");
+        toast.error(message ?? "No se pudo cancelar el apartado");
         return;
       }
       setProducts((prev) =>
@@ -573,8 +582,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       }
       await Promise.all([reloadLayaway(), reloadMovements()]);
       setCancelTarget(null);
+      toast.success("Apartado cancelado");
     } catch {
-      alert("No se pudo cancelar el apartado");
+      toast.error("No se pudo cancelar el apartado");
     } finally {
       setActionInFlight(false);
     }

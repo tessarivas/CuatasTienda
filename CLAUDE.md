@@ -11,8 +11,7 @@ Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]`
 its dated **Completado** section at the bottom (don't just delete them). Currently open: a
 per-supplier inventory history screen; what to do with a client's leftover credit (a "limpiar
 saldo" option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios
-tab; printable barcode labels (PDF) from `Product.code`; toasts instead of `alert()` plus a reminder
-for receipts still pending from past days (planned as one iteration); time-boxed per-supplier
+tab; printable barcode labels (PDF) from `Product.code`; a printable sales ticket; time-boxed per-supplier
 discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
 feeds the cash closing; and a real "permanently delete" action distinct from today's soft-delete
 "Eliminar producto".
@@ -287,8 +286,9 @@ in progress; `lib/data.ts` also contains stale fields that no longer match its o
 ### Client-heavy rendering
 
 `app/layout.tsx` is marked `"use client"`, so effectively the whole tree renders client-side despite
-`components.json` declaring `rsc: true`. There are **no server actions**, and no `loading.tsx` /
-`error.tsx` / `not-found.tsx`.
+`components.json` declaring `rsc: true`. There are **no server actions** and no `loading.tsx` /
+`error.tsx`. `app/not-found.tsx` is the one 404 for the whole app; it renders in the root layout
+(no sidebar), so it carries its own logo and a link back to `/admin/dashboard`.
 
 `app/(admin)/admin/dashboard/layout.tsx` is the de-facto app root: it owns the global store
 (clients, products, suppliers, sales, transactions, `searchTerm`, `reloadSuppliers`), fetches
@@ -438,6 +438,13 @@ creation uploads *before* insert and cleans up orphans on code collision.
 - Editing a supplier is a modal (`edit-supplier-modal.tsx`), not inline in the card anymore —
   `supplier-details-form.tsx` is read-only and only takes `supplier` + `onEdit`. Don't reintroduce
   an `isEditing` prop there.
+
+- **Notifications are toasts, never `alert()`.** `toast.success / error / warning / info(message)`
+  from `lib/toast.ts` — a tiny store outside React, so it can be called from any handler without
+  hooks. `<Toaster />` (`components/smoothui/basic-toast`, SmoothUI's Basic Toast adapted to the
+  `my-*` tokens and stacked) is mounted once in `app/layout.tsx`, above dialogs (`z-[100]`).
+  Failures → `error`, validation → `warning`, completed actions → a short `success`. Inline form
+  errors inside a modal (`setError`) stay inline.
 
 ### UI gotchas already paid for once
 

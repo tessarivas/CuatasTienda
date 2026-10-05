@@ -30,6 +30,7 @@ import { useTodayLabel } from "@/hooks/use-today-label";
 import { ReceiptDialog } from "../sales/_components/receipt-dialog";
 import { formatMoney } from "../sales/sales-utils";
 import { ClosingHistoryDialog } from "./_components/closing-history-dialog";
+import { toast } from "@/lib/toast";
 
 type Method = "Efectivo" | "Tarjeta" | "Transferencia";
 
@@ -134,7 +135,7 @@ export default function CashClosingPage() {
       setCountedCash(json.closing ? String(Number(json.closing.countedCash)) : "");
       setNotes(json.closing?.notes ?? "");
     } catch {
-      alert("No se pudo cargar el corte de caja");
+      toast.error("No se pudo cargar el corte de caja");
     }
   }, []);
 
@@ -192,12 +193,13 @@ export default function CashClosingPage() {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo guardar el corte");
+        toast.error(message ?? "No se pudo guardar el corte");
         return;
       }
+      toast.success(data?.closing ? "Corrección guardada" : "Corte cerrado");
       await loadDay(date);
     } catch {
-      alert("No se pudo guardar el corte");
+      toast.error("No se pudo guardar el corte");
     } finally {
       setIsSaving(false);
     }
@@ -247,7 +249,7 @@ export default function CashClosingPage() {
       });
     } catch (err) {
       console.error("Exportar corte de caja falló", err);
-      alert("No se pudo generar el reporte");
+      toast.error("No se pudo generar el reporte");
     } finally {
       setIsExporting(false);
     }
@@ -264,7 +266,7 @@ export default function CashClosingPage() {
     const charge = uploadTarget.current;
     if (!file || !charge) return;
     if (!file.type.startsWith("image/")) {
-      alert("El comprobante debe ser una imagen");
+      toast.warning("El comprobante debe ser una imagen");
       return;
     }
     setUploadingKey(charge.key);
@@ -278,10 +280,11 @@ export default function CashClosingPage() {
       const res = await fetch(url, { method: "POST", body: form });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo subir el comprobante");
+        toast.error(message ?? "No se pudo subir el comprobante");
         return;
       }
       const { receiptUrl }: { receiptUrl: string } = await res.json();
+      toast.success("Comprobante adjuntado");
       setData((prev) =>
         prev && {
           ...prev,
@@ -294,7 +297,7 @@ export default function CashClosingPage() {
         }
       );
     } catch {
-      alert("No se pudo subir el comprobante");
+      toast.error("No se pudo subir el comprobante");
     } finally {
       setUploadingKey(null);
     }

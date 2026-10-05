@@ -16,6 +16,7 @@ import {
 } from "@/lib/data";
 import { normalizeProducts, type ApiProduct } from "@/lib/products/normalize";
 import { normalizeClients, type ApiClient } from "@/lib/clients/normalize";
+import { toast } from "@/lib/toast";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -96,6 +97,30 @@ export default function DashboardLayout({
     React.useState(false);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [isLoadingClients, setIsLoadingClients] = React.useState(true);
+
+  // Aviso de comprobantes pendientes de días anteriores: una vez por sesión
+  // del navegador, al entrar al panel (no en cada cambio de página).
+  React.useEffect(() => {
+    const KEY = "cuatas:aviso-comprobantes";
+    try {
+      if (sessionStorage.getItem(KEY)) return;
+      sessionStorage.setItem(KEY, "1");
+    } catch {
+      // Sin sessionStorage (modo privado, etc.) se muestra igual.
+    }
+    fetch("/api/receipts/pending")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { count: number } | null) => {
+        if (!data || data.count === 0) return;
+        toast.warning(
+          data.count === 1
+            ? "Hay 1 comprobante pendiente de días anteriores. Adjúntalo en Corte de Caja."
+            : `Hay ${data.count} comprobantes pendientes de días anteriores. Adjúntalos en Corte de Caja.`,
+          { duration: 10000 }
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     async function loadClients() {

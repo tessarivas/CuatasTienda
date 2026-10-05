@@ -237,19 +237,6 @@ mercancía, sin salir de la app.
 - [ ] Confirmar que el lector de la caja lee bien la etiqueta impresa (el
       buscador de la caja ya acepta el código).
 
-## Notificaciones (toasts) y spinner (#32)
-
-El commit `4fcab11` ("UI small changes", 2026-04-19) agregaba `sonner`
-(toasts), un componente `spinner` y ajustes a `button` / `alert-dialog`. Al
-juntar con `main` (2026-10-01) se le dio prioridad a la rama y ese código no
-entró; sigue en el historial para retomarlo (`git show 4fcab11`).
-
-- [ ] Agregar toasts para confirmar acciones (abono registrado, apartado,
-      liquidado, etc.) en lugar de `alert()`.
-- [ ] En la misma iteración: aviso más visible de comprobantes pendientes de
-      días anteriores (hoy sólo se ven en la columna "Pendientes" de "Cortes
-      anteriores" del Corte de Caja).
-
 ## Formato de ticket (impresora de tickets y vista en pantalla) (#39)
 
 Un solo formato de ticket de venta que sirva para dos cosas:
@@ -267,11 +254,6 @@ Un solo formato de ticket de venta que sirva para dos cosas:
       con CSS de impresión) o con otro método; si se imprime solo al cobrar
       o con un botón.
 
-## Página 404 (#40)
-
-- [ ] Hacer una página 404 (`app/not-found.tsx`; hoy no existe) con el
-      estilo de la app y un botón para regresar al inicio.
-
 ## Agregar producto: "guardar y agregar otro" (a contemplar) (#38)
 
 Del issue #25 (cerrado): poder dar de alta varios productos seguidos sin que
@@ -282,6 +264,20 @@ llega mercancía nueva de un proveedor. Sólo para contemplar después.
 ---
 
 ## Completado
+
+### 2026-10-05
+- [x] Toasts en lugar de `alert()` (#32): base SmoothUI "Basic Toast"
+      adaptada a los tokens `my-*` y a una pila (`lib/toast.ts` +
+      `<Toaster />` en el layout raíz). Los 56 `alert()` pasaron a
+      `toast.error` / `toast.warning`, y las acciones principales confirman
+      con `toast.success` (abono, apartado, liquidación, cancelación, corte,
+      comprobante, altas/ediciones/bajas de clientes, proveedores y
+      productos, movimientos de stock). Aviso de comprobantes pendientes de
+      días anteriores al entrar al panel, una vez por sesión
+      (`GET /api/receipts/pending`).
+- [x] Página 404 (`app/not-found.tsx`, #40): logo, "No encontramos esta
+      página", botones Regresar e Ir al inicio. Se ve fuera del panel (sin
+      sidebar).
 
 ### 2026-10-02
 - [x] **Página de inicio** (antes vacía): saludo, Vendido hoy / Apartados

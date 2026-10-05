@@ -26,7 +26,9 @@ import { cn } from "@/lib/utils";
 interface AssignProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (productId: string, clientId: string) => void;
+  // El padre cierra el modal si se apartó; si falla, se queda abierto para
+  // reintentar. Mientras tanto el botón muestra "Apartando...".
+  onAssign: (productId: string, clientId: string) => Promise<void>;
   client: Client | null;
   availableProducts: Product[];
   suppliers: Supplier[];
@@ -47,6 +49,7 @@ export function AssignProductModal({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [supplierFilter, setSupplierFilter] = React.useState("todos");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -71,14 +74,18 @@ export function AssignProductModal({
         String(product.supplierId) === supplierFilter)
   );
 
-  const handleAssign = () => {
-    if (!selectedId) return;
-    onAssign(selectedId, client.id);
-    onClose();
+  const handleAssign = async () => {
+    if (!selectedId || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onAssign(selectedId, client.id);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => !isSubmitting && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -209,16 +216,18 @@ export function AssignProductModal({
           <Button
             variant="outline"
             onClick={onClose}
+            disabled={isSubmitting}
             className="cursor-pointer"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={!selectedId}
+            disabled={!selectedId || isSubmitting}
             className="cursor-pointer"
           >
-            Apartar Producto
+            {isSubmitting && <Loader2 className="animate-spin" />}
+            {isSubmitting ? "Apartando..." : "Apartar Producto"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -35,6 +35,7 @@ import { shortDate } from "@/lib/suppliers/cutoff";
 import { StatCard } from "../../_components/stat-card";
 import { formatMoney } from "../../sales/sales-utils";
 import { EditCutoffDayModal } from "./edit-cutoff-day-modal";
+import { toast } from "@/lib/toast";
 
 interface MonthlyCutoffProps {
   supplier: Supplier;
@@ -89,7 +90,7 @@ export function MonthlyCutoff({
         const res = await fetch(`/api/suppliers/${supplier.id}/cutoff${query}`);
         if (!res.ok) {
           const { error: message } = await res.json();
-          alert(message ?? "No se pudo calcular el corte");
+          toast.error(message ?? "No se pudo calcular el corte");
           return;
         }
         const json: CutoffData = await res.json();
@@ -97,7 +98,7 @@ export function MonthlyCutoff({
         setStartDate(fromDateStr(json.period.from));
         setEndDate(fromDateStr(json.period.to));
       } catch {
-        alert("No se pudo calcular el corte");
+        toast.error("No se pudo calcular el corte");
       } finally {
         setIsLoading(false);
       }
@@ -131,7 +132,7 @@ export function MonthlyCutoff({
       });
     } catch (err) {
       console.error("Exportar corte de proveedor falló", err);
-      alert("No se pudo generar el reporte");
+      toast.error("No se pudo generar el reporte");
     } finally {
       setIsExporting(false);
     }

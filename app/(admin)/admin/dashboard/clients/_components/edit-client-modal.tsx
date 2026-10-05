@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { type Client } from "@/lib/data";
 import { type ApiClient } from "@/lib/clients/normalize";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface EditClientModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export function EditClientModal({
 
   const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) {
-      alert("El nombre y el teléfono son obligatorios.");
+      toast.warning("El nombre y el teléfono son obligatorios.");
       return;
     }
     setLoading(true);
@@ -61,14 +62,15 @@ export function EditClientModal({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo guardar el cliente");
+        toast.error(message ?? "No se pudo guardar el cliente");
         return;
       }
       const updated: ApiClient = await res.json();
       onSaved(updated);
       onClose();
+      toast.success("Cliente actualizado");
     } catch {
-      alert("No se pudo guardar el cliente");
+      toast.error("No se pudo guardar el cliente");
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import { ProductGrid } from "./_components/product-grid";
 import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 // Respuesta de POST /api/sales. Decimal llega como string.
 type ApiSale = {
@@ -122,7 +123,7 @@ export default function POSPage() {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo registrar la venta");
+        toast.error(message ?? "No se pudo registrar la venta");
         return;
       }
       const { sale }: { sale: ApiSale } = await res.json();
@@ -170,7 +171,7 @@ export default function POSPage() {
       setCart([]);
       setTotalDiscount(undefined);
     } catch {
-      alert("No se pudo registrar la venta");
+      toast.error("No se pudo registrar la venta");
     } finally {
       setIsProcessing(false);
     }

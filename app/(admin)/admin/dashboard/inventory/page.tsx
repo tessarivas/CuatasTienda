@@ -24,6 +24,7 @@ import {
   normalizeProducts,
   type ApiProduct,
 } from "@/lib/products/normalize";
+import { toast } from "@/lib/toast";
 
 export default function Page() {
   const {
@@ -91,7 +92,7 @@ export default function Page() {
     setSuppliers((prev) => [createdSupplier, ...prev]);
   } catch (error) {
     console.error(error);
-    alert("No se pudo crear el proveedor");
+    toast.error("No se pudo crear el proveedor");
   }
 };
 
@@ -131,7 +132,7 @@ export default function Page() {
       setProductToAssign(product); // Guardamos el producto que se va a apartar
       setIsSelectClientModalOpen(true); // Abrimos el modal de clientes
     } else {
-      alert("No hay clientes registrados para poder apartar un producto.");
+      toast.warning("No hay clientes registrados para poder apartar un producto.");
     }
   };
 
@@ -151,7 +152,7 @@ export default function Page() {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo apartar el producto");
+        toast.error(message ?? "No se pudo apartar el producto");
         return;
       }
       setProducts(
@@ -161,8 +162,9 @@ export default function Page() {
             : p
         )
       );
+      toast.success(`Apartado para ${client.name}`);
     } catch {
-      alert("No se pudo apartar el producto");
+      toast.error("No se pudo apartar el producto");
     }
   };
 

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Percent } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -51,18 +52,18 @@ export function DiscountModal({
     const value = parseFloat(discountValue);
     
     if (isNaN(value) || value <= 0) {
-      alert("Por favor ingresa un valor válido");
+      toast.warning("Por favor ingresa un valor válido");
       return;
     }
 
     // Validaciones
     if (discountType === "percentage" && value > 100) {
-      alert("El porcentaje no puede ser mayor a 100%");
+      toast.warning("El porcentaje no puede ser mayor a 100%");
       return;
     }
 
     if (discountType === "fixed" && value > maxAmount) {
-      alert(`El descuento no puede ser mayor a $${maxAmount.toFixed(2)}`);
+      toast.warning(`El descuento no puede ser mayor a $${maxAmount.toFixed(2)}`);
       return;
     }
 

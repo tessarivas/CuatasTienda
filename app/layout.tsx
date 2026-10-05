@@ -4,6 +4,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
+import { Toaster } from '@/components/smoothui/basic-toast'
 import * as React from "react";
 import { type Client, initialClients, type Product, initialProducts, type Transaction, initialTransactions } from "@/lib/data";
 
@@ -43,6 +44,8 @@ export default function RootLayout({
         >
           {children}
         </DashboardContext.Provider>
+        {/* Toasts de toda la app (lib/toast.ts), también en el login. */}
+        <Toaster />
       </body>
     </html>
   )

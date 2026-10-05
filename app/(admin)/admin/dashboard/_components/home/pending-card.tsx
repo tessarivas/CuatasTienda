@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import { type DashboardData, type SupplierCutoffPending, dayLabel, money } from "./types";
+import { toast } from "@/lib/toast";
 
 type Tone = "yellow" | "green" | "purple" | "pink" | "orange" | "blue";
 
@@ -174,7 +175,7 @@ export function PendingCard({ pending }: { pending: DashboardData["pending"] }) 
       await exportSupplierCutoffPdf({ ...data, supplierName: c.name, isCurrentPeriod: true });
     } catch (err) {
       console.error("Descargar corte de proveedor falló", err);
-      alert("No se pudo generar el reporte");
+      toast.error("No se pudo generar el reporte");
     } finally {
       setDownloading(null);
     }

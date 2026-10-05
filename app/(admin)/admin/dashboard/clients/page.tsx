@@ -11,6 +11,7 @@ import { Loader2, Search, UserCheck, UserPlus, Users, Wallet } from "lucide-reac
 import { StatCard } from "../_components/stat-card";
 import { formatMoney } from "../sales/sales-utils";
 import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
+import { toast } from "@/lib/toast";
 
 export default function Page() {
   const router = useRouter();
@@ -36,14 +37,15 @@ export default function Page() {
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo crear el cliente");
+        toast.error(message ?? "No se pudo crear el cliente");
         return;
       }
       const created: ApiClient = await res.json();
       setClients((prev) => [normalizeClient(created), ...prev]);
       setIsAddModalOpen(false);
+      toast.success(`Cliente ${created.name} agregado`);
     } catch {
-      alert("No se pudo crear el cliente");
+      toast.error("No se pudo crear el cliente");
     }
   };
 

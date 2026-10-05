@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 // La prop onAdd solo pasará los datos que el modal conoce
 interface AddClientModalProps {
@@ -31,7 +32,7 @@ export function AddClientModal({
 
   const handleSubmit = () => {
     if (!name || !phone) {
-      alert("El nombre y el teléfono son obligatorios.");
+      toast.warning("El nombre y el teléfono son obligatorios.");
       return;
     }
     // 1. Solo llamamos a onAdd con los datos

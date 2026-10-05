@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DollarSign, Plus } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export type PaymentMethod = "Efectivo" | "Tarjeta" | "Transferencia";
 
@@ -53,7 +54,7 @@ export function AddPaymentModal({
 
   const handleSubmit = async () => {
     if (!isValidAmount) {
-      alert("Por favor, ingrese un monto válido mayor a 0.");
+      toast.warning("Por favor, ingrese un monto válido mayor a 0.");
       return;
     }
     setIsSubmitting(true);

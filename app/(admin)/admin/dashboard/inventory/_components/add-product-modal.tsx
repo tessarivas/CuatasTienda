@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Product, type ProductType, type Supplier } from "@/lib/data";
 import { PackagePlus, X } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export function AddProductModal({
 
   const handleSubmit = async () => {
     if (!title || !price || !supplierId || (!isService && !quantity)) {
-      alert(
+      toast.warning(
         isService
           ? "Título, precio y proveedor son obligatorios."
           : "Todos los campos son obligatorios, incluyendo el proveedor.",
@@ -83,12 +84,13 @@ export function AddProductModal({
 
       if (!res.ok) {
         const { error: message } = await res.json().catch(() => ({}));
-        alert(message ?? (isService ? "Error creando servicio" : "Error creando producto"));
+        toast.error(message ?? (isService ? "Error creando servicio" : "Error creando producto"));
         return;
       }
 
       const product: Product = await res.json();
       onAdd(product);
+      toast.success(isService ? "Servicio agregado" : "Producto agregado");
 
       setTitle("");
       setPrice(0);
@@ -97,7 +99,7 @@ export function AddProductModal({
       setSupplierId(lockedSupplierId ?? "");
       onClose();
     } catch {
-      alert(isService ? "Error creando servicio" : "Error creando producto");
+      toast.error(isService ? "Error creando servicio" : "Error creando producto");
     } finally {
       setLoading(false);
     }

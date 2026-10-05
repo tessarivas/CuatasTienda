@@ -32,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/lib/toast";
 
 // Shape returned by GET /api/suppliers/[id] — Prisma `include: { Product }`.
 // Decimal columns serialize to strings, `picture` may be null.
@@ -122,14 +123,15 @@ export default function SupplierDetailPage({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo actualizar el día de corte");
+        toast.error(message ?? "No se pudo actualizar el día de corte");
         return;
       }
       const updated: Supplier = await res.json();
       // PATCH no devuelve el array anidado Product — hay que conservarlo.
       setSupplier({ ...updated, Product: supplier.Product });
+      toast.success(`Día de corte cambiado al ${newDay}`);
     } catch {
-      alert("No se pudo actualizar el día de corte");
+      toast.error("No se pudo actualizar el día de corte");
     }
   };
 
@@ -141,12 +143,13 @@ export default function SupplierDetailPage({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        alert(message ?? "No se pudo eliminar el proveedor");
+        toast.error(message ?? "No se pudo eliminar el proveedor");
         return;
       }
+      toast.success("Proveedor eliminado");
       router.push("/admin/dashboard/suppliers");
     } catch {
-      alert("No se pudo eliminar el proveedor");
+      toast.error("No se pudo eliminar el proveedor");
     }
   };
 

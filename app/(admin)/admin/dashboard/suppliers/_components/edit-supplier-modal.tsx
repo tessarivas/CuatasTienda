@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
 import { Pencil, Trash2, User } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface EditSupplierModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export function EditSupplierModal({
 
   const handleSubmit = async () => {
     if (!name.trim() || !businessName.trim()) {
-      alert("Proveedor y negocio son obligatorios");
+      toast.warning("Proveedor y negocio son obligatorios");
       return;
     }
 
@@ -88,7 +89,7 @@ export function EditSupplierModal({
 
       if (!patchRes.ok) {
         const { error: message } = await patchRes.json();
-        alert(message ?? "No se pudo guardar el proveedor");
+        toast.error(message ?? "No se pudo guardar el proveedor");
         return;
       }
 
@@ -102,7 +103,7 @@ export function EditSupplierModal({
         });
         if (!logoRes.ok) {
           const { error: message } = await logoRes.json();
-          alert(
+          toast.warning(
             message ??
               "El proveedor se guardó, pero no se pudo subir el nuevo logo"
           );
@@ -111,8 +112,9 @@ export function EditSupplierModal({
 
       onSaved();
       onClose();
+      toast.success("Proveedor actualizado");
     } catch {
-      alert("No se pudo guardar el proveedor");
+      toast.error("No se pudo guardar el proveedor");
     } finally {
       setLoading(false);
     }
