@@ -10,7 +10,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { CardActionButton } from "./card-action-button";
 import { ProductDetailsModal } from "./product-details-modal";
-import { ExternalLink, Package, LayoutList } from "lucide-react";
+import { ExternalLink, FileDown, Loader2, Package, LayoutList } from "lucide-react";
+import { toast } from "@/lib/toast";
+import { type CutoffPeriod } from "./monthly-cutoff";
 import { DashboardContext } from "../../layout";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
 
@@ -19,6 +21,9 @@ interface SupplierProductsListProps {
   supplierId: string;
   supplierName: string;
   onProductChanged?: () => void;
+  // Periodo que se ve en Corte Mensual; el reporte de existencias usa el
+  // mismo (null mientras carga).
+  stockPeriod?: CutoffPeriod | null;
 }
 
 export function SupplierProductsList({
@@ -26,6 +31,7 @@ export function SupplierProductsList({
   supplierId,
   supplierName,
   onProductChanged,
+  stockPeriod,
 }: SupplierProductsListProps) {
   const router = useRouter();
   const { clients, suppliers } = React.useContext(DashboardContext) as {
@@ -65,6 +71,38 @@ export function SupplierProductsList({
     return client?.name;
   };
 
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  // PDF de existencias (#31): lo que hay en tienda y su estado, más lo
+  // vendido en el periodo del Corte Mensual. Incluye retirados; la librería
+  // de PDF se carga sólo al exportar.
+  const handleExportStock = async () => {
+    if (!stockPeriod || isExporting) return;
+    setIsExporting(true);
+    try {
+      const res = await fetch(
+        `/api/suppliers/${supplierId}/stock-report?from=${stockPeriod.from}&to=${stockPeriod.to}`
+      );
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        toast.error(message ?? "No se pudo generar el reporte");
+        return;
+      }
+      const data = await res.json();
+      const { exportSupplierStockPdf } = await import("@/lib/pdf/supplier-stock-report");
+      await exportSupplierStockPdf({
+        ...data,
+        supplierName,
+        isCurrentPeriod: stockPeriod.isCurrent,
+      });
+    } catch (err) {
+      console.error("Exportar existencias falló", err);
+      toast.error("No se pudo generar el reporte");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleProductAdded = () => {
     setIsAddProductModalOpen(false);
     onProductChanged?.();
@@ -74,25 +112,35 @@ export function SupplierProductsList({
     <>
       <Card className="flex flex-col h-full">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <LayoutList className="h-5 w-5" />
               <CardTitle className="text-lg">
                 Productos ({products.length})
               </CardTitle>
             </div>
-            {products.length > 0 && (
+            <div className="flex items-center gap-2">
               <CardActionButton
-                onClick={() =>
-                  router.push(
-                    `/admin/dashboard/inventory?supplier=${supplierId}`
-                  )
-                }
+                disabled={!stockPeriod || isExporting}
+                onClick={handleExportStock}
+                title="PDF con existencias y ventas del periodo del Corte Mensual"
               >
-                Ver todos
-                <ExternalLink />
+                {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
+                {isExporting ? "Generando..." : "Existencias"}
               </CardActionButton>
-            )}
+              {products.length > 0 && (
+                <CardActionButton
+                  onClick={() =>
+                    router.push(
+                      `/admin/dashboard/inventory?supplier=${supplierId}`
+                    )
+                  }
+                >
+                  Ver todos
+                  <ExternalLink />
+                </CardActionButton>
+              )}
+            </div>
           </div>
 
           {products.length > 0 && (

@@ -37,9 +37,14 @@ import { formatMoney } from "../../sales/sales-utils";
 import { EditCutoffDayModal } from "./edit-cutoff-day-modal";
 import { toast } from "@/lib/toast";
 
+export type CutoffPeriod = { from: string; to: string; isCurrent: boolean; cutoffDay: number };
+
 interface MonthlyCutoffProps {
   supplier: Supplier;
   onCutoffDayChange: (newDay: number) => void;
+  // Avisa el periodo que se está viendo (actual o elegido), para que el
+  // reporte de existencias de la tarjeta de Productos use el mismo.
+  onPeriodChange?: (period: CutoffPeriod) => void;
 }
 
 // Forma de GET /api/suppliers/[id]/cutoff.
@@ -72,6 +77,7 @@ const fromDateStr = (s: string) => {
 export function MonthlyCutoff({
   supplier,
   onCutoffDayChange,
+  onPeriodChange,
 }: MonthlyCutoffProps) {
   const [startDate, setStartDate] = React.useState<Date | undefined>();
   const [endDate, setEndDate] = React.useState<Date | undefined>();
@@ -143,6 +149,12 @@ export function MonthlyCutoff({
     !!data &&
     data.period.from === data.currentPeriod.from &&
     data.period.to === data.currentPeriod.to;
+
+  React.useEffect(() => {
+    if (data) {
+      onPeriodChange?.({ ...data.period, isCurrent: isCurrentPeriod, cutoffDay: data.cutoffDay });
+    }
+  }, [data, isCurrentPeriod, onPeriodChange]);
 
   return (
     <>

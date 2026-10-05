@@ -24,7 +24,8 @@ import { SupplierDetailsForm } from "../_components/supplier-details-form";
 import { EditSupplierModal } from "../_components/edit-supplier-modal";
 import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
-import { MonthlyCutoff } from "../_components/monthly-cutoff";
+import { MonthlyCutoff, type CutoffPeriod } from "../_components/monthly-cutoff";
+import { SupplierMovements } from "../_components/supplier-movements";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ export default function SupplierDetailPage({
     React.useState<ApiSupplierWithProducts | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [cutoffPeriod, setCutoffPeriod] = React.useState<CutoffPeriod | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddProductModalOpen, setIsAddProductModalOpen] =
@@ -269,6 +271,7 @@ export default function SupplierDetailPage({
           <MonthlyCutoff
             supplier={supplier}
             onCutoffDayChange={handleCutoffDayChange}
+            onPeriodChange={setCutoffPeriod}
           />
           {/* Productos del Proveedor */}
           <SupplierProductsList
@@ -276,8 +279,14 @@ export default function SupplierDetailPage({
             supplierId={id}
             supplierName={supplier.businessName}
             onProductChanged={reloadSupplier}
+            stockPeriod={cutoffPeriod}
           />
         </div>
+
+        {/* Historial de movimientos: altas, retiros y ventas (incluye
+            productos retirados). Se vuelve a pedir cuando se recarga el
+            proveedor, p. ej. después de agregar o retirar unidades. */}
+        <SupplierMovements supplierId={id} refreshKey={supplier} />
 
         {/* Detalles del Proveedor (sólo lectura; se edita en el modal) */}
         <SupplierDetailsForm
