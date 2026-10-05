@@ -42,7 +42,6 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { DeleteProductDialog } from "./delete-product-dialog";
 import {
   StockMovementModal,
@@ -292,14 +291,18 @@ export function ProductDetailsModal({
               </DialogTitle>
               {/* Visible también en edición: si desaparece, el encabezado da
                   un salto de layout al entrar y salir del modo editar. */}
-              <Badge
-                className={cn(
-                  "mt-1 shrink-0",
-                  getStatusClasses(displayStatus ?? product.status)
+              {/* Estado + cuántas unidades están apartadas, juntos. El conteo
+                  se omite si el estado ya dice "Apartado" (todo apartado). */}
+              <div className="mt-1 flex shrink-0 items-center gap-1.5">
+                <Badge className={getStatusClasses(displayStatus ?? product.status)}>
+                  {displayStatus}
+                </Badge>
+                {hasReservations && !isService && displayStatus !== "Apartado" && (
+                  <Badge className="bg-my-orange-light text-my-orange-dark">
+                    {reserved} {reserved === 1 ? "apartada" : "apartadas"}
+                  </Badge>
                 )}
-              >
-                {displayStatus}
-              </Badge>
+              </div>
             </div>
             {/* Subtítulo: proveedor */}
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -310,23 +313,19 @@ export function ProductDetailsModal({
 
           {/* Las alertas de inventario (apartados, sin stock, stock bajo) no
               viven aquí: van debajo del campo de Unidades, que es lo que
-              describen. Ésta sí es de producto entero. */}
+              describen. Ésta sí es de producto entero. Todos los avisos van
+              en gris y sin título: el estado ya lo dicen las etiquetas. */}
           {isRetirado && (
-            <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-muted-foreground">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  Producto Retirado
-                </p>
-                <p className="mt-1 text-xs">
-                  Este producto ya no aparece en el inventario. Restáuralo para
-                  volver a editarlo.
-                </p>
-              </div>
+            <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="min-w-0 flex-1">
+                Este producto fue retirado y ya no aparece en el inventario.
+                Restáuralo para volver a editarlo.
+              </p>
             </div>
           )}
 
-          <div className="grid gap-2 lg:grid-cols-[1fr_1fr]">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1fr]">
             <div className="flex flex-col gap-2">
               <div className="relative aspect-square w-full max-w-84 h-84 overflow-hidden rounded-3xl bg-muted">
                 <div className="absolute inset-0">
@@ -404,19 +403,14 @@ export function ProductDetailsModal({
                   //
                   // El número grande es lo vendible, no el total: con apartados
                   // el total engaña sobre lo que realmente se puede vender.
-                  <div className="flex h-12 items-center justify-between gap-2 rounded-2xl border px-4 text-xl">
+                  <div className="flex h-12 items-center gap-2 rounded-2xl border px-4 text-xl">
                     {hasReservations ? (
-                      <>
-                        <span className="truncate">
-                          {availableUnits}
-                          <span className="ml-1.5 text-sm text-muted-foreground">
-                            de {totalUnits}
-                          </span>
+                      <span className="truncate">
+                        {availableUnits}
+                        <span className="ml-1.5 text-sm text-muted-foreground">
+                          de {totalUnits}
                         </span>
-                        <span className="shrink-0 rounded-full bg-my-orange-light px-2.5 py-0.5 text-xs font-semibold text-my-orange-dark">
-                          {reserved} {reserved === 1 ? "apartada" : "apartadas"}
-                        </span>
-                      </>
+                      </span>
                     ) : (
                       <span>{totalUnits}</span>
                     )}
@@ -427,46 +421,31 @@ export function ProductDetailsModal({
               {/* Alertas de inventario, pegadas al campo que describen.
                   Ocupan el ancho completo de la columna derecha. */}
               {hasReservations && (
-                <div className="flex items-start gap-3 rounded-lg bg-my-orange-light p-3 text-my-orange-dark">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">
-                      {reserved}{" "}
-                      {reserved === 1 ? "unidad apartada" : "unidades apartadas"}
-                      {!isService && (
-                        <>
-                          {" · quedan "}
-                          {availableUnits}{" "}
-                          {availableUnits === 1 ? "disponible" : "disponibles"}
-                        </>
-                      )}
-                    </p>
-                    {clientName && (
-                      <div className="mt-0.5 flex items-center gap-2">
-                        <User className="h-3 w-3" />
-                        <p className="text-xs">Cliente: {clientName}</p>
-                      </div>
-                    )}
-                    <p className="mt-1 text-xs">
+                    <p>
                       No se puede modificar el precio hasta liberar los
                       apartados.
                     </p>
+                    {clientName && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs">
+                        <User className="h-3 w-3" />
+                        Cliente: {clientName}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Sin apartados pero sin stock libre: no es vendible. */}
               {!hasReservations && isSoldOut && (
-                <div className="flex items-start gap-3 rounded-lg bg-my-red-light p-3 text-my-red-dark">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">
-                      Sin unidades disponibles
-                    </p>
-                    <p className="mt-1 text-xs">
-                      Agrega unidades para volver a ponerlo en circulación.
-                    </p>
-                  </div>
+                <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="min-w-0 flex-1">
+                    No quedan unidades. Agrega unidades para volver a ponerlo
+                    en circulación.
+                  </p>
                 </div>
               )}
 
