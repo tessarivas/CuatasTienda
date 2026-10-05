@@ -342,6 +342,19 @@ in `suppliers/[id]`. Period rules live in `lib/suppliers/cutoff.ts` (pure, teste
 - A period runs from the cutoff day to the day before the next one (day 16 → 16 sep – 15 oct).
 - If a month lacks the day (29/30/31), that month's cutoff moves to the **1st of the next month**.
 
+### Home dashboard (`dashboard/page.tsx`)
+
+The "Inicio" page reads everything from one read-only endpoint, `GET /api/dashboard` (store days via
+`lib/store-time.ts`): today vs. yesterday sales, active layaways, free stock, a 30-day series split
+by where the money went (efectivo / banco / apartados), top products, a recent-activity timeline
+(sales, abonos, apartados, altas/retiros) and **pendientes** — today's cash closing (open, or
+closed with late cobros), card/transfer receipts without image, supplier cutoffs that just ended
+("listo", last 3 days) or end within 7 days (each downloads its PDF right there), clients whose
+balance already covers an apartado, and products with one free unit. Its cards live in
+`dashboard/_components/home/`. Animations use `motion` (`motion/react`), already a dependency:
+sliding tab pill (`layoutId`), Apple-style rings, disclosure rows, self-drawing check. Keep motion
+subtle and colors on the `my-*` tokens.
+
 ### PDF reports
 
 Letter-size PDFs generated **in the browser** with `@react-pdf/renderer`, loaded via dynamic
@@ -432,7 +445,10 @@ creation uploads *before* insert and cleans up orphans on code collision.
   `--my-pink`), the dev server kept serving the old CSS — same chunk hash — even after a restart,
   because Next 16's Turbopack dev cache lives on disk in `.next/dev`. Fix: stop `npm run dev`,
   delete `.next`, start again. Also **don't run `npm run build` while the dev server is running**;
-  that's what left it stale the first time.
+  that's what left it stale the first time. It also happens with existing tokens: brand classes
+  (`bg-my-green-light`, `bg-my-pink-light`, …) suddenly missing from the served CSS chunk. Lighter
+  fix that worked: append a comment to `app/globals.css`, wait a few seconds, revert it — Tailwind
+  rescans without a server restart.
 
 - **Icon-button spacing:** `Button` (and anything built on `buttonVariants()`, including
   `AlertDialogAction`/`AlertDialogCancel`) already has `gap-2` between children. Pass icons bare —
