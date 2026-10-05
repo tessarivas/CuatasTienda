@@ -276,7 +276,7 @@ export default function Page() {
           </button>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4">
           <Input
             placeholder={
               activeTab === "productos"
@@ -285,7 +285,7 @@ export default function Page() {
             }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
           />
           <Select
             value={sortOrder}
@@ -337,8 +337,8 @@ export default function Page() {
               </SelectContent>
             </Select>
           )}
-          <div className="ml-auto">
-            <Button className="cursor-pointer" onClick={() => setIsAddModalOpen(true)}>
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <Button className="w-full cursor-pointer sm:w-auto" onClick={() => setIsAddModalOpen(true)}>
               {activeTab === "productos" ? (
                 <>
                   <PackagePlus />

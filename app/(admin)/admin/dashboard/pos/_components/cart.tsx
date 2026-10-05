@@ -14,7 +14,7 @@ import {
 import { CartItemRow } from "./cart-item-row";
 import { DiscountModal } from "./discount-modal";
 import { PaymentModal } from "./payment-modal";
-import { ShoppingCart, Percent } from "lucide-react";
+import { ChevronDown, ChevronUp, ShoppingCart, Percent } from "lucide-react";
 
 interface CartProps {
   cart: CartItem[];
@@ -27,6 +27,10 @@ interface CartProps {
   itemsDiscount: number;
   total: number;
   onProcessSale: (paymentMethod: PaymentMethod) => void;
+  // Modo "hoja" para celular (pos/page.tsx): plegado muestra sólo la barra
+  // del carrito y el botón Cobrar; desplegado, el carrito completo. Sin
+  // esta prop es la columna normal de pantallas grandes.
+  sheet?: { expanded: boolean; onToggle: () => void };
 }
 
 export function Cart({
@@ -40,7 +44,9 @@ export function Cart({
   itemsDiscount,
   total,
   onProcessSale,
+  sheet,
 }: CartProps) {
+  const collapsed = !!sheet && !sheet.expanded;
   const [showTotalDiscountModal, setShowTotalDiscountModal] = React.useState(false);
   const [showPaymentModal, setShowPaymentModal] = React.useState(false);
 
@@ -66,16 +72,55 @@ export function Cart({
   return (
     <>
       <div className="flex flex-col h-full bg-muted/30">
-        {/* Header */}
-        <div className="shrink-0 p-4 border-b bg-background">
-          <div className="flex items-center gap-2">
+        {/* Header. En modo hoja es el botón que pliega/despliega; plegado
+            también enseña el total para no tener que abrirlo. */}
+        {sheet ? (
+          <button
+            type="button"
+            onClick={sheet.onToggle}
+            aria-expanded={sheet.expanded}
+            className="shrink-0 flex w-full cursor-pointer items-center gap-2 border-b bg-background p-4 text-left"
+          >
             <ShoppingCart className="h-5 w-5" />
             <h2 className="text-lg font-semibold">Carrito</h2>
-            <span className="ml-auto text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {cart.length} {cart.length === 1 ? "item" : "items"}
             </span>
+            {collapsed && cart.length > 0 && (
+              <span className="ml-auto font-bold tabular-nums">${total.toFixed(2)}</span>
+            )}
+            <span className={collapsed && cart.length > 0 ? "" : "ml-auto"}>
+              {sheet.expanded ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              )}
+            </span>
+          </button>
+        ) : (
+          <div className="shrink-0 p-4 border-b bg-background">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              <h2 className="text-lg font-semibold">Carrito</h2>
+              <span className="ml-auto text-sm text-muted-foreground">
+                {cart.length} {cart.length === 1 ? "item" : "items"}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Plegado: sólo Cobrar. */}
+        {collapsed && cart.length > 0 && (
+          <div className="shrink-0 bg-background p-3">
+            <Button
+              className="w-full cursor-pointer"
+              size="lg"
+              onClick={() => setShowPaymentModal(true)}
+            >
+              Cobrar ${total.toFixed(2)}
+            </Button>
+          </div>
+        )}
 
         {/* Items del carrito */}
         {/* min-h-0: sin él, el ScrollArea (hijo flex) crece al alto de su
@@ -86,6 +131,7 @@ export function Cart({
         {/* El selector [&>…>div]:block! anula el display:table que Radix
             pone dentro del ScrollArea: sin él la fila crece al ancho del
             nombre y el truncate nunca corta (ver "UI gotchas" en CLAUDE.md). */}
+        {!collapsed && (
         <ScrollArea className="flex-1 min-h-0 [&>[data-slot=scroll-area-viewport]>div]:block!">
           <div className="p-4 space-y-3">
             {cart.length === 0 ? (
@@ -107,9 +153,10 @@ export function Cart({
             )}
           </div>
         </ScrollArea>
+        )}
 
         {/* Totales y acciones */}
-        {cart.length > 0 && (
+        {!collapsed && cart.length > 0 && (
           <div className="shrink-0 p-4 border-t bg-background space-y-3">
             {/* Subtotal */}
             <div className="flex justify-between text-sm">

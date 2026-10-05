@@ -637,12 +637,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      {/* h-full + flex-col: el contenedor toma exactamente el alto
-          disponible bajo el header (main ya tiene una altura real, no de
-          contenido). Las dos columnas de abajo se quedan con lo que sobra y
-          scrollean por dentro — la página en sí nunca crece ni hace scroll,
-          sin importar cuánto historial tenga el cliente. */}
-      <div className="p-4 flex flex-col gap-4 h-full">
+      {/* lg:h-full + flex-col: en pantallas grandes el contenedor toma
+          exactamente el alto disponible bajo el header (main ya tiene una
+          altura real, no de contenido): las dos columnas se quedan con lo
+          que sobra y scrollean por dentro, y la página nunca crece sin
+          importar cuánto historial tenga el cliente. En celular la página
+          crece normal y el historial scrollea dentro de un alto máximo
+          (max-h-96). */}
+      <div className="p-4 flex flex-col gap-4 lg:h-full">
         {/* Encabezado: mismo tratamiento que suppliers/[id]/inventory — las
             dos acciones principales viven aquí, compactas, no en una
             tarjeta grande de saldo (esa tarjeta se elimina; el saldo ahora
@@ -664,7 +666,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               </p>
             </div>
           </div>
-          <div className="mt-4 md:mt-0 md:ml-auto flex items-center gap-2">
+          <div className="mt-4 md:mt-0 md:ml-auto flex flex-wrap items-center gap-2">
             {/* Editar abre el modal de datos del cliente; eliminar vive
                 dentro de ese modal (mismo patrón que proveedores), para no
                 tener un botón rojo en la pantalla principal. */}
@@ -682,27 +684,33 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               onClick={() => setIsAssignModalOpen(true)}
             >
               <ShoppingBag />
-              Apartar Producto
+              {/* Texto corto en celular para que los tres botones quepan
+                  en una fila. */}
+              <span className="sm:hidden">Apartar</span>
+              <span className="hidden sm:inline">Apartar Producto</span>
             </Button>
             <Button
               className="cursor-pointer"
               onClick={() => setIsPaymentModalOpen(true)}
             >
               <Plus />
-              Agregar Abono
+              <span className="sm:hidden">Abonar</span>
+              <span className="hidden sm:inline">Agregar Abono</span>
             </Button>
           </div>
         </div>
 
-        {/* flex-1 min-h-0: toma el resto del alto disponible. min-h-0 es lo
+        {/* grid-cols-1 explícito: sin él, en celular la columna implícita
+            mide lo que su texto más largo y la página se sale de lado.
+            flex-1 min-h-0: toma el resto del alto disponible. min-h-0 es lo
             que realmente permite que los hijos con overflow-y-auto scrolleen
             en vez de que la tarjeta crezca — sin esto, un contenedor flex/grid
             nunca se encoge por debajo de la altura de su contenido. */}
-        <div className="grid lg:grid-cols-2 gap-6 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:flex-1 lg:min-h-0">
           {/* Productos Apartados: tarjetas visuales agrupadas por producto.
               Clic selecciona una (clic de nuevo deselecciona); los botones
               del pie actúan sobre la unidad más antigua de esa selección. */}
-          <Card className="flex flex-col h-full min-h-0">
+          <Card className="flex flex-col lg:h-full lg:min-h-0">
             <CardHeader className="shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -836,7 +844,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                       todo, abonando lo que falte (con confirmación).
                       "Abono Completo" se habilita sólo si el saldo cubre la
                       suma de lo seleccionado. */}
-                  <div className="shrink-0 flex justify-end gap-2 pt-2">
+                  <div className="shrink-0 flex flex-wrap justify-end gap-2 pt-2">
                     <Button
                       variant="outline"
                       className="cursor-pointer"
@@ -877,21 +885,26 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
           {/* Historial de Movimientos: el saldo del cliente vive únicamente
               en el resumen del pie, no en una tarjeta destacada aparte. */}
-          <Card className="flex flex-col h-full min-h-0">
+          <Card className="flex flex-col lg:h-full lg:min-h-0">
             <CardHeader className="shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Receipt className="h-5 w-5" />
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg whitespace-nowrap">
                     Historial de Movimientos
                   </CardTitle>
                 </div>
                 <CardActionButton
                   disabled={isLoadingMovements || isLoadingLayaway || isExporting}
                   onClick={handleExport}
+                  title="Exportar estado de cuenta (PDF)"
+                  aria-label="Exportar estado de cuenta"
                 >
                   {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
-                  {isExporting ? "Generando PDF..." : "Exportar"}
+                  {/* En celular sólo el icono, para que el título quepa. */}
+                  <span className="hidden sm:inline">
+                    {isExporting ? "Generando PDF..." : "Exportar"}
+                  </span>
                 </CardActionButton>
               </div>
             </CardHeader>
@@ -908,7 +921,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               ) : movements.length > 0 ? (
                 <div
                   ref={ledgerScrollRef}
-                  className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1"
+                  className="flex-1 min-h-0 max-h-96 overflow-y-auto space-y-2 pr-1 lg:max-h-none"
                 >
                   {ledgerMovements.map((m) => {
                     const isCancelled =

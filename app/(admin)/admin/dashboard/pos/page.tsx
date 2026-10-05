@@ -8,6 +8,8 @@ import { ProductGrid } from "./_components/product-grid";
 import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
 import { Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
 // Respuesta de POST /api/sales. Decimal llega como string.
@@ -32,6 +34,8 @@ export default function POSPage() {
   const [totalDiscount, setTotalDiscount] = React.useState<Discount | undefined>();
   const [showCompleteModal, setShowCompleteModal] = React.useState(false);
   const [lastSaleId, setLastSaleId] = React.useState<string>("");
+  // Hoja del carrito en celular: plegada (sólo total y Cobrar) o desplegada.
+  const [isCartExpanded, setIsCartExpanded] = React.useState(false);
 
   // Unidades libres para vender (descontando las reservadas en apartados).
   // Los servicios no manejan stock: se consideran ilimitados en caja.
@@ -168,6 +172,7 @@ export default function POSPage() {
       setSales((prevSales) => [newSale, ...prevSales]);
       setLastSaleId(sale.folio);
       setShowCompleteModal(true);
+      setIsCartExpanded(false);
       setCart([]);
       setTotalDiscount(undefined);
     } catch {
@@ -228,35 +233,59 @@ export default function POSPage() {
     );
   }
 
+  // Mismo carrito en las dos presentaciones (columna o hoja de celular).
+  const renderCart = (sheet?: { expanded: boolean; onToggle: () => void }) => (
+    <Cart
+      cart={cart}
+      onUpdateQuantity={handleUpdateQuantity}
+      onRemoveItem={handleRemoveFromCart}
+      onApplyItemDiscount={handleApplyItemDiscount}
+      totalDiscount={totalDiscount}
+      onApplyTotalDiscount={setTotalDiscount}
+      subtotal={calculateSubtotal()}
+      itemsDiscount={calculateItemsDiscount()}
+      total={calculateTotal()}
+      onProcessSale={handleProcessSale}
+      sheet={sheet}
+    />
+  );
+
   return (
     <>
       {/* h-full toma el alto real de <main>; cada columna queda acotada a
           ese alto (min-h-0 + overflow-hidden) y scrollea por dentro, así la
           búsqueda, el encabezado del carrito y los totales nunca se pierden. */}
-      <div className="flex h-full min-h-0">
-        {/* Columna Izquierda - Grid de Productos (70%) */}
-        <div className="w-[70%] min-h-0 overflow-hidden border-r">
+      <div className="flex h-full min-h-0 flex-col lg:flex-row">
+        {/* Grid de Productos: ocupa todo lo que deja el carrito en
+            pantallas chicas; 70% a la izquierda en grandes. */}
+        <div className="min-h-0 flex-1 overflow-hidden lg:w-[70%] lg:flex-none lg:border-r">
           <ProductGrid
             products={products}
             onAddToCart={handleAddToCart}
           />
         </div>
 
-        {/* Columna Derecha - Carrito (30%) */}
-        <div className="w-[30%] min-h-0 overflow-hidden">
-          <Cart
-            cart={cart}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveFromCart}
-            onApplyItemDiscount={handleApplyItemDiscount}
-            totalDiscount={totalDiscount}
-            onApplyTotalDiscount={setTotalDiscount}
-            subtotal={calculateSubtotal()}
-            itemsDiscount={calculateItemsDiscount()}
-            total={calculateTotal()}
-            onProcessSale={handleProcessSale}
-          />
+        {/* Carrito en pantallas grandes: columna derecha (30%). */}
+        <div className="hidden min-h-0 overflow-hidden lg:block lg:w-[30%]">
+          {renderCart()}
         </div>
+
+        {/* Carrito en celular/tablet: hoja abajo. Plegada es sólo la barra
+            con el total y Cobrar; desplegada sube hasta el 85% del alto
+            para ver el carrito completo. */}
+        <motion.div
+          layout
+          transition={{ type: "spring", bounce: 0.1, duration: 0.35 }}
+          className={cn(
+            "min-h-0 shrink-0 overflow-hidden border-t shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden",
+            isCartExpanded && "h-[85%]"
+          )}
+        >
+          {renderCart({
+            expanded: isCartExpanded,
+            onToggle: () => setIsCartExpanded((v) => !v),
+          })}
+        </motion.div>
       </div>
 
       {/* Modal de venta completada */}

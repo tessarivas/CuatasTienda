@@ -341,7 +341,7 @@ export default function CashClosingPage() {
               </p>
             )}
           </div>
-          <div className="mt-4 md:mt-0 md:ml-auto flex items-center gap-2">
+          <div className="mt-4 md:mt-0 md:ml-auto flex flex-wrap items-center gap-2">
             {!isToday && today && (
               <Button
                 variant="outline"

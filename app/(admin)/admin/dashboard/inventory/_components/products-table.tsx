@@ -78,7 +78,10 @@ export function ProductsTable({
       {/* table-fixed: los anchos de PRODUCT_WIDTHS/SERVICE_WIDTHS son
           proporciones reales del ancho total, no sólo del contenido de cada
           columna (que es lo que hace table-auto, el default). */}
-      <Table className="table-fixed">
+      {/* Ancho mínimo: en celular la tabla se desliza de lado (el
+          contenedor de Table ya trae overflow-x) en vez de apretar las
+          columnas hasta encimarlas. */}
+      <Table className="min-w-[48rem] table-fixed">
         <TableHeader>
           <TableRow>
             <TableHead className={`${widths.foto} pl-4`}>Foto</TableHead>
