@@ -21,43 +21,6 @@ Cosas ya construidas que falta probar a mano (sin issue en GitHub):
 - [ ] Fecha de apartado en las tarjetas y clip de comprobante en el
       historial del cliente.
 
-## Historial de movimientos por proveedor (#16)
-
-**Objetivo:** una sección donde se vean todas las altas y retiros de
-inventario de los productos de un proveedor — la bitácora que hoy sólo vive
-en la base de datos — **y también sus ventas, desglosadas**.
-
-**Decidido (2026-10-02):** va en `suppliers/[id]`, como una tabla **debajo de
-las dos columnas** (Corte Mensual y lista de Productos). Renglones de tres
-tipos: alta de productos (qué día y cuántos), retiro, y venta (folio, producto,
-cantidad, precio).
-
-Ya existe:
-- Modelo `StockMovement` (`prisma/schema.prisma`) — tipo, cantidad, motivo,
-  quién lo hizo, y `pickedUpBy` (quién recogió, sólo en retiros).
-- `GET /api/products/[id]/stock` — bitácora de **un** producto.
-
-Falta:
-- [ ] Decidir el alcance del endpoint: el que existe es *por producto*. Un
-      historial *por proveedor* necesita agregar movimientos de todos sus
-      productos — probablemente un endpoint nuevo,
-      `GET /api/suppliers/[id]/stock-movements`, que une por
-      `Product.supplierId`.
-- [ ] Juntar en una sola lista `StockMovement` (altas/retiros) y
-      `SaleItem` (ventas) de los productos del proveedor, por fecha.
-- [ ] La tabla debajo de las dos columnas de `suppliers/[id]/page.tsx`.
-- [ ] Filtros razonables: por tipo (Alta/Retiro/Venta), rango de fechas,
-      producto.
-- [ ] Columnas: fecha, producto, tipo, cantidad, motivo, quién lo registró,
-      y "Recogido por" cuando aplique; en ventas, folio y monto.
-- [ ] **Los productos retirados (soft-delete) deben seguir apareciendo en
-      este historial.** Hoy el catálogo, el POS y "Ver todos" de inventario
-      excluyen productos con `status = "Retirado"` — eso está bien y no se
-      toca. Pero la consulta de movimientos para este historial **no** debe
-      filtrar por `status`, o los retiros de productos ya eliminados
-      desaparecerían del registro. El historial es la única vista pensada
-      para ser la excepción a esa regla.
-
 ## Cliente: cómo se lleva la cuenta (`clients/[id]`, referencia)
 
 Cómo lleva la tienda cada cliente hoy, a pluma — la pantalla está pensada
@@ -91,6 +54,11 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
       cuándo), o el historial deja de cuadrar contra el total.
 
 ## Inventario
+
+- [ ] **Loader al apartar desde Inventario**: elegir producto → cliente
+      cierra el modal de inmediato y no se ve que se está procesando. Mismo
+      tratamiento que "Apartar Producto" en la cuenta del cliente ("Apartando..."
+      con loader, no se cierra hasta terminar, se queda abierto si falla).
 
 - [ ] **Servicios → darle funcionalidad al botón "Registrar"** (#37) (hoy está
       deshabilitado a propósito, "Próximamente"): anotar que se hizo un
@@ -178,40 +146,6 @@ Ya están hechos (ver Completado). Quedan:
 - [ ] Restar los gastos en efectivo del esperado en caja cuando exista el
       módulo de gastos (decidir de cuál caja salen: principal o apartados).
 
-## Reporte PDF de existencias por proveedor (#31)
-
-Los proveedores a veces necesitan saber qué tienen en tienda y en qué estado,
-más allá del corte. Un PDF (mismo formato de `lib/pdf/report-layout.tsx`) con
-todos sus productos:
-
-- **Lo que sigue en existencia sale siempre**, sin importar cuándo se dio de
-  alta. Ej.: 20 artículos en abril + 20 en mayo, se vendieron 10; al cerrar
-  mayo siguen apareciendo los 30 que quedan, aunque vengan de un corte
-  anterior.
-- **Lo vendido sólo sale si se vendió dentro del periodo de corte** (el
-  actual o el elegido). Lo vendido en un corte pasado ya se le entregó al
-  proveedor, así que ya no aparece.
-- Por producto: existencia, disponibles, apartados y vendidos en el periodo,
-  con su estado (Disponible / Apartado / Vendido).
-
-- [ ] Endpoint (o ampliar `GET /api/suppliers/[id]/cutoff`) que junte la
-      existencia actual (`quantity`, apartados activos) con lo vendido en el
-      periodo (`SaleItem` dentro del rango).
-- [ ] PDF y botón "Exportar existencias" en `suppliers/[id]` (tarjeta
-      Productos, con `CardActionButton`).
-
-Decidido (2026-10-02):
-- **Los productos retirados sí salen** (con estado "Retirado"), en este y en
-  los demás PDF.
-- **Los servicios no salen** en este reporte (no tienen existencia). Sí deben
-  contar, con su cantidad, en los cortes (el corte mensual ya suma sus
-  ventas; confirmarlo al construir esto).
-- **Se omite** un producto sin existencia y sin ventas en el periodo.
-- **El periodo es el del corte mensual, pero personalizable**: hay
-  proveedoras que vienen cada 15 días o cada 3 semanas, sin patrón fijo. Usar
-  el mismo selector de Inicio/Fin del Corte Mensual (por defecto, el periodo
-  en curso).
-
 ## Etiquetas con código de barras para imprimir (#35)
 
 Cada producto ya tiene un código único al crearse (`Product.code`,
@@ -266,6 +200,18 @@ llega mercancía nueva de un proveedor. Sólo para contemplar después.
 ## Completado
 
 ### 2026-10-05
+- [x] Historial de movimientos del proveedor (#16): tabla debajo de Corte
+      Mensual y Productos en `suppliers/[id]`, con altas, retiros y ventas
+      desglosadas (folio, origen, método, monto, quién registró), filtros
+      por tipo, producto y fechas, e incluye productos retirados.
+      `GET /api/suppliers/[id]/movements`. El alta inicial de cada producto
+      se reconstruye (hoy + vendidas + retiradas − altas), porque crear un
+      producto no escribe un StockMovement.
+- [x] PDF de existencias por proveedor (#31): botón "Existencias" en la
+      tarjeta Productos, con el periodo que se ve en Corte Mensual.
+      `GET /api/suppliers/[id]/stock-report`. Lo que sigue en existencia
+      sale siempre; lo vendido, sólo si fue en el periodo; retirados en
+      gris; sin servicios; se omite lo que no tiene existencia ni ventas.
 - [x] Toasts en lugar de `alert()` (#32): base SmoothUI "Basic Toast"
       adaptada a los tokens `my-*` y a una pila (`lib/toast.ts` +
       `<Toaster />` en el layout raíz). Los 56 `alert()` pasaron a

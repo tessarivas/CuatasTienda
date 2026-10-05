@@ -8,8 +8,7 @@ Spanish-language (es-MX) retail back-office for a small consignment store: suppl
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
-its dated **Completado** section at the bottom (don't just delete them). Currently open: a
-per-supplier inventory history screen; what to do with a client's leftover credit (a "limpiar
+its dated **Completado** section at the bottom (don't just delete them). Currently open: what to do with a client's leftover credit (a "limpiar
 saldo" option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios
 tab; printable barcode labels (PDF) from `Product.code`; a printable sales ticket; time-boxed per-supplier
 discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
@@ -258,8 +257,14 @@ own rule for reservations (see above) instead of the blanket `PATCH` freeze. `pi
 physically picked up the withdrawn goods, e.g. a courier) only makes sense for `Retiro` — the API
 silently drops it if sent on an `Alta` rather than rejecting the request.
 
-`GET /api/products/[id]/stock` returns one product's movements, newest first, `User` included —
-built for a history screen that doesn't exist yet (see `TODO.md`).
+`GET /api/products/[id]/stock` returns one product's movements, newest first, `User` included.
+
+**Per-supplier history** (`supplier-movements.tsx`, below Corte Mensual + Productos in
+`suppliers/[id]`): `GET /api/suppliers/[id]/movements` merges `StockMovement` altas/retiros with
+`SaleItem` sales of all the supplier's products, newest first; filters are client-side. It does
+**not** filter by `Product.status` — retired products must stay in the record. Creating a product
+writes no `StockMovement` for its initial pieces, so each product gets a reconstructed
+"Alta inicial" row at `createdAt` (current quantity + sold + retirados − altas).
 
 UI: `stock-movement-modal.tsx`, one component for both directions, opened from "Agregar unidades" /
 "Retirar mercancía" in `product-details-modal.tsx`. Those buttons — and the quantity field itself —
@@ -326,6 +331,10 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
   disabled + tooltip) and in `POST /api/sales` (400). So the whole ticket discount is charged to that
   one supplier, which is how `GET /api/suppliers/sales` attributes it.
 - `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
+- Below `lg:` the POS cart is a **bottom sheet**: the same `Cart` with a `sheet` prop, collapsed to
+  the header (count + total + chevron) and the Cobrar button, expanding to 85% of the height. At
+  `lg:` and up it's the usual right-hand 30% column. Both render from `renderCart()` in
+  `pos/page.tsx`; the sheet collapses after a completed sale.
 - `GET /api/sales?from&to` lists a period's sales (POS + liquidations) for the "Historial de Ventas"
   page (`dashboard/sales/`); method/origin/search filters are client-side so the highlight cards
   always summarize the whole period.
@@ -365,7 +374,10 @@ store data from `lib/store-info.ts`) and footer ("Generado el … por {usuario}"
 its `TableHeader`/`TableRow`/`SummaryBoxes`/`SignatureLines` pieces. Helvetica has accents and ñ but
 **no U+2212 minus**: use "-" for negative amounts (`pdfMoney`). No CSV exports (decided).
 
-Built: supplier cutoff (`supplier-cutoff-report.tsx`), cash closing (`cash-closing-report.tsx`,
+Built: supplier cutoff (`supplier-cutoff-report.tsx`), supplier stock (`supplier-stock-report.tsx`,
+"Existencias" on the Productos card, data from `GET /api/suppliers/[id]/stock-report` with the
+period shown in Corte Mensual: stock always shows, sales only within the period, retired products
+included and greyed out, no services, rows with neither stock nor sales omitted), cash closing (`cash-closing-report.tsx`,
 from what's on screen, so it works on an open corte too), sales history (`sales-history-report.tsx`,
 exactly the filtered table rows; summary recomputed from them so totals match) and client statement
 (`client-statement-report.tsx`, "Exportar" on the Historial de Movimientos card). Each page loads its
@@ -457,6 +469,16 @@ creation uploads *before* insert and cleans up orphans on code collision.
   fix that worked: append a comment to `app/globals.css`, wait a few seconds, revert it — Tailwind
   rescans without a server restart.
 
+- **Mobile overflow:** `<main>` is `overflow-auto`, so anything wider than the screen makes the
+  whole page scroll sideways instead of wrapping. Rows of header buttons/filters need `flex-wrap`;
+  `table-fixed` tables with % widths need a `min-w-[…rem]` so they slide sideways inside their
+  container instead of overlapping columns; full-height "app-like" layouts (`clients/[id]`, POS)
+  only lock to the viewport at `lg:` and stack or grow naturally below it. Two subtler causes
+  that also bit us: a responsive grid with no base column count (`grid lg:grid-cols-2`) gets an
+  implicit `auto` column that grows to its longest text — always add `grid-cols-1`; and shadcn's
+  `CardHeader` is itself a grid with an `auto` column, so wide content in it (filter rows) needs
+  `<CardHeader className="grid-cols-1">`. Check at 375px by comparing `main.scrollWidth` with
+  `clientWidth` (headless Chrome via DevTools protocol works on this machine).
 - **Icon-button spacing:** `Button` (and anything built on `buttonVariants()`, including
   `AlertDialogAction`/`AlertDialogCancel`) already has `gap-2` between children. Pass icons bare —
   `<Trash2 />` — never `<Trash2 className="mr-2 h-4 w-4" />`; the manual margin stacks on top of the
