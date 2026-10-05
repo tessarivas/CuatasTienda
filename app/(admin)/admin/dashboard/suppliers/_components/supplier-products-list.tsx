@@ -103,8 +103,9 @@ export function SupplierProductsList({
     }
   };
 
+  // Sólo refresca: el modal decide si se cierra ("Guardar") o se queda
+  // abierto ("Guardar y agregar otro").
   const handleProductAdded = () => {
-    setIsAddProductModalOpen(false);
     onProductChanged?.();
   };
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Product, type ProductType, type Supplier } from "@/lib/data";
-import { PackagePlus, X } from "lucide-react";
+import { Check, Loader2, PackagePlus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 
 interface AddProductModalProps {
@@ -21,6 +21,10 @@ interface AddProductModalProps {
   supplierId?: string;
 }
 
+// Qué botón se usó al guardar: "close" cierra el modal; "another" lo deja
+// abierto, limpio y con el mismo proveedor para capturar el siguiente.
+type SaveMode = "close" | "another";
+
 export function AddProductModal({
   isOpen,
   onClose,
@@ -31,14 +35,19 @@ export function AddProductModal({
 }: AddProductModalProps) {
   const isService = type === "SERVICE";
   const [title, setTitle] = React.useState("");
-  const [price, setPrice] = React.useState(0);
+  // Texto, no número: así el campo arranca vacío (con placeholder) en vez
+  // de mostrar un 0 que hay que borrar.
+  const [price, setPrice] = React.useState("");
   const [quantity, setQuantity] = React.useState(1);
   const [image, setImage] = React.useState<File | null>(null);
   const [supplierId, setSupplierId] = React.useState(
     lockedSupplierId ?? ""
   );
-  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState<SaveMode | null>(null);
+  // Cuántos se agregaron sin cerrar el modal ("Guardar y agregar otro").
+  const [addedCount, setAddedCount] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const titleRef = React.useRef<HTMLInputElement>(null);
   const imagePreviewUrl = React.useMemo(
     () => (image ? URL.createObjectURL(image) : null),
     [image],
@@ -50,14 +59,31 @@ export function AddProductModal({
     if (lockedSupplierId) setSupplierId(lockedSupplierId);
   }, [lockedSupplierId, isOpen]);
 
+  // Cada vez que se abre empieza una tanda nueva.
+  React.useEffect(() => {
+    if (isOpen) setAddedCount(0);
+  }, [isOpen]);
+
   React.useEffect(() => {
     return () => {
       if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
     };
   }, [imagePreviewUrl]);
 
-  const handleSubmit = async () => {
-    if (!title || !price || !supplierId || (!isService && !quantity)) {
+  // Deja el formulario limpio para el siguiente; el proveedor se conserva
+  // (es lo que se repite cuando llega mercancía de una misma persona).
+  const resetFields = () => {
+    setTitle("");
+    setPrice("");
+    setQuantity(1);
+    setImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = async (mode: SaveMode) => {
+    if (saving) return;
+    const priceValue = Number(price);
+    if (!title.trim() || !(priceValue > 0) || !supplierId || (!isService && !(quantity > 0))) {
       toast.warning(
         isService
           ? "Título, precio y proveedor son obligatorios."
@@ -66,11 +92,11 @@ export function AddProductModal({
       return;
     }
 
-    setLoading(true);
+    setSaving(mode);
 
     const formData = new FormData();
-    formData.append("title", title);
-    formData.append("price", String(price));
+    formData.append("title", title.trim());
+    formData.append("price", String(priceValue));
     formData.append("type", type);
     if (!isService) formData.append("quantity", String(quantity));
     formData.append("supplierId", supplierId);
@@ -90,18 +116,22 @@ export function AddProductModal({
 
       const product: Product = await res.json();
       onAdd(product);
-      toast.success(isService ? "Servicio agregado" : "Producto agregado");
+      resetFields();
 
-      setTitle("");
-      setPrice(0);
-      setQuantity(1);
-      setImage(null);
-      setSupplierId(lockedSupplierId ?? "");
-      onClose();
+      if (mode === "another") {
+        toast.success(`${product.title} agregado`);
+        setAddedCount((n) => n + 1);
+        // Listo para escribir el siguiente sin tocar el mouse.
+        titleRef.current?.focus();
+      } else {
+        toast.success(isService ? "Servicio agregado" : "Producto agregado");
+        setSupplierId(lockedSupplierId ?? "");
+        onClose();
+      }
     } catch {
       toast.error(isService ? "Error creando servicio" : "Error creando producto");
     } finally {
-      setLoading(false);
+      setSaving(null);
     }
   };
 
@@ -130,7 +160,16 @@ export function AddProductModal({
               : "Completa los detalles para registrar un nuevo producto en el inventario."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        {/* Enter en cualquier campo = "Guardar y agregar otro", para
+            capturar seguido con el teclado. */}
+        <form
+          id="add-product-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit("another");
+          }}
+          className="grid gap-4 py-4"
+        >
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="supplier" className="text-right">
               Proveedor <span className="-ml-1 text-my-red">*</span>
@@ -157,6 +196,7 @@ export function AddProductModal({
               Título <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
+              ref={titleRef}
               id="title"
               value={title}
               placeholder={isService ? "Nombre del Servicio" : "Nombre del Producto"}
@@ -171,9 +211,12 @@ export function AddProductModal({
             <Input
               id="price"
               type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
               value={price}
               placeholder="0.00"
-              onChange={(e) => setPrice(Number(e.target.value))}
+              onChange={(e) => setPrice(e.target.value)}
               className="col-span-3"
             />
           </div>
@@ -245,15 +288,48 @@ export function AddProductModal({
               )}
             </div>
           </div>
-        </div>
+        </form>
+
+        {/* Leyenda en gris: avance de la tanda. */}
+        {addedCount > 0 && (
+          <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Check className="h-3.5 w-3.5" />
+            {addedCount}{" "}
+            {isService
+              ? addedCount === 1 ? "servicio agregado" : "servicios agregados"
+              : addedCount === 1 ? "producto agregado" : "productos agregados"}{" "}
+            en esta tanda
+          </p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={loading} className="cursor-pointer">
-            {loading
-              ? "Guardando..."
-              : isService
-              ? "Agregar Servicio"
-              : "Agregar Producto"}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={!!saving}
+            className="cursor-pointer sm:mr-auto"
+          >
+            {addedCount > 0 ? "Terminar" : "Cancelar"}
+          </Button>
+          <Button
+            type="submit"
+            form="add-product-form"
+            variant="outline"
+            disabled={!!saving}
+            className="cursor-pointer"
+          >
+            {saving === "another" && <Loader2 className="animate-spin" />}
+            Guardar y agregar otro
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleSubmit("close")}
+            disabled={!!saving}
+            className="cursor-pointer"
+          >
+            {saving === "close" && <Loader2 className="animate-spin" />}
+            Guardar
           </Button>
         </DialogFooter>
       </DialogContent>

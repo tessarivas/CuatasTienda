@@ -188,18 +188,14 @@ Un solo formato de ticket de venta que sirva para dos cosas:
       con CSS de impresión) o con otro método; si se imprime solo al cobrar
       o con un botón.
 
-## Agregar producto: "guardar y agregar otro" (a contemplar) (#38)
-
-Del issue #25 (cerrado): poder dar de alta varios productos seguidos sin que
-`add-product-modal.tsx` se cierre al guardar — p. ej. un botón "Guardar y
-agregar otro" que limpia los campos y conserva el proveedor. Útil cuando
-llega mercancía nueva de un proveedor. Sólo para contemplar después.
-
----
-
 ## Completado
 
 ### 2026-10-05
+- [x] "Guardar y agregar otro" en el modal de agregar producto/servicio
+      (#38): guarda y deja el modal abierto, limpio y con el mismo
+      proveedor, con el cursor en Título; Enter hace lo mismo. Leyenda gris
+      "N productos agregados en esta tanda"; "Cancelar" pasa a "Terminar".
+      El precio arranca vacío en vez de 0.
 - [x] Historial de movimientos del proveedor (#16): tabla debajo de Corte
       Mensual y Productos en `suppliers/[id]`, con altas, retiros y ventas
       desglosadas (folio, origen, método, monto, quién registró), filtros
