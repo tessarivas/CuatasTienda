@@ -5,10 +5,12 @@ import { type Client } from "@/lib/data";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Loader2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,8 +24,13 @@ import {
 interface SelectClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectClient: (client: Client) => void;
+  // Aparta el producto para ese cliente. Devuelve true si se apartó (el
+  // padre cierra el modal); con false el modal se queda abierto para
+  // reintentar. Mientras tanto el botón muestra "Apartando...".
+  onSelectClient: (client: Client) => Promise<boolean>;
   clients: Client[];
+  // Producto que se va a apartar, para el subtítulo.
+  productTitle?: string;
 }
 
 export function SelectClientModal({
@@ -31,23 +38,37 @@ export function SelectClientModal({
   onClose,
   onSelectClient,
   clients,
+  productTitle,
 }: SelectClientModalProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [assigningId, setAssigningId] = React.useState<string | null>(null);
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSelectClick = (client: Client) => {
-    onSelectClient(client);
-    onClose();
+  const handleSelectClick = async (client: Client) => {
+    if (assigningId) return;
+    setAssigningId(client.id);
+    try {
+      await onSelectClient(client);
+    } finally {
+      setAssigningId(null);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    // Mientras se aparta no se puede cerrar (ni con Esc ni clic afuera).
+    <Dialog open={isOpen} onOpenChange={() => !assigningId && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Seleccionar Cliente para Apartado</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            Apartar para un cliente
+          </DialogTitle>
+          {productTitle && (
+            <DialogDescription className="truncate">{productTitle}</DialogDescription>
+          )}
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
           <Input
@@ -75,9 +96,14 @@ export function SelectClientModal({
                       <TableCell>
                         <Button
                           size="sm"
+                          className="cursor-pointer"
+                          disabled={!!assigningId}
                           onClick={() => handleSelectClick(client)}
                         >
-                          Seleccionar
+                          {assigningId === client.id && (
+                            <Loader2 className="animate-spin" />
+                          )}
+                          {assigningId === client.id ? "Apartando..." : "Seleccionar"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -94,7 +120,12 @@ export function SelectClientModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            className="cursor-pointer"
+            disabled={!!assigningId}
+            onClick={onClose}
+          >
             Cancelar
           </Button>
         </DialogFooter>

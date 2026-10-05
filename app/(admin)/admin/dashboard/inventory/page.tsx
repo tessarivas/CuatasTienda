@@ -140,9 +140,8 @@ export default function Page() {
   // la API del cliente. En éxito, subimos el reservedCount local para que el
   // UI refleje la reserva sin tocar product.status.
   const handleClientSelectedForAssignment = async (client: Client) => {
-    if (!productToAssign) return;
+    if (!productToAssign) return false;
     const product = productToAssign;
-    setProductToAssign(null);
 
     try {
       const res = await fetch(`/api/clients/${client.id}/layaway/items`, {
@@ -153,18 +152,23 @@ export default function Page() {
       if (!res.ok) {
         const { error: message } = await res.json();
         toast.error(message ?? "No se pudo apartar el producto");
-        return;
+        return false;
       }
-      setProducts(
-        products.map((p) =>
+      setProducts((prev) =>
+        prev.map((p) =>
           p.id === product.id
             ? { ...p, reservedCount: (p.reservedCount ?? 0) + 1 }
             : p
         )
       );
+      // El modal se cierra hasta que el apartado quedó guardado.
+      setProductToAssign(null);
+      handleCloseModals();
       toast.success(`Apartado para ${client.name}`);
+      return true;
     } catch {
       toast.error("No se pudo apartar el producto");
+      return false;
     }
   };
 
@@ -369,6 +373,7 @@ export default function Page() {
         onClose={handleCloseModals}
         onSelectClient={handleClientSelectedForAssignment}
         clients={clients}
+        productTitle={productToAssign?.title}
       />
 
       {/* ... (otros modales existentes) ... */}

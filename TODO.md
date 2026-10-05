@@ -55,11 +55,6 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
 
 ## Inventario
 
-- [ ] **Loader al apartar desde Inventario**: elegir producto → cliente
-      cierra el modal de inmediato y no se ve que se está procesando. Mismo
-      tratamiento que "Apartar Producto" en la cuenta del cliente ("Apartando..."
-      con loader, no se cierra hasta terminar, se queda abierto si falla).
-
 - [ ] **Servicios → darle funcionalidad al botón "Registrar"** (#37) (hoy está
       deshabilitado a propósito, "Próximamente"): anotar que se hizo un
       servicio (p. ej. una copia, un acta), incluyendo servicios
@@ -191,6 +186,9 @@ Un solo formato de ticket de venta que sirva para dos cosas:
 ## Completado
 
 ### 2026-10-05
+- [x] Loader al apartar desde Inventario: el botón del cliente elegido dice
+      "Apartando..." con loader, el modal no se cierra hasta que se guarda
+      (y se queda abierto si falla). Encabezado con icono y el producto.
 - [x] "Guardar y agregar otro" en el modal de agregar producto/servicio
       (#38): guarda y deja el modal abierto, limpio y con el mismo
       proveedor, con el cursor en Título; Enter hace lo mismo. Leyenda gris
