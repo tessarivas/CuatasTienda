@@ -43,6 +43,7 @@ export async function GET(_req: Request, { params }: Ctx) {
     prisma.payment.findMany({
       where: { clientId },
       orderBy: { date: "desc" },
+      include: { User: { select: { name: true } } },
     }),
     prisma.sale.findMany({
       where: { clientId },
@@ -72,6 +73,8 @@ export async function GET(_req: Request, { params }: Ctx) {
         amount: string;
         method: string;
         receiptUrl: string | null;
+        // Quién recibió el abono (para el comprobante impreso).
+        receivedBy: string;
       }
     | {
         type: "liquidacion";
@@ -98,6 +101,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       amount: p.amount.toFixed(2),
       method: p.method,
       receiptUrl: p.receiptUrl,
+      receivedBy: p.User.name,
     })),
     ...sales.map<Movement>((s) => ({
       type: "liquidacion",

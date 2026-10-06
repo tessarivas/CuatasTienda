@@ -166,26 +166,16 @@ mercancía, sin salir de la app.
 - [ ] Confirmar que el lector de la caja lee bien la etiqueta impresa (el
       buscador de la caja ya acepta el código).
 
-## Formato de ticket (impresora de tickets y vista en pantalla) (#39)
-
-Un solo formato de ticket de venta que sirva para dos cosas:
-
-- [ ] **Versión para imprimir en la impresora de tickets** (papel térmico
-      angosto): datos de la tienda (`lib/store-info.ts`), folio, fecha y
-      hora, productos con cantidad y precio, descuentos, total, método de
-      pago y quién atendió.
-- [ ] **Usar esa misma vista como simulación del ticket** en los modales
-      donde hoy se ve una venta (p. ej. el ticket del Historial de Ventas y
-      el de venta completada en la caja), para que lo que se ve en pantalla
-      sea igual a lo que se imprime.
-- [ ] Decidir antes de construirlo: modelo de impresora y ancho del papel
-      (58 mm u 80 mm); si se imprime desde el navegador (`window.print()`
-      con CSS de impresión) o con otro método; si se imprime solo al cobrar
-      o con un botón.
-
 ## Completado
 
 ### 2026-10-05
+- [x] Ticket para la impresora EC Line EC-PM-58110 (58 mm) (#39): un solo
+      componente (`dashboard/_components/ticket.tsx`) que es la vista previa
+      y lo que se imprime (`lib/print-ticket.ts`, iframe con hoja de 58 mm
+      por el alto del ticket). En "¡Venta completada!" con botón "Imprimir
+      ticket" (no se imprime solo), "Reimprimir ticket" en el Historial de
+      Ventas, y comprobante de abono (con la cuenta al imprimir) desde el
+      historial del cliente. Pie: "¡Gracias por su compra!".
 - [x] Loader al apartar desde Inventario: el botón del cliente elegido dice
       "Apartando..." con loader, el modal no se cierra hasta que se guarda
       (y se queda abierto si falla). Encabezado con icono y el producto.

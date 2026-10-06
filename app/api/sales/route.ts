@@ -16,6 +16,37 @@ const VALID_METHODS: ReadonlyArray<PaymentMethod> = [
 
 const MAX_MONEY = 100_000_000;
 
+// Forma de una venta para la pantalla: la usan el Historial de Ventas (GET)
+// y la respuesta al cobrar en caja (POST), para que el ticket (vista previa
+// e impresión) se arme igual en los dos lugares.
+const SALE_ROW_SELECT = {
+  id: true,
+  folio: true,
+  date: true,
+  total: true,
+  discount: true,
+  paymentMethod: true,
+  receiptUrl: true,
+  Client: { select: { id: true, name: true } },
+  User: { select: { name: true } },
+  SaleItem: {
+    select: {
+      id: true,
+      quantity: true,
+      finalPrice: true,
+      discount: true,
+      Product: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          Supplier: { select: { businessName: true } },
+        },
+      },
+    },
+  },
+} satisfies Prisma.SaleSelect;
+
 type DiscountInput = { type: "percentage" | "fixed"; value: number };
 
 function parseDiscount(raw: unknown): DiscountInput | null | "invalid" {
@@ -69,33 +100,7 @@ export async function GET(req: Request) {
     const sales = await prisma.sale.findMany({
       where: { date: { gte: from, lt: to } },
       orderBy: { date: "desc" },
-      select: {
-        id: true,
-        folio: true,
-        date: true,
-        total: true,
-        discount: true,
-        paymentMethod: true,
-        receiptUrl: true,
-        Client: { select: { id: true, name: true } },
-        User: { select: { name: true } },
-        SaleItem: {
-          select: {
-            id: true,
-            quantity: true,
-            finalPrice: true,
-            discount: true,
-            Product: {
-              select: {
-                id: true,
-                title: true,
-                type: true,
-                Supplier: { select: { businessName: true } },
-              },
-            },
-          },
-        },
-      },
+      select: SALE_ROW_SELECT,
     });
     return NextResponse.json(sales);
   } catch (err) {
@@ -270,11 +275,7 @@ export async function POST(req: Request) {
               })),
             },
           },
-          include: {
-            SaleItem: {
-              include: { Product: { select: { id: true, title: true } } },
-            },
-          },
+          select: SALE_ROW_SELECT,
         });
 
         for (const c of computed) {

@@ -11,29 +11,21 @@ import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { type ApiSaleRow } from "../sales/sales-utils";
 
-// Respuesta de POST /api/sales. Decimal llega como string.
-type ApiSale = {
-  folio: string;
-  date: string;
-  total: string;
-  SaleItem: {
-    productId: number;
-    finalPrice: string;
-    quantity: number;
-    discount: string;
-    Product: { title: string };
-  }[];
-};
+// Respuesta de POST /api/sales: la venta con la misma forma que el
+// Historial de Ventas (Decimal llega como string), para armar el ticket.
+type ApiSale = ApiSaleRow;
 
 export default function POSPage() {
-  const { products, setProducts, sales, setSales, isLoadingProducts } =
+  const { products, setProducts, isLoadingProducts } =
     React.useContext(DashboardContext);
 
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [totalDiscount, setTotalDiscount] = React.useState<Discount | undefined>();
   const [showCompleteModal, setShowCompleteModal] = React.useState(false);
-  const [lastSaleId, setLastSaleId] = React.useState<string>("");
+  // Última venta cobrada, para el ticket de "¡Venta completada!".
+  const [lastSale, setLastSale] = React.useState<ApiSale | null>(null);
   // Hoja del carrito en celular: plegada (sólo total y Cobrar) o desplegada.
   const [isCartExpanded, setIsCartExpanded] = React.useState(false);
 
@@ -132,26 +124,6 @@ export default function POSPage() {
       }
       const { sale }: { sale: ApiSale } = await res.json();
 
-      const newSale = {
-        id: sale.folio,
-        date: sale.date,
-        items: sale.SaleItem.map((si) => {
-          const unitPrice = Number(si.finalPrice);
-          return {
-            productId: String(si.productId),
-            productTitle: si.Product.title,
-            quantity: si.quantity,
-            unitPrice,
-            discount: cart.find((c) => c.product.id === String(si.productId))
-              ?.discount,
-            subtotal: unitPrice * si.quantity - Number(si.discount),
-          };
-        }),
-        totalDiscount,
-        total: Number(sale.total),
-        paymentMethod,
-      };
-
       // Reflejar el stock que ya descontó el servidor. Los servicios no
       // descuentan inventario; un producto en 0 pasa a "Vendido".
       setProducts((prevProducts) =>
@@ -169,8 +141,7 @@ export default function POSPage() {
         })
       );
 
-      setSales((prevSales) => [newSale, ...prevSales]);
-      setLastSaleId(sale.folio);
+      setLastSale(sale);
       setShowCompleteModal(true);
       setIsCartExpanded(false);
       setCart([]);
@@ -292,8 +263,7 @@ export default function POSPage() {
       <SaleCompleteModal
         isOpen={showCompleteModal}
         onClose={() => setShowCompleteModal(false)}
-        saleId={lastSaleId}
-        sale={sales.find((s) => s.id === lastSaleId)}
+        sale={lastSale}
       />
     </>
   );

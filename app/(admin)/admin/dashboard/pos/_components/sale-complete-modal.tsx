@@ -2,165 +2,72 @@
 "use client";
 
 import * as React from "react";
-import { type Sale } from "@/lib/data";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2, Printer } from "lucide-react";
+import { SaleTicket, TicketPreview, type TicketSale } from "../../_components/ticket";
+import { printTicket } from "@/lib/print-ticket";
+import { toast } from "@/lib/toast";
 
 interface SaleCompleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  saleId: string;
-  sale?: Sale;
+  // Venta tal como la regresa POST /api/sales (misma forma que el
+  // Historial de Ventas).
+  sale: TicketSale | null;
 }
 
-export function SaleCompleteModal({
-  isOpen,
-  onClose,
-  saleId,
-  sale,
-}: SaleCompleteModalProps) {
+// "¡Venta Completada!": vista previa del ticket (lo mismo que sale en la
+// impresora) y botón para imprimirlo. No se imprime solo: la tienda decide
+// en cada venta si el cliente quiere ticket.
+export function SaleCompleteModal({ isOpen, onClose, sale }: SaleCompleteModalProps) {
+  const ticketRef = React.useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = React.useState(false);
+
   if (!sale) return null;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("es-MX", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handlePrint = async () => {
+    if (!ticketRef.current || isPrinting) return;
+    setIsPrinting(true);
+    try {
+      await printTicket(ticketRef.current);
+    } catch (err) {
+      console.error("Imprimir ticket falló", err);
+      toast.error("No se pudo imprimir el ticket");
+    } finally {
+      setIsPrinting(false);
+    }
   };
-
-  const calculateItemsTotal = () => {
-    return sale.items.reduce((total, item) => {
-      return total + item.unitPrice * item.quantity;
-    }, 0);
-  };
-
-  const calculateItemsDiscount = () => {
-    return sale.items.reduce((total, item) => {
-      if (!item.discount) return total;
-      const itemTotal = item.unitPrice * item.quantity;
-      if (item.discount.type === "percentage") {
-        return total + itemTotal * (item.discount.value / 100);
-      }
-      return total + item.discount.value;
-    }, 0);
-  };
-
-  const itemsTotal = calculateItemsTotal();
-  const itemsDiscount = calculateItemsDiscount();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="flex flex-col items-center gap-2">
-            <CheckCircle2 className="h-12 w-12 text-my-green-dark" />
-            <DialogTitle className="text-2xl">¡Venta Completada!</DialogTitle>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-my-green-dark" />
+            ¡Venta completada!
+          </DialogTitle>
+          <DialogDescription>Folio {sale.folio}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Información de la venta */}
-          <div className="text-center space-y-1">
-            <p className="text-sm text-muted-foreground">Folio de venta</p>
-            <p className="font-mono font-semibold">{saleId}</p>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(sale.date)}
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Productos */}
-          <div className="space-y-2">
-            <h3 className="font-semibold text-sm">Productos:</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {sale.items.map((item, index) => (
-                <div key={index} className="text-sm">
-                  <div className="flex justify-between">
-                    <span>
-                      {item.quantity}x {item.productTitle}
-                    </span>
-                    <span>${(item.unitPrice * item.quantity).toFixed(2)}</span>
-                  </div>
-                  {item.discount && (
-                    <div className="text-xs text-my-green-dark pl-4">
-                      Descuento:{" "}
-                      {item.discount.type === "percentage"
-                        ? `${item.discount.value}%`
-                        : `$${item.discount.value}`}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Resumen de totales */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal:</span>
-              <span>${itemsTotal.toFixed(2)}</span>
-            </div>
-
-            {itemsDiscount > 0 && (
-              <div className="flex justify-between text-sm text-my-green-dark">
-                <span>Descuentos en items:</span>
-                <span>-${itemsDiscount.toFixed(2)}</span>
-              </div>
-            )}
-
-            {sale.totalDiscount && (
-              <div className="flex justify-between text-sm text-my-green-dark">
-                <span>
-                  Descuento total (
-                  {sale.totalDiscount.type === "percentage"
-                    ? `${sale.totalDiscount.value}%`
-                    : `$${sale.totalDiscount.value}`}
-                  ):
-                </span>
-                <span>
-                  -$
-                  {sale.totalDiscount.type === "percentage"
-                    ? (
-                        (itemsTotal - itemsDiscount) *
-                        (sale.totalDiscount.value / 100)
-                      ).toFixed(2)
-                    : sale.totalDiscount.value.toFixed(2)}
-                </span>
-              </div>
-            )}
-
-            <Separator />
-
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total pagado:</span>
-              <span className="text-primary">${sale.total.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Método de pago:</span>
-              <span className="font-medium">{sale.paymentMethod}</span>
-            </div>
-          </div>
-        </div>
+        <TicketPreview>
+          <SaleTicket ref={ticketRef} sale={sale} />
+        </TicketPreview>
 
         <DialogFooter>
-          <Button onClick={onClose} className="w-full cursor-pointer">
-            Nueva Venta
+          <Button variant="outline" onClick={handlePrint} disabled={isPrinting} className="cursor-pointer">
+            {isPrinting ? <Loader2 className="animate-spin" /> : <Printer />}
+            Imprimir ticket
+          </Button>
+          <Button onClick={onClose} className="cursor-pointer">
+            Nueva venta
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,7 +10,7 @@ clients with credit balances, layaways ("apartados"), and a POS screen.
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
 its dated **Completado** section at the bottom (don't just delete them). Currently open: what to do with a client's leftover credit (a "limpiar
 saldo" option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios
-tab; printable barcode labels (PDF) from `Product.code`; a printable sales ticket; time-boxed per-supplier
+tab; printable barcode labels (PDF) from `Product.code`; time-boxed per-supplier
 discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
 feeds the cash closing; and a real "permanently delete" action distinct from today's soft-delete
 "Eliminar producto".
@@ -363,6 +363,20 @@ balance already covers an apartado, and products with one free unit. Its cards l
 `dashboard/_components/home/`. Animations use `motion` (`motion/react`), already a dependency:
 sliding tab pill (`layoutId`), Apple-style rings, disclosure rows, self-drawing check. Keep motion
 subtle and colors on the `my-*` tokens.
+
+### Printed tickets (58 mm thermal printer)
+
+The store prints on an **EC Line EC-PM-58110** (58 mm thermal paper, ~48 mm printable, ESC/POS,
+USB, Windows driver). `dashboard/_components/ticket.tsx` (`SaleTicket`, `PaymentTicket`,
+`TicketPreview`) is both the on-screen preview and what gets printed: `lib/print-ticket.ts` copies
+that DOM node (minus `[data-print-hide]` nodes, e.g. the supplier shown only in the sales-history
+preview) into a hidden iframe with the page's styles and an `@page` of **58 mm × the ticket's
+measured height** — `size: 58mm auto` is invalid CSS and Chrome silently falls back to Letter.
+Tickets are deliberately black-on-white (paper), not app tokens. Printing is manual (button), never
+automatic: "¡Venta completada!" in the POS, "Reimprimir ticket" in Historial de Ventas, and a
+comprobante de abono (account status at print time) from each abono row in `clients/[id]`.
+`POST /api/sales` returns the same `SALE_ROW_SELECT` shape as `GET /api/sales` so one component
+serves both. To skip the print dialog on the register PC, launch Chrome with `--kiosk-printing`.
 
 ### PDF reports
 

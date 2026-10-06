@@ -33,6 +33,8 @@ import {
 import { AssignProductModal } from "../_components/assign-product-modal";
 import { EditClientModal } from "../_components/edit-client-modal";
 import { ReceiptDialog } from "../../sales/_components/receipt-dialog";
+import { PaymentTicketDialog } from "../_components/payment-ticket-dialog";
+import { type TicketPayment } from "../../_components/ticket";
 import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import {
   AddPaymentModal,
@@ -53,6 +55,7 @@ import {
   Receipt,
   Loader2,
   Paperclip,
+  Printer,
 } from "lucide-react";
 import {
   normalizeClient,
@@ -96,6 +99,7 @@ type Movement =
       amount: string;
       method: string;
       receiptUrl: string | null;
+      receivedBy: string;
     }
   | {
       type: "liquidacion";
@@ -174,6 +178,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
   // Abono cuyo comprobante se está viendo.
+  // Abono cuyo comprobante impreso se está viendo.
+  const [ticketPayment, setTicketPayment] = React.useState<TicketPayment | null>(null);
   const [viewingReceipt, setViewingReceipt] = React.useState<{
     url: string;
     title: string;
@@ -973,6 +979,34 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                           </div>
                           {/* Abono con tarjeta/transferencia con comprobante
                               adjunto (se adjunta desde el Corte de Caja). */}
+                          {/* Comprobante impreso del abono, con la cuenta
+                              al momento de imprimir. */}
+                          {m.type === "abono" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Imprimir comprobante"
+                              aria-label="Imprimir comprobante del abono"
+                              className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground"
+                              onClick={() =>
+                                setTicketPayment({
+                                  id: m.id,
+                                  date: m.date,
+                                  amount: Number(m.amount),
+                                  method: m.method,
+                                  receivedBy: m.receivedBy,
+                                  clientName: client.name,
+                                  account: {
+                                    reservedTotal: reservedTotalCents / 100,
+                                    balance: balanceCents / 100,
+                                  },
+                                  printedAt: new Date().toISOString(),
+                                })
+                              }
+                            >
+                              <Printer />
+                            </Button>
+                          )}
                           {m.type === "abono" && m.receiptUrl && (
                             <Button
                               variant="ghost"
@@ -1293,6 +1327,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <PaymentTicketDialog
+        payment={ticketPayment}
+        onClose={() => setTicketPayment(null)}
+      />
       <ReceiptDialog
         url={viewingReceipt?.url ?? null}
         title={viewingReceipt?.title ?? ""}
