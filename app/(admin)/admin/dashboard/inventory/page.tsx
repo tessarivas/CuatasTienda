@@ -280,7 +280,7 @@ export default function Page() {
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-4">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <Input
             placeholder={
               activeTab === "productos"
@@ -289,13 +289,16 @@ export default function Page() {
             }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:max-w-sm"
+            // En escritorio toma sólo lo que sobra (flex-1, mínimo 10rem) para
+            // que filtros y botón quepan en un renglón; en celular, ancho
+            // completo arriba de los filtros.
+            className="w-full lg:w-auto lg:min-w-40 lg:max-w-sm lg:flex-1"
           />
           <Select
             value={sortOrder}
             onValueChange={(v) => setSortOrder(v as SortOrder)}
           >
-            <SelectTrigger className="w-48 cursor-pointer">
+            <SelectTrigger className="w-44 cursor-pointer">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent className="cursor-pointer">
@@ -310,10 +313,11 @@ export default function Page() {
             </SelectContent>
           </Select>
           <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-            {/* w-45 recortaba "Todos los proveedores" a la mitad. truncate
+            {/* w-45 recortaba "Todos los proveedores" a la mitad; w-52 ya
+                lo muestra completo. truncate
                 queda además como red de seguridad por si se elige un
                 proveedor con nombre largo. */}
-            <SelectTrigger className="w-60 cursor-pointer">
+            <SelectTrigger className="w-52 cursor-pointer">
               <SelectValue
                 placeholder="Filtrar por proveedor"
                 className="truncate"
@@ -330,7 +334,7 @@ export default function Page() {
           </Select>
           {activeTab === "productos" && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-45 cursor-pointer">
+              <SelectTrigger className="w-44 cursor-pointer">
                 <SelectValue placeholder="Filtrar por estatus" />
               </SelectTrigger>
               <SelectContent className="cursor-pointer">
@@ -346,12 +350,16 @@ export default function Page() {
               {activeTab === "productos" ? (
                 <>
                   <PackagePlus />
-                  Agregar Producto
+                  {/* Entre lg y 1380px sólo "Agregar" para que quepa en el
+                      renglón de filtros; el icono dice qué se agrega. */}
+                  <span className="lg:hidden min-[1380px]:inline">Agregar Producto</span>
+                  <span className="hidden lg:inline min-[1380px]:hidden">Agregar</span>
                 </>
               ) : (
                 <>
                   <Wrench />
-                  Agregar Servicio
+                  <span className="lg:hidden min-[1380px]:inline">Agregar Servicio</span>
+                  <span className="hidden lg:inline min-[1380px]:hidden">Agregar</span>
                 </>
               )}
             </Button>
