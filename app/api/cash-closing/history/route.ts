@@ -26,6 +26,7 @@ export async function GET() {
           prisma.payment.count({
             where: {
               date: window,
+              kind: "Abono",
               method: { in: ["Tarjeta", "Transferencia"] },
               receiptUrl: null,
             },

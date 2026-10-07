@@ -41,6 +41,7 @@ async function collect(from: Date, to: Date) {
         date: true,
         amount: true,
         method: true,
+        kind: true,
         receiptUrl: true,
         Client: { select: { id: true, name: true } },
       },
@@ -55,9 +56,12 @@ async function collect(from: Date, to: Date) {
     if (s.paymentMethod === "Efectivo") cashSales = cashSales.plus(s.total);
     else bankTotal = bankTotal.plus(s.total);
   }
+  // Una devolución de saldo (kind "Devolucion") es dinero que sale: resta
+  // de la caja de apartados si fue en efectivo, o del banco si no.
   for (const p of payments) {
-    if (p.method === "Efectivo") cashPayments = cashPayments.plus(p.amount);
-    else bankTotal = bankTotal.plus(p.amount);
+    const amount = p.kind === "Devolucion" ? p.amount.negated() : p.amount;
+    if (p.method === "Efectivo") cashPayments = cashPayments.plus(amount);
+    else bankTotal = bankTotal.plus(amount);
   }
   return { sales, payments, cashSales, cashPayments, bankTotal };
 }

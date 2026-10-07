@@ -22,10 +22,16 @@ export async function POST(req: Request, { params }: Ctx) {
 
   const payment = await prisma.payment.findUnique({
     where: { id },
-    select: { id: true, method: true },
+    select: { id: true, method: true, kind: true },
   });
   if (!payment) {
     return NextResponse.json({ error: "Abono no encontrado" }, { status: 404 });
+  }
+  if (payment.kind === "Devolucion") {
+    return NextResponse.json(
+      { error: "Las devoluciones de saldo no llevan comprobante" },
+      { status: 409 }
+    );
   }
   if (payment.method === "Efectivo") {
     return NextResponse.json(

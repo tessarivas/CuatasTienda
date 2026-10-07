@@ -20,6 +20,10 @@ Cosas ya construidas que falta probar a mano (sin issue en GitHub):
       y estado de cuenta del cliente.
 - [ ] Fecha de apartado en las tarjetas y clip de comprobante en el
       historial del cliente.
+- [ ] Devolver saldo excedente (#36): con un cliente que abonó más de lo
+      apartado, "Devolver" junto a "Le sobran"; revisar que baje su saldo,
+      salga en su historial y estado de cuenta, y que en el Corte de Caja
+      reste de la caja de apartados (efectivo) o de banco.
 
 ## Cliente: cómo se lleva la cuenta (`clients/[id]`, referencia)
 
@@ -41,18 +45,6 @@ Liquidar (marcar vendido) no cambia lo que falta por pagar: baja apartado y
 abonado por el mismo monto. Precios = snapshot de `LayawayItem.price`.
 
 
-## Saldo a favor del cliente: qué pasa con lo que sobra (#36)
-
-Un cliente puede quedar sin apartados pero con saldo positivo (el pie lo
-muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
-
-- [ ] Revisar qué debe pasar con ese saldo: ¿se queda como crédito para
-      futuros apartados, se le devuelve al cliente, o ambas?
-- [ ] Opción de **limpiar / vaciar saldo** en `clients/[id]`. Ojo: no debe
-      ser sólo poner `currentBalance` en 0 — tiene que dejar un movimiento en
-      el historial (p. ej. "Devolución de saldo", con quién la hizo y
-      cuándo), o el historial deja de cuadrar contra el total.
-
 ## Inventario
 
 - [ ] **Servicios → darle funcionalidad al botón "Registrar"** (#37) (hoy está
@@ -63,27 +55,6 @@ muestra como "Le sobran $X"). Hoy ese saldo se queda ahí indefinidamente.
       servicios personalizados (precio propio, sin estar en catálogo)
       necesitarán decidir cómo se guardan, porque hoy `SaleItem` apunta a un
       producto existente.
-
-## Eliminar producto: separar "retirar" (ya existe) de "eliminar permanentemente" (no existe) (#6)
-
-Hoy "Eliminar producto" en `product-details-modal.tsx` es un soft-delete:
-pone `status = "Retirado"` y ya queda fuera de catálogo, POS y listas — eso
-es correcto y se queda igual.
-
-Falta una acción aparte, más destructiva, para cuando la tienda decida
-limpiar productos retirados viejos:
-
-- [ ] Definir dónde vive esa acción — probablemente en el Historial por
-      proveedor de arriba, no en el modal de detalle normal.
-- [ ] Ojo con las foreign keys: `Product` tiene relaciones con
-      `StockMovement`, `SaleItem` y `LayawayItem`, sin `onDelete: Cascade`
-      en el schema actual. Un hard-delete real de un producto con historial
-      choca contra esas FK. Hay que decidir: ¿bloquear el borrado si hay
-      movimientos/ventas asociadas (como ya se hace hoy al borrar un
-      supplier o un cliente), o migrar el schema para permitirlo?
-- [ ] Confirmación reforzada (escribir el nombre del producto, por ejemplo)
-      dado que es irreversible — a diferencia del "Retirar" actual, que se
-      puede deshacer con `POST /api/products/[id]/restore`.
 
 ## Gastos de la tienda (#33)
 
@@ -167,6 +138,16 @@ mercancía, sin salir de la app.
       buscador de la caja ya acepta el código).
 
 ## Completado
+
+### 2026-10-07
+- [x] Borrar producto para siempre (#6): dentro del diálogo de "Eliminar
+      producto", sólo si no tiene ventas, apartados ni movimientos; pide
+      escribir el nombre. Borra también su foto en Cloudinary. Se corrigió
+      el texto del diálogo, que decía "permanente" para un retiro.
+- [x] Devolver saldo a favor (#36): botón "Devolver" junto a "Le sobran" en
+      la cuenta del cliente. Sólo lo que sobra de sus apartados; queda en el
+      historial (naranja) y en el estado de cuenta; en el corte resta de la
+      caja de apartados (efectivo) o de banco. Migración `payment_kind`.
 
 ### 2026-10-05
 - [x] Ticket para la impresora EC Line EC-PM-58110 (58 mm) (#39): un solo

@@ -34,6 +34,7 @@ import { AssignProductModal } from "../_components/assign-product-modal";
 import { EditClientModal } from "../_components/edit-client-modal";
 import { ReceiptDialog } from "../../sales/_components/receipt-dialog";
 import { PaymentTicketDialog } from "../_components/payment-ticket-dialog";
+import { RefundModal } from "../_components/refund-modal";
 import { type TicketPayment } from "../../_components/ticket";
 import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import {
@@ -56,6 +57,7 @@ import {
   Loader2,
   Paperclip,
   Printer,
+  Undo2,
 } from "lucide-react";
 import {
   normalizeClient,
@@ -99,6 +101,15 @@ type Movement =
       amount: string;
       method: string;
       receiptUrl: string | null;
+      receivedBy: string;
+    }
+  | {
+      // Devolución de saldo a favor (#36): baja el saldo del cliente.
+      type: "devolucion";
+      id: number;
+      date: string;
+      amount: string;
+      method: string;
       receivedBy: string;
     }
   | {
@@ -178,6 +189,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
   // Abono cuyo comprobante se está viendo.
+  const [isRefundOpen, setIsRefundOpen] = React.useState(false);
   // Abono cuyo comprobante impreso se está viendo.
   const [ticketPayment, setTicketPayment] = React.useState<TicketPayment | null>(null);
   const [viewingReceipt, setViewingReceipt] = React.useState<{
@@ -329,6 +341,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           if (m.type === "abono") {
             return { date: m.date, label: `Abono (${m.method})`, kind: "abono" as const, amount };
           }
+          if (m.type === "devolucion") {
+            return {
+              date: m.date,
+              label: `Devolución de saldo (${m.method})`,
+              kind: "cargo" as const,
+              amount,
+            };
+          }
           if (m.type === "apartado") {
             const cancelled = m.status === "Cancelado";
             return {
@@ -399,6 +419,32 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       toast.error("No se pudo registrar el abono");
     } finally {
       setActionInFlight(false);
+    }
+  };
+
+  // Devolver saldo a favor (#36): sólo lo que sobra después de cubrir sus
+  // apartados; el servidor vuelve a revisar el límite.
+  const handleRefund = async (amount: number, method: PaymentMethod) => {
+    try {
+      const res = await fetch(`/api/clients/${id}/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amount.toFixed(2), method }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        toast.error(message ?? "No se pudo registrar la devolución");
+        return;
+      }
+      const { client: updatedClient }: { client: ApiClient } = await res.json();
+      setClients((prev) =>
+        prev.map((c) => (c.id === id ? normalizeClient(updatedClient) : c))
+      );
+      await reloadMovements();
+      setIsRefundOpen(false);
+      toast.success(`Devolución de $${amount.toFixed(2)} registrada`);
+    } catch {
+      toast.error("No se pudo registrar la devolución");
     }
   };
 
@@ -940,7 +986,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                         ? `Apartó: ${m.title}`
                         : m.type === "abono"
                           ? `Abono (${m.method})`
-                          : `${m.legacy ? "Liquidación" : "Vendido"}: ${m.items
+                          : m.type === "devolucion"
+                            ? `Devolución de saldo (${m.method})`
+                            : `${m.legacy ? "Liquidación" : "Vendido"}: ${m.items
                               .map((i) => i.title)
                               .join(", ")}`;
                     return (
@@ -949,6 +997,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                         className={cn(
                           "py-2",
                           m.type === "abono" && "text-my-green-dark",
+                          m.type === "devolucion" && "text-my-orange-dark",
                           (m.type === "apartado" ||
                             (m.type === "liquidacion" && m.legacy)) &&
                             "text-my-red-dark",
@@ -1086,13 +1135,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     </span>
                   )}
                 </div>
-                {/* Caso raro: abonó más de lo que tiene apartado. */}
+                {/* Abonó más de lo que tiene apartado: lo que sobra se
+                    queda como crédito o se le devuelve (#36). */}
                 {!isLoadingLayaway && sobranCents > 0 && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span>Le sobran</span>
-                    <span className="font-medium text-my-green-dark">
-                      {formatMoney(sobranCents)}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 cursor-pointer px-2 text-xs text-muted-foreground"
+                        onClick={() => setIsRefundOpen(true)}
+                      >
+                        <Undo2 />
+                        Devolver
+                      </Button>
+                      <span className="font-medium text-my-green-dark">
+                        {formatMoney(sobranCents)}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1327,6 +1388,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <RefundModal
+        isOpen={isRefundOpen}
+        onClose={() => setIsRefundOpen(false)}
+        surplus={sobranCents / 100}
+        onRefund={handleRefund}
+      />
       <PaymentTicketDialog
         payment={ticketPayment}
         onClose={() => setTicketPayment(null)}

@@ -99,7 +99,7 @@ export async function GET() {
         select: { id: true, folio: true, date: true, total: true, paymentMethod: true },
       }),
       prisma.payment.findMany({
-        where: { method: { in: ["Tarjeta", "Transferencia"] }, receiptUrl: null },
+        where: { kind: "Abono", method: { in: ["Tarjeta", "Transferencia"] }, receiptUrl: null },
         orderBy: { date: "desc" },
         select: {
           id: true,
@@ -141,6 +141,7 @@ export async function GET() {
           date: true,
           amount: true,
           method: true,
+          kind: true,
           Client: { select: { id: true, name: true } },
         },
       }),
@@ -321,7 +322,10 @@ export async function GET() {
         key: `abono-${p.id}`,
         type: "abono",
         date: p.date,
-        title: `Abono de ${p.Client.name}`,
+        title:
+          p.kind === "Devolucion"
+            ? `Devolución a ${p.Client.name}`
+            : `Abono de ${p.Client.name}`,
         detail: p.method,
         amount: Number(p.amount),
         href: `/admin/dashboard/clients/${p.Client.id}`,

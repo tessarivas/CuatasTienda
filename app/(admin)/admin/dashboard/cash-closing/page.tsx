@@ -58,6 +58,8 @@ type DayData = {
     date: string;
     amount: string;
     method: Method;
+    // Devolucion = saldo que se le regresó al cliente (resta, sin comprobante).
+    kind: "Abono" | "Devolucion";
     receiptUrl: string | null;
     Client: { id: number; name: string };
   }[];
@@ -168,7 +170,7 @@ export default function CashClosingPage() {
             receiptUrl: s.receiptUrl,
           })),
         ...data.payments
-          .filter((p) => p.method !== "Efectivo")
+          .filter((p) => p.method !== "Efectivo" && p.kind === "Abono")
           .map((p) => ({
             key: `abono-${p.id}`,
             kind: "abono" as const,
@@ -240,11 +242,12 @@ export default function CashClosingPage() {
           hasReceipt: !!s.receiptUrl,
         })),
         payments: data.payments.map((p) => ({
-          client: p.Client.name,
+          client: p.kind === "Devolucion" ? `Devolución a ${p.Client.name}` : p.Client.name,
           date: p.date,
           method: p.method,
-          amount: Number(p.amount),
+          amount: p.kind === "Devolucion" ? -Number(p.amount) : Number(p.amount),
           hasReceipt: !!p.receiptUrl,
+          isRefund: p.kind === "Devolucion",
         })),
       });
     } catch (err) {

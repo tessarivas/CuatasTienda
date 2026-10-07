@@ -31,7 +31,8 @@ export type CashClosingReportData = {
   bankTotal: number;
   notes: string;
   sales: { folio: string | null; date: string; method: string; total: number; hasReceipt: boolean }[];
-  payments: { client: string; date: string; method: string; amount: number; hasReceipt: boolean }[];
+  // amount negativo e isRefund = devolución de saldo al cliente (sin comprobante).
+  payments: { client: string; date: string; method: string; amount: number; hasReceipt: boolean; isRefund?: boolean }[];
 };
 
 const SALE_COLUMNS: Column[] = [
@@ -51,8 +52,8 @@ const PAYMENT_COLUMNS: Column[] = [
 ];
 
 // Comprobante sólo aplica a tarjeta y transferencia.
-const receiptCell = (method: string, hasReceipt: boolean) =>
-  method === "Efectivo" ? "" : hasReceipt ? "Adjunto" : "Pendiente";
+const receiptCell = (method: string, hasReceipt: boolean, isRefund = false) =>
+  method === "Efectivo" || isRefund ? "" : hasReceipt ? "Adjunto" : "Pendiente";
 
 function CashLine({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
@@ -82,7 +83,7 @@ export function CashClosingDocument({
     : "Corte abierto, sin cerrar";
   const pending =
     data.sales.filter((s) => s.method !== "Efectivo" && !s.hasReceipt).length +
-    data.payments.filter((p) => p.method !== "Efectivo" && !p.hasReceipt).length;
+    data.payments.filter((p) => p.method !== "Efectivo" && !p.isRefund && !p.hasReceipt).length;
 
   return (
     <ReportDocument
@@ -191,7 +192,7 @@ export function CashClosingDocument({
                 p.client,
                 pdfDateTime(p.date),
                 p.method,
-                receiptCell(p.method, p.hasReceipt),
+                receiptCell(p.method, p.hasReceipt, p.isRefund),
                 pdfMoney(p.amount),
               ]}
             />

@@ -8,12 +8,10 @@ Spanish-language (es-MX) retail back-office for a small consignment store: suppl
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
-its dated **Completado** section at the bottom (don't just delete them). Currently open: what to do with a client's leftover credit (a "limpiar
-saldo" option); wiring up the deliberately disabled "Registrar" button in the inventory Servicios
+its dated **Completado** section at the bottom (don't just delete them). Currently open: wiring up the deliberately disabled "Registrar" button in the inventory Servicios
 tab; printable barcode labels (PDF) from `Product.code`; time-boxed per-supplier
-discounts (promociones) applied automatically at checkout; a store-expenses module (gastos) that
-feeds the cash closing; and a real "permanently delete" action distinct from today's soft-delete
-"Eliminar producto".
+discounts (promociones) applied automatically at checkout; and a store-expenses module (gastos) that
+feeds the cash closing.
 
 The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
 primary CTA right on the same row, then a 3-card highlights row, then a `grid-cols-2
@@ -45,6 +43,10 @@ npx prisma migrate dev --name <name>   # create + apply a migration
 npx prisma migrate deploy              # apply pending migrations
 npx prisma studio
 ```
+
+After `migrate deploy` + `generate`, **restart `npm run dev`**: the running server keeps the old
+client in memory and rejects queries that use the new fields (500s) until restarted; touching
+`lib/db/client.ts` does not reload it.
 
 Output goes to `generated/prisma/`, which is **gitignored**. A fresh clone will not typecheck
 until you run `prisma generate`. Nothing automates it — there is no `postinstall` hook.
@@ -228,7 +230,11 @@ Rules enforced in route handlers, **not** in the schema — preserve them:
 - `LayawayItem.price` and `SaleItem.finalPrice` are **price snapshots** taken at reservation time,
   not the product's current price.
 - `Client.currentBalance` is prepaid credit: incremented by `Payment` ("abono"), decremented on
-  liquidation. Deleting a client requires **no history at all** (no `Payment`, `Layaway` or `Sale`
+  liquidation and by a **refund** — a `Payment` with `kind = "Devolucion"` (positive amount, the
+  sign comes from `kind`; migration `payment_kind`). `POST /api/clients/[id]/refund` only allows
+  refunding the surplus (balance − active apartados). **Every `Payment` sum must branch on `kind`**:
+  the cash closing subtracts refunds (cash → caja de apartados, otherwise banco), and receipt
+  counts/lists only consider `kind: "Abono"` (refunds never carry a comprobante). Deleting a client requires **no history at all** (no `Payment`, `Layaway` or `Sale`
   rows) — its sales feed suppliers' monthly cutoffs, so clients with history are never deleted (409).
 - `POST /api/clients/[id]/layaway/liquidate` accepts an optional `payShortfall: { method }` (used by
   "Liquidar Cuenta"): if the balance doesn't cover the items, it creates a `Payment` for exactly the
@@ -270,6 +276,11 @@ UI: `stock-movement-modal.tsx`, one component for both directions, opened from "
 "Retirar mercancía" in `product-details-modal.tsx`. Those buttons — and the quantity field itself —
 only show once you're editing, only for `type !== "SERVICE"`, and quantity is **never** directly
 editable; it only moves through this endpoint. Don't add a quantity `<Input>` back into that modal.
+
+**Permanent delete** (`/api/products/[id]/permanent`, GET = eligibility, DELETE = delete + drop
+the Cloudinary photo): only for products with **no history at all** (no `SaleItem`, `LayawayItem`
+of any status, or `StockMovement`) — i.e. created by mistake. It lives inside the same "Eliminar
+producto" dialog, below the soft delete, and requires typing the product name.
 
 Naming trap: the modal's destructive button reads **"Eliminar producto"**, not "Retirar" — it does
 a full soft-delete (`status → "Retirado"`, see above), a different action from "Retirar mercancía"

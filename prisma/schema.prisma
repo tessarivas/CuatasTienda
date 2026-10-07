@@ -61,6 +61,7 @@ model Payment {
   clientId   Int
   amount     Decimal       @db.Decimal(10, 2)
   method     PaymentMethod @default(Efectivo)
+  kind       PaymentKind   @default(Abono)
   date       DateTime      @default(now())
   receivedBy String        @db.Uuid
   // Comprobante (imagen en Cloudinary) para tarjeta/transferencia. Se
@@ -231,4 +232,12 @@ enum PaymentMethod {
   Efectivo
   Tarjeta
   Transferencia
+}
+
+// Abono = el cliente deja dinero (sube su saldo). Devolucion = la tienda le
+// regresa saldo a favor (baja su saldo); el monto siempre es positivo y el
+// signo lo da `kind`.
+enum PaymentKind {
+  Abono
+  Devolucion
 }

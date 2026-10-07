@@ -16,7 +16,7 @@ export async function GET() {
         where: { paymentMethod: bank, receiptUrl: null, date: { lt: startOfToday } },
       }),
       prisma.payment.count({
-        where: { method: bank, receiptUrl: null, date: { lt: startOfToday } },
+        where: { kind: "Abono", method: bank, receiptUrl: null, date: { lt: startOfToday } },
       }),
     ]);
     return NextResponse.json({ count: sales + payments });

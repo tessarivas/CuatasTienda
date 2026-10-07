@@ -77,6 +77,15 @@ export async function GET(_req: Request, { params }: Ctx) {
         receivedBy: string;
       }
     | {
+        // Devolución de saldo a favor: baja el saldo del cliente.
+        type: "devolucion";
+        id: number;
+        date: Date;
+        amount: string;
+        method: string;
+        receivedBy: string;
+      }
+    | {
         type: "liquidacion";
         id: number;
         date: Date;
@@ -94,15 +103,26 @@ export async function GET(_req: Request, { params }: Ctx) {
       title: i.Product.title,
       status: i.status,
     })),
-    ...payments.map<Movement>((p) => ({
-      type: "abono",
-      id: p.id,
-      date: p.date,
-      amount: p.amount.toFixed(2),
-      method: p.method,
-      receiptUrl: p.receiptUrl,
-      receivedBy: p.User.name,
-    })),
+    ...payments.map<Movement>((p) =>
+      p.kind === "Devolucion"
+        ? {
+            type: "devolucion",
+            id: p.id,
+            date: p.date,
+            amount: p.amount.toFixed(2),
+            method: p.method,
+            receivedBy: p.User.name,
+          }
+        : {
+            type: "abono",
+            id: p.id,
+            date: p.date,
+            amount: p.amount.toFixed(2),
+            method: p.method,
+            receiptUrl: p.receiptUrl,
+            receivedBy: p.User.name,
+          }
+    ),
     ...sales.map<Movement>((s) => ({
       type: "liquidacion",
       id: s.id,
@@ -119,7 +139,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
   // Empates de fecha: en orden de lectura va primero el apartado, luego el
   // abono, luego la liquidación. Como aquí es DESC, el rango va invertido.
-  const rank = { apartado: 0, abono: 1, liquidacion: 2 } as const;
+  const rank = { apartado: 0, abono: 1, devolucion: 1, liquidacion: 2 } as const;
   movements.sort(
     (a, b) =>
       b.date.getTime() - a.date.getTime() || rank[b.type] - rank[a.type]
