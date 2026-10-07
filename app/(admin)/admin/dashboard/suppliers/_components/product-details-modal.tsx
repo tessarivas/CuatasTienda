@@ -187,6 +187,27 @@ export function ProductDetailsModal({
     doSave();
   };
 
+  // Borrado permanente (#6): sólo productos sin historial. El diálogo ya
+  // pidió escribir el nombre; el servidor vuelve a revisar el historial.
+  const handlePermanentDelete = async () => {
+    try {
+      const res = await fetch(`/api/products/${product.id}/permanent`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        toast.error(message ?? "No se pudo borrar el producto");
+        return;
+      }
+      onChanged?.();
+      setShowDeleteDialog(false);
+      onClose();
+      toast.success("Producto borrado para siempre");
+    } catch {
+      toast.error("No se pudo borrar el producto");
+    }
+  };
+
   const handleDelete = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -589,6 +610,7 @@ export function ProductDetailsModal({
         onOpenChange={setShowDeleteDialog}
         product={product}
         onDelete={handleDelete}
+        onPermanentDelete={handlePermanentDelete}
       />
 
       {stockMovementKind && (
