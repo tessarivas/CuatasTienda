@@ -24,7 +24,7 @@ interface ProductGridProps {
   promoFor?: (product: Product) => ActivePromotion | null;
 }
 
-type SortOrder = "reciente" | "antiguos" | "precio-desc" | "precio-asc";
+type SortOrder = "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
 type TypeFilter = "todos" | "productos" | "servicios";
 
 // Con esta cantidad o menos de unidades libres, el contador se pone en rojo.
@@ -33,9 +33,11 @@ const LOW_STOCK = 5;
 export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>("reciente");
+  // Al abrir la caja: los más vendidos primero, de todos los proveedores y
+  // sólo productos (los servicios están a un clic en el filtro).
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>("vendidos");
   const [supplierFilter, setSupplierFilter] = React.useState<string>("todos");
-  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("todos");
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("productos");
 
   // Unidades libres: total menos las apartadas en Layaways activos.
   const availableOf = (p: Product) => p.quantity - (p.reservedCount ?? 0);
@@ -67,6 +69,11 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
     });
 
     switch (sortOrder) {
+      case "vendidos":
+        // Piezas vendidas de todos los tiempos; empate por nombre.
+        return [...filtered].sort(
+          (a, b) => (b.soldCount ?? 0) - (a.soldCount ?? 0) || a.title.localeCompare(b.title, "es")
+        );
       case "reciente":
         return filtered; // orden de llegada = más reciente primero
       case "antiguos":
@@ -100,6 +107,7 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="vendidos">Más vendidos</SelectItem>
               <SelectItem value="reciente">Recientes primero</SelectItem>
               <SelectItem value="antiguos">Antiguos primero</SelectItem>
               <SelectItem value="precio-desc">Precio: mayor a menor</SelectItem>

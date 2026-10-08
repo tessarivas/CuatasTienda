@@ -346,6 +346,9 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
   disabled + tooltip) and in `POST /api/sales` (400). So the whole ticket discount is charged to that
   one supplier, which is how `GET /api/suppliers/sales` attributes it.
 - `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
+- The POS product grid opens sorted by **"Más vendidos"** (`Product.soldCount`, all time — bumped
+  by POS sales, layaway liquidations and service orders), all suppliers, **only products** (services
+  one click away in the type filter).
 - Below `lg:` the POS cart is a **bottom sheet**: the same `Cart` with a `sheet` prop, collapsed to
   the header (count + total + chevron) and the Cobrar button, expanding to 85% of the height. At
   `lg:` and up it's the usual right-hand 30% column. Both render from `renderCart()` in

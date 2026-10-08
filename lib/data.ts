@@ -34,6 +34,8 @@ export type Product = {
   reservedCount?: number;
   // Servicio que se hace por pedido (aparece al crear un pedido de servicio).
   byOrder?: boolean;
+  // Piezas vendidas de todos los tiempos (caja, apartados y pedidos).
+  soldCount?: number;
 };
 
 export type Client = {
