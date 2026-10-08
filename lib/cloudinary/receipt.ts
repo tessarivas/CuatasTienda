@@ -4,9 +4,10 @@ import cloudinary from "./cloudinary";
 // public_id determinista por cobro, para que volver a subirlo reemplace el
 // anterior en vez de acumular copias:
 //   comprobantes/ventas/{folio}   comprobantes/abonos/{paymentId}
+//   comprobantes/pedidos/{serviceOrderPaymentId}
 export async function uploadReceiptImage(
   file: Buffer,
-  kind: "ventas" | "abonos",
+  kind: "ventas" | "abonos" | "pedidos",
   key: string
 ) {
   return new Promise<{ secure_url: string }>((resolve, reject) => {

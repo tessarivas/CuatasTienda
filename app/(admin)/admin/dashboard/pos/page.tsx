@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { DashboardContext } from "../layout";
-import { type CartItem, type PaymentMethod, type Discount } from "@/lib/data";
+import { type CartItem, type PaymentMethod, type Discount, type Product } from "@/lib/data";
 import { ProductGrid } from "./_components/product-grid";
 import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { type ActivePromotion, promoAppliesTo, promoUnitDiscount } from "@/lib/promotions";
 import { type ApiSaleRow } from "../sales/sales-utils";
 
 // Respuesta de POST /api/sales: la venta con la misma forma que el
@@ -26,6 +27,23 @@ export default function POSPage() {
   const [showCompleteModal, setShowCompleteModal] = React.useState(false);
   // Última venta cobrada, para el ticket de "¡Venta completada!".
   const [lastSale, setLastSale] = React.useState<ApiSale | null>(null);
+  // Promociones vigentes hoy (una por proveedor). Sólo para mostrar y
+  // calcular en pantalla: al cobrar, POST /api/sales las vuelve a leer.
+  const [promotions, setPromotions] = React.useState<ActivePromotion[]>([]);
+  React.useEffect(() => {
+    fetch("/api/promotions/active")
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setPromotions)
+      .catch(() => setPromotions([]));
+  }, []);
+  const promoFor = React.useCallback(
+    (product: Product) =>
+      promotions.find((p) =>
+        promoAppliesTo(p, { id: Number(product.id), supplierId: Number(product.supplierId) || null })
+      ) ?? null,
+    [promotions]
+  );
+
   // Hoja del carrito en celular: plegada (sólo total y Cobrar) o desplegada.
   const [isCartExpanded, setIsCartExpanded] = React.useState(false);
 
@@ -163,7 +181,11 @@ export default function POSPage() {
   // Calcular descuento total de items
   const calculateItemsDiscount = () => {
     return cart.reduce((total, item) => {
-      if (!item.discount) return total;
+      // Sin descuento manual, aplica la promoción del proveedor (por pieza).
+      if (!item.discount) {
+        const promo = promoFor(item.product);
+        return promo ? total + promoUnitDiscount(item.product.price, promo) * item.quantity : total;
+      }
 
       const itemTotal = item.product.price * item.quantity;
       if (item.discount.type === "percentage") {
@@ -218,6 +240,7 @@ export default function POSPage() {
       total={calculateTotal()}
       onProcessSale={handleProcessSale}
       sheet={sheet}
+      promoFor={promoFor}
     />
   );
 
@@ -233,6 +256,7 @@ export default function POSPage() {
           <ProductGrid
             products={products}
             onAddToCart={handleAddToCart}
+            promoFor={promoFor}
           />
         </div>
 

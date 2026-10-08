@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
 import { Pencil, Trash2, User } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { defaultServicePrefix } from "@/lib/services/folio";
 
 interface EditSupplierModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export function EditSupplierModal({
   const [businessName, setBusinessName] = React.useState("");
   const [cellphone, setCellphone] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [servicePrefix, setServicePrefix] = React.useState("");
   const [image, setImage] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -64,6 +66,7 @@ export function EditSupplierModal({
     setBusinessName(supplier.businessName ?? "");
     setCellphone(supplier.cellphone ?? "");
     setEmail(supplier.email ?? "");
+    setServicePrefix(supplier.servicePrefix ?? "");
     setImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [isOpen, supplier]);
@@ -84,6 +87,7 @@ export function EditSupplierModal({
           businessName: businessName.trim(),
           cellphone: cellphone.trim() || null,
           email: email.trim() || null,
+          servicePrefix: servicePrefix.trim().toUpperCase() || null,
         }),
       });
 
@@ -170,6 +174,22 @@ export function EditSupplierModal({
               onChange={(e) => setCellphone(e.target.value)}
               className="col-span-3"
             />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Letras del folio</Label>
+            <div className="col-span-3 space-y-1">
+              <Input
+                value={servicePrefix}
+                maxLength={4}
+                placeholder={defaultServicePrefix(businessName || name)}
+                onChange={(e) => setServicePrefix(e.target.value.toUpperCase())}
+              />
+              <p className="text-xs text-muted-foreground">
+                Para los pedidos de servicio: {(servicePrefix.trim() || defaultServicePrefix(businessName || name))}-001.
+                Vacío = se toman del nombre.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">

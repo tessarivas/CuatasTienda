@@ -72,21 +72,27 @@ model Payment {
 }
 
 model Product {
-  id            Int             @id @default(autoincrement())
-  title         String
-  price         Decimal         @db.Decimal(10, 2)
-  status        String
-  createdAt     DateTime        @default(now())
-  code          String?         @unique
-  picture       String?
-  quantity      Int?
-  soldCount     Int             @default(0)
-  supplierId    Int?
-  type          ProductType
-  LayawayItem   LayawayItem[]
-  Supplier      Supplier?       @relation(fields: [supplierId], references: [id])
-  SaleItem      SaleItem[]
-  StockMovement StockMovement[]
+  id                       Int                        @id @default(autoincrement())
+  title                    String
+  price                    Decimal                    @db.Decimal(10, 2)
+  status                   String
+  createdAt                DateTime                   @default(now())
+  code                     String?                    @unique
+  picture                  String?
+  quantity                 Int?
+  soldCount                Int                        @default(0)
+  supplierId               Int?
+  type                     ProductType
+  LayawayItem              LayawayItem[]
+  Supplier                 Supplier?                  @relation(fields: [supplierId], references: [id])
+  SaleItem                 SaleItem[]
+  StockMovement            StockMovement[]
+  // Servicios que se hacen por pedido (instalaciones, mantenimientos): son
+  // los que aparecen al crear un pedido de servicio. Los rápidos (copias)
+  // se venden en caja como siempre. Sólo aplica a type = SERVICE.
+  byOrder                  Boolean                    @default(false)
+  ServiceOrderItem         ServiceOrderItem[]
+  SupplierPromotionProduct SupplierPromotionProduct[]
 }
 
 // Bitácora de entradas y salidas de inventario que NO son ventas: altas de
@@ -137,43 +143,60 @@ model Sale {
   User          User           @relation(fields: [userId], references: [id])
   SaleItem      SaleItem[]
   LayawayItem   LayawayItem[]
+  // Pedido de servicio que se cobró con esta venta (si viene de uno).
+  ServiceOrder  ServiceOrder?
 }
 
 model SaleItem {
-  id         Int     @id @default(autoincrement())
-  saleId     Int
-  productId  Int
+  id          Int                @id @default(autoincrement())
+  saleId      Int
+  productId   Int
   // Precio unitario pactado (snapshot), no el precio actual del producto.
-  finalPrice Decimal @db.Decimal(10, 2)
-  quantity   Int     @default(1)
+  finalPrice  Decimal            @db.Decimal(10, 2)
+  quantity    Int                @default(1)
   // Descuento aplicado a esta línea (en pesos, ya calculado).
-  discount   Decimal @default(0) @db.Decimal(10, 2)
-  Product    Product @relation(fields: [productId], references: [id])
-  Sale       Sale    @relation(fields: [saleId], references: [id])
+  discount    Decimal            @default(0) @db.Decimal(10, 2)
+  // Descripción propia del renglón (p. ej. "Mantenimiento laptop HP") cuando
+  // viene de un pedido de servicio; null = se muestra el nombre del producto.
+  description String?
+  // Promoción del proveedor que dio el descuento de este renglón (si aplicó
+  // una; con descuento manual queda null).
+  promotionId Int?
+  Promotion   SupplierPromotion? @relation(fields: [promotionId], references: [id])
+  Product     Product            @relation(fields: [productId], references: [id])
+  Sale        Sale               @relation(fields: [saleId], references: [id])
 }
 
 model Supplier {
-  id           Int       @id @default(autoincrement())
-  name         String
-  businessName String?
-  cellphone    String?
-  email        String?
-  logo         String?
-  cutoffDay    Int?
-  createdAt    DateTime  @default(now())
-  Product      Product[]
+  id                Int                 @id @default(autoincrement())
+  name              String
+  businessName      String?
+  cellphone         String?
+  email             String?
+  logo              String?
+  cutoffDay         Int?
+  createdAt         DateTime            @default(now())
+  Product           Product[]
+  // Letras del folio de sus pedidos de servicio (CO → CO-001). null = se
+  // calculan del nombre (lib/services/folio.ts).
+  servicePrefix     String?
+  ServiceOrder      ServiceOrder[]
+  SupplierPromotion SupplierPromotion[]
 }
 
 model User {
-  id            String          @id @default(uuid()) @db.Uuid
-  name          String
-  email         String          @unique
-  role          String
-  createdAt     DateTime        @default(now())
-  Payment       Payment[]
-  Sale          Sale[]
-  StockMovement StockMovement[]
-  CashClosing   CashClosing[]
+  id                  String                @id @default(uuid()) @db.Uuid
+  name                String
+  email               String                @unique
+  role                String
+  createdAt           DateTime              @default(now())
+  Payment             Payment[]
+  Sale                Sale[]
+  StockMovement       StockMovement[]
+  CashClosing         CashClosing[]
+  ServiceOrder        ServiceOrder[]
+  ServiceOrderPayment ServiceOrderPayment[]
+  SupplierPromotion   SupplierPromotion[]
 }
 
 // Corte de caja: uno por día de la tienda (hora del Pacífico). Cubre los
@@ -240,4 +263,112 @@ enum PaymentMethod {
 enum PaymentKind {
   Abono
   Devolucion
+}
+
+// Pedido de servicio (servicios por pedido: instalaciones, mantenimientos).
+// Se registra con el cliente y sus servicios, queda "PorEntregar" y se cobra
+// al entregarlo: en ese momento se crea la Sale normal (saleId), que es la
+// que entra al corte de caja y al corte del proveedor. Todos sus servicios
+// son de un mismo proveedor; el folio es por letras del proveedor (CO-001).
+model ServiceOrder {
+  id                  Int                   @id @default(autoincrement())
+  folio               String                @unique
+  supplierId          Int
+  customerName        String
+  customerPhone       String?
+  status              ServiceOrderStatus    @default(PorEntregar)
+  createdAt           DateTime              @default(now())
+  createdBy           String                @db.Uuid
+  deliveredAt         DateTime?
+  cancelledAt         DateTime?
+  saleId              Int?                  @unique
+  Supplier            Supplier              @relation(fields: [supplierId], references: [id])
+  User                User                  @relation(fields: [createdBy], references: [id])
+  Sale                Sale?                 @relation(fields: [saleId], references: [id])
+  ServiceOrderItem    ServiceOrderItem[]
+  // Anticipos, pagos y devoluciones del pedido. Cada uno cuenta en el corte
+  // de caja del día en que se recibió; la venta (saleId) se crea cuando el
+  // pedido queda pagado completo, y no se vuelve a contar en caja.
+  ServiceOrderPayment ServiceOrderPayment[]
+
+  @@index([status])
+}
+
+model ServiceOrderItem {
+  id           Int          @id @default(autoincrement())
+  orderId      Int
+  productId    Int
+  description  String
+  quantity     Int          @default(1)
+  price        Decimal      @db.Decimal(10, 2)
+  ServiceOrder ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product      Product      @relation(fields: [productId], references: [id])
+}
+
+enum ServiceOrderStatus {
+  PorEntregar
+  Entregado
+  Cancelado
+}
+
+// Dinero de un pedido de servicio: anticipo o pago (kind = Abono) y
+// devolución al cancelar (kind = Devolucion). Monto siempre positivo.
+model ServiceOrderPayment {
+  id           Int           @id @default(autoincrement())
+  orderId      Int
+  amount       Decimal       @db.Decimal(10, 2)
+  method       PaymentMethod
+  kind         PaymentKind   @default(Abono)
+  date         DateTime      @default(now())
+  receivedBy   String        @db.Uuid
+  // Comprobante (tarjeta/transferencia), se adjunta en el Corte de Caja.
+  receiptUrl   String?
+  ServiceOrder ServiceOrder  @relation(fields: [orderId], references: [id])
+  User         User          @relation(fields: [receivedBy], references: [id])
+
+  @@index([date])
+}
+
+// Promoción de un proveedor (#34): descuento a todos sus productos durante
+// unos días (startsOn y endsOn, días de la tienda, ambos inclusive). La caja
+// la aplica sola; un descuento manual la reemplaza; no aplica a apartados ni
+// a pedidos de servicio. Una a la vez por proveedor (no se enciman fechas).
+// No se borran: se cancelan (cancelledAt).
+model SupplierPromotion {
+  id          Int                        @id @default(autoincrement())
+  supplierId  Int
+  name        String?
+  type        PromotionType
+  // Porcentaje (1–99) o pesos menos por pieza.
+  value       Decimal                    @db.Decimal(10, 2)
+  startsOn    DateTime                   @db.Date
+  endsOn      DateTime                   @db.Date
+  cancelledAt DateTime?
+  createdAt   DateTime                   @default(now())
+  createdBy   String                     @db.Uuid
+  Supplier    Supplier                   @relation(fields: [supplierId], references: [id])
+  User        User                       @relation(fields: [createdBy], references: [id])
+  SaleItem    SaleItem[]
+  // true = todos los productos del proveedor; false = sólo los de
+  // SupplierPromotionProduct. Un producto no puede estar en dos promociones
+  // vigentes a la vez (lo revisa POST /api/suppliers/[id]/promotions).
+  allProducts Boolean                    @default(true)
+  Products    SupplierPromotionProduct[]
+
+  @@index([supplierId])
+}
+
+enum PromotionType {
+  Porcentaje
+  CantidadFija
+}
+
+// Productos elegidos de una promoción "sólo algunos productos".
+model SupplierPromotionProduct {
+  promotionId Int
+  productId   Int
+  Promotion   SupplierPromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  Product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, productId])
 }

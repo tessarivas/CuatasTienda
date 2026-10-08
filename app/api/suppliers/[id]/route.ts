@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { uploadSupplierImage } from "@/lib/cloudinary/supplier";
 import { NextResponse } from "next/server";
+import { SERVICE_PREFIX_PATTERN } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -75,6 +76,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     cellphone?: unknown;
     email?: unknown;
     cutoffDay?: unknown;
+    servicePrefix?: unknown;
   };
 
   const data: Prisma.SupplierUpdateInput = {};
@@ -140,6 +142,24 @@ export async function PATCH(req: Request, { params }: Ctx) {
     }
   }
 
+  // Letras del folio de sus pedidos de servicio (CO → CO-001). Vacío =
+  // calcularlas del nombre.
+  if (input.servicePrefix !== undefined) {
+    if (input.servicePrefix === null || input.servicePrefix === "") {
+      data.servicePrefix = null;
+    } else {
+      const prefix =
+        typeof input.servicePrefix === "string" ? input.servicePrefix.trim().toUpperCase() : "";
+      if (!SERVICE_PREFIX_PATTERN.test(prefix)) {
+        return NextResponse.json(
+          { error: "Las letras del folio deben ser de 1 a 4 letras o números" },
+          { status: 400 }
+        );
+      }
+      data.servicePrefix = prefix;
+    }
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
       { error: "No hay cambios para aplicar" },
@@ -190,7 +210,33 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     );
   }
 
+  // Sus pedidos de servicio (aunque estén entregados) son parte del
+  // historial de ventas: un proveedor con pedidos no se borra.
+  const orderCount = await prisma.serviceOrder.count({ where: { supplierId: id } });
+  if (orderCount > 0) {
+    return NextResponse.json(
+      {
+        error: "No se puede eliminar el proveedor porque tiene pedidos de servicio registrados",
+        orderCount,
+      },
+      { status: 409 }
+    );
+  }
+
+  // Promociones: si alguna ya se usó en una venta, es historial y el
+  // proveedor no se borra; las que nunca se usaron se borran con él.
+  const usedPromotions = await prisma.supplierPromotion.count({
+    where: { supplierId: id, SaleItem: { some: {} } },
+  });
+  if (usedPromotions > 0) {
+    return NextResponse.json(
+      { error: "No se puede eliminar el proveedor porque tiene ventas con promoción" },
+      { status: 409 }
+    );
+  }
+
   try {
+    await prisma.supplierPromotion.deleteMany({ where: { supplierId: id } });
     await prisma.supplier.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {

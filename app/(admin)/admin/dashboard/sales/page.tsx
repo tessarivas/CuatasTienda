@@ -37,6 +37,7 @@ import {
   formatMoney,
   formatSaleDate,
   methodLabel,
+  saleOrigin,
 } from "./sales-utils";
 import { toast } from "@/lib/toast";
 
@@ -206,7 +207,7 @@ export default function SalesHistoryPage() {
         sales: visibleSales.map((s) => ({
           folio: s.folio,
           date: s.date,
-          origin: s.Client ? s.Client.name : "Caja",
+          origin: saleOrigin(s),
           products: s.SaleItem.map((i) => `${i.quantity}x ${i.Product.title}`).join(", "),
           method: methodLabel(s.paymentMethod),
           total: Number(s.total),
@@ -429,7 +430,7 @@ export default function SalesHistoryPage() {
                     </TableCell>
                     <TableCell>{formatSaleDate(sale.date)}</TableCell>
                     <TableCell>
-                      {sale.Client ? sale.Client.name : "Caja"}
+                      {saleOrigin(sale)}
                     </TableCell>
                     <TableCell className="text-center tabular-nums">
                       {sale.SaleItem.reduce((sum, i) => sum + i.quantity, 0)}

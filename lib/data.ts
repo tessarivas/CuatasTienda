@@ -11,6 +11,7 @@ export type Supplier = {
   createdAt?: string;
   logo?: string;
   cutoffDay?: number;    // day of month (1–31), nullable in DB
+  servicePrefix?: string | null; // letras del folio de pedidos (CO → CO-001)
 };
 
 
@@ -31,6 +32,8 @@ export type Product = {
   barcode?: string; // NUEVO: Opcional para búsqueda en POS
   // Número de unidades reservadas (LayawayItem activos). Derivado en el backend.
   reservedCount?: number;
+  // Servicio que se hace por pedido (aparece al crear un pedido de servicio).
+  byOrder?: boolean;
 };
 
 export type Client = {

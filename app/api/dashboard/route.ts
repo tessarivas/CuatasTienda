@@ -52,6 +52,8 @@ export async function GET() {
       recentPayments,
       recentMovements,
       recentApartados,
+      pendingOrders,
+      pendingOrderPayments,
     ] = await Promise.all([
       prisma.sale.findMany({
         where: { date: { gte: windowFrom, lt: windowTo } },
@@ -94,7 +96,11 @@ export async function GET() {
         },
       }),
       prisma.sale.findMany({
-        where: { paymentMethod: { in: ["Tarjeta", "Transferencia"] }, receiptUrl: null },
+        where: {
+          paymentMethod: { in: ["Tarjeta", "Transferencia"] },
+          receiptUrl: null,
+          ServiceOrder: { is: null },
+        },
         orderBy: { date: "desc" },
         select: { id: true, folio: true, date: true, total: true, paymentMethod: true },
       }),
@@ -165,6 +171,29 @@ export async function GET() {
           price: true,
           Product: { select: { title: true } },
           Layaway: { select: { Client: { select: { id: true, name: true } } } },
+        },
+      }),
+      // Pedidos de servicio que esperan que los recojan (y se cobren).
+      prisma.serviceOrder.findMany({
+        where: { status: "PorEntregar" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          folio: true,
+          customerName: true,
+          createdAt: true,
+          ServiceOrderItem: { select: { price: true, quantity: true } },
+        },
+      }),
+      prisma.serviceOrderPayment.findMany({
+        where: { kind: "Abono", method: { in: ["Tarjeta", "Transferencia"] }, receiptUrl: null },
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          amount: true,
+          method: true,
+          ServiceOrder: { select: { folio: true } },
         },
       }),
     ]);
@@ -282,18 +311,21 @@ export async function GET() {
     // cierre y entran al corte siguiente.
     const since = lastClosing?.periodEnd ?? null;
     const dateFilter = since ? { date: { gte: since } } : {};
-    const [saleCount, paymentCount] = await Promise.all([
-      prisma.sale.count({ where: { ...dateFilter, paymentMethod: { not: null } } }),
+    const [saleCount, paymentCount, orderPaymentCount] = await Promise.all([
+      prisma.sale.count({
+        where: { ...dateFilter, paymentMethod: { not: null }, ServiceOrder: { is: null } },
+      }),
       prisma.payment.count({ where: dateFilter }),
+      prisma.serviceOrderPayment.count({ where: dateFilter }),
     ]);
     const closing = todayClosing
       ? {
           status: "cerrado" as const,
           closedAt: todayClosing.closedAt,
           closedBy: todayClosing.User.name,
-          lateCount: saleCount + paymentCount,
+          lateCount: saleCount + paymentCount + orderPaymentCount,
         }
-      : { status: "abierto" as const, since, cobros: saleCount + paymentCount };
+      : { status: "abierto" as const, since, cobros: saleCount + paymentCount + orderPaymentCount };
 
     // --- Actividad reciente: lo último que pasó en la tienda ---
     type Activity = {
@@ -381,6 +413,13 @@ export async function GET() {
             amount: Number(s.total),
             date: s.date,
           })),
+          ...pendingOrderPayments.map((p) => ({
+            key: `pedido-${p.id}`,
+            label: `Pedido ${p.ServiceOrder.folio}`,
+            method: p.method,
+            amount: Number(p.amount),
+            date: p.date,
+          })),
           ...pendingPayments.map((p) => ({
             key: `abono-${p.id}`,
             label: `Abono de ${p.Client.name}`,
@@ -392,6 +431,17 @@ export async function GET() {
         supplierCutoffs,
         coverable,
         lowStock,
+        serviceOrders: pendingOrders.map((o) => ({
+          id: o.id,
+          folio: o.folio,
+          customerName: o.customerName,
+          createdAt: o.createdAt,
+          total:
+            o.ServiceOrderItem.reduce(
+              (sum, i) => sum + Math.round(Number(i.price) * 100) * i.quantity,
+              0
+            ) / 100,
+        })),
       },
     });
   } catch (err) {

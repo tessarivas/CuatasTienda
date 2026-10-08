@@ -10,11 +10,15 @@ export type ApiSaleRow = {
   receiptUrl: string | null;
   Client: { id: number; name: string } | null;
   User: { name: string };
+  ServiceOrder: { folio: string } | null;
   SaleItem: {
     id: number;
     quantity: number;
     finalPrice: string;
     discount: string;
+    // Descripción propia cuando la venta viene de un pedido de servicio.
+    description: string | null;
+    Promotion: { name: string | null } | null;
     Product: {
       id: number;
       title: string;
@@ -28,6 +32,14 @@ export type ApiSaleRow = {
 // propio método), aquí sólo se usó el saldo del cliente.
 export const methodLabel = (method: ApiSaleRow["paymentMethod"]) =>
   method ?? "Saldo";
+
+// De dónde vino la venta: caja, liquidación de un apartado o pedido de servicio.
+export const saleOrigin = (sale: Pick<ApiSaleRow, "Client" | "ServiceOrder">) =>
+  sale.ServiceOrder
+    ? `Pedido ${sale.ServiceOrder.folio}`
+    : sale.Client
+      ? sale.Client.name
+      : "Caja";
 
 export const formatMoney = (amount: number) =>
   `$${amount.toLocaleString("es-MX", {

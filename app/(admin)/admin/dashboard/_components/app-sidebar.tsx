@@ -39,6 +39,7 @@ export const data = {
       items: [
         { title: "Historial de Ventas", url: "/admin/dashboard/sales" },
         { title: "Corte de Caja", url: "/admin/dashboard/cash-closing" },
+        { title: "Pedidos de servicio", url: "/admin/dashboard/service-orders" },
       ],
     },
     {

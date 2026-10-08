@@ -118,7 +118,7 @@ export function CashClosingDocument({
         <View style={{ flex: 1 }}>
           <Text style={styles.sectionTitle}>Caja principal</Text>
           <CashLine label="Fondo inicial" value={pdfMoney(data.openingCash)} />
-          <CashLine label="+ Ventas en efectivo" value={pdfMoney(data.cashSales)} />
+          <CashLine label="+ Ventas y pedidos en efectivo" value={pdfMoney(data.cashSales)} />
           <View style={{ borderTopWidth: 1, borderTopColor: "#1c1917", marginTop: 2 }}>
             <CashLine label="Esperado en caja" value={pdfMoney(data.expectedCash)} bold />
           </View>
@@ -178,7 +178,7 @@ export function CashClosingDocument({
         </View>
       )}
 
-      <Text style={styles.sectionTitle}>Abonos de clientes</Text>
+      <Text style={styles.sectionTitle}>Abonos y pedidos de servicio</Text>
       {data.payments.length === 0 ? (
         <Text style={styles.muted}>No hubo abonos en este corte.</Text>
       ) : (

@@ -96,6 +96,10 @@ export type TicketSale = {
     quantity: number;
     finalPrice: string;
     discount: string;
+    // Descripción propia cuando la venta viene de un pedido de servicio.
+    description?: string | null;
+    // Si el descuento del renglón fue de una promoción del proveedor.
+    Promotion?: { name: string | null } | null;
     Product: { title: string; Supplier?: { businessName: string | null } | null };
   }[];
 };
@@ -128,7 +132,7 @@ export const SaleTicket = React.forwardRef<
         {lines.map((l) => (
           <div key={l.id}>
             <p className="wrap-break-word">
-              {l.quantity} x {l.Product.title}
+              {l.quantity} x {l.description || l.Product.title}
               {showSuppliers && l.Product.Supplier?.businessName && (
                 <span data-print-hide className="text-muted-foreground">
                   {" "}
@@ -138,7 +142,11 @@ export const SaleTicket = React.forwardRef<
             </p>
             <Row label={`${money(l.unit)} c/u`} value={money(l.unit * l.quantity)} className="pl-2" />
             {l.discountValue > 0 && (
-              <Row label="Descuento" value={money(-l.discountValue)} className="pl-2" />
+              <Row
+                label={l.Promotion ? `Promoción${l.Promotion.name ? ` ${l.Promotion.name}` : ""}` : "Descuento"}
+                value={money(-l.discountValue)}
+                className="pl-2"
+              />
             )}
           </div>
         ))}
@@ -197,6 +205,98 @@ export const PaymentTicket = React.forwardRef<HTMLDivElement, { payment: TicketP
           <Row label="Le sobran" value={money(sobran)} bold />
         ) : (
           <Row label="Falta por pagar" value={money(falta)} bold />
+        )}
+      </TicketPaper>
+    );
+  }
+);
+
+// --- Pedido de servicio (se cobra al entregar) ---
+
+export type TicketServiceOrder = {
+  folio: string;
+  createdAt: string;
+  customerName: string;
+  customerPhone: string | null;
+  status: "PorEntregar" | "Entregado" | "Cancelado";
+  supplierName: string;
+  createdBy: string;
+  items: { id: number; description: string; quantity: number; price: number }[];
+  // Cuando ya quedó pagado completo (se creó la venta).
+  sale: { folio: string | null; date: string; paymentMethod: string | null } | null;
+  // Anticipos/pagos y devoluciones, en orden.
+  payments: { date: string; amount: number; method: string; kind: "Abono" | "Devolucion" }[];
+  deliveredAt: string | null;
+};
+
+// Cómo se llama cada movimiento en el ticket: el pago que se hace al
+// recoger es "Pago al entregar"; los de antes, "Anticipo".
+const paymentLabel = (
+  p: TicketServiceOrder["payments"][number],
+  deliveredAt: string | null
+) =>
+  p.kind === "Devolucion"
+    ? "Devolución"
+    : deliveredAt && Math.abs(new Date(p.date).getTime() - new Date(deliveredAt).getTime()) < 5000
+      ? "Pago al entregar"
+      : "Anticipo";
+
+export const ServiceOrderTicket = React.forwardRef<HTMLDivElement, { order: TicketServiceOrder }>(
+  function ServiceOrderTicket({ order }, ref) {
+    const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const paid = order.payments.reduce(
+      (sum, p) => sum + (p.kind === "Devolucion" ? -p.amount : p.amount),
+      0
+    );
+    const rest = Math.max(0, total - paid);
+    return (
+      <TicketPaper ref={ref} thanks="¡Gracias por su preferencia!">
+        <p className="text-center font-bold">PEDIDO DE SERVICIO</p>
+        <Divider />
+        <Row label="Folio" value={order.folio} bold />
+        <p>{ticketDate(order.createdAt)}</p>
+        <p>Atendió: {order.createdBy}</p>
+        <p>Cliente: {order.customerName}</p>
+        {order.customerPhone && <p>Tel. {order.customerPhone}</p>}
+        <p>Servicio de: {order.supplierName}</p>
+        <Divider />
+
+        <div className="space-y-1.5">
+          {order.items.map((i) => (
+            <div key={i.id}>
+              <p className="wrap-break-word">
+                {i.quantity} x {i.description}
+              </p>
+              <Row label={`${money(i.price)} c/u`} value={money(i.price * i.quantity)} className="pl-2" />
+            </div>
+          ))}
+        </div>
+
+        <Divider />
+        <Row label="TOTAL" value={money(total)} bold className="text-[13px]" />
+        {order.payments.map((p, idx) => (
+          <Row
+            key={idx}
+            label={`${paymentLabel(p, order.deliveredAt)} ${ticketDate(p.date).split(",")[0]} (${p.method})`}
+            value={money(p.kind === "Devolucion" ? p.amount : -p.amount)}
+          />
+        ))}
+        {order.status !== "Cancelado" && order.payments.length > 0 && (
+          <Row label="RESTA" value={money(rest)} bold />
+        )}
+        {order.status === "PorEntregar" && (
+          <p className="mt-1 text-center font-bold">
+            {rest > 0 ? "POR ENTREGAR. Paga al recoger." : "POR ENTREGAR. Ya está pagado."}
+          </p>
+        )}
+        {order.status === "Entregado" && (
+          <>
+            <p className="mt-1 text-center font-bold">ENTREGADO</p>
+            {order.sale?.folio && <Row label="Folio de venta" value={order.sale.folio} />}
+          </>
+        )}
+        {order.status === "Cancelado" && (
+          <p className="mt-1 text-center font-bold">CANCELADO</p>
         )}
       </TicketPaper>
     );

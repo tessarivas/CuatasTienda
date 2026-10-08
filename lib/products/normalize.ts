@@ -14,6 +14,7 @@ export type ApiProduct = {
   code: string | null;
   supplierId: number | null;
   reservedCount?: number;
+  byOrder?: boolean;
 };
 
 // The rest of the app uses the legacy mock shape (`photoUrl`, `barcode`,
@@ -35,6 +36,7 @@ export function normalizeProduct(p: ApiProduct): Product {
     photoUrl: p.picture ?? "",
     barcode: p.code ?? undefined,
     reservedCount: p.reservedCount ?? 0,
+    byOrder: p.byOrder ?? false,
   };
 }
 

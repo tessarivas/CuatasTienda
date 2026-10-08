@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CartItemRow } from "./cart-item-row";
+import { type ActivePromotion } from "@/lib/promotions";
 import { DiscountModal } from "./discount-modal";
 import { PaymentModal } from "./payment-modal";
 import { ChevronDown, ChevronUp, ShoppingCart, Percent } from "lucide-react";
@@ -31,6 +32,8 @@ interface CartProps {
   // del carrito y el botón Cobrar; desplegado, el carrito completo. Sin
   // esta prop es la columna normal de pantallas grandes.
   sheet?: { expanded: boolean; onToggle: () => void };
+  // Promoción vigente para un producto (por su proveedor), o null.
+  promoFor?: (product: CartItem["product"]) => ActivePromotion | null;
 }
 
 export function Cart({
@@ -45,6 +48,7 @@ export function Cart({
   total,
   onProcessSale,
   sheet,
+  promoFor,
 }: CartProps) {
   const collapsed = !!sheet && !sheet.expanded;
   const [showTotalDiscountModal, setShowTotalDiscountModal] = React.useState(false);
@@ -145,6 +149,7 @@ export function Cart({
                 <CartItemRow
                   key={item.product.id}
                   item={item}
+                  promo={promoFor?.(item.product) ?? null}
                   onUpdateQuantity={onUpdateQuantity}
                   onRemove={onRemoveItem}
                   onApplyDiscount={onApplyItemDiscount}
@@ -167,7 +172,7 @@ export function Cart({
             {/* Descuentos en items */}
             {itemsDiscount > 0 && (
               <div className="flex justify-between text-sm text-my-green-dark">
-                <span>Descuentos en items:</span>
+                <span>Descuentos y promociones:</span>
                 <span>-${itemsDiscount.toFixed(2)}</span>
               </div>
             )}

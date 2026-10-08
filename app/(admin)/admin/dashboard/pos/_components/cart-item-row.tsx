@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { DiscountModal } from "./discount-modal";
+import { type ActivePromotion, promoLabel, promoUnitDiscount } from "@/lib/promotions";
 import { DashboardContext } from "../../layout";
 import { Minus, Plus, Trash2, Percent } from "lucide-react";
 
@@ -15,6 +16,8 @@ interface CartItemRowProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
   onApplyDiscount: (productId: string, discount?: Discount) => void;
+  // Promoción vigente del proveedor de este producto (si hay).
+  promo?: ActivePromotion | null;
 }
 
 export function CartItemRow({
@@ -22,6 +25,7 @@ export function CartItemRow({
   onUpdateQuantity,
   onRemove,
   onApplyDiscount,
+  promo,
 }: CartItemRowProps) {
   const [showDiscountModal, setShowDiscountModal] = React.useState(false);
   const { suppliers } = React.useContext(DashboardContext);
@@ -44,14 +48,17 @@ export function CartItemRow({
   // Calcular subtotal del item
   const itemSubtotal = item.product.price * item.quantity;
   
-  // Calcular descuento del item
+  // Descuento del renglón: el manual reemplaza a la promoción (decidido).
   let itemDiscount = 0;
+  const promoApplies = !item.discount && !!promo;
   if (item.discount) {
     if (item.discount.type === "percentage") {
       itemDiscount = itemSubtotal * (item.discount.value / 100);
     } else {
       itemDiscount = item.discount.value;
     }
+  } else if (promo) {
+    itemDiscount = promoUnitDiscount(item.product.price, promo) * item.quantity;
   }
 
   const itemTotal = itemSubtotal - itemDiscount;
@@ -137,6 +144,15 @@ export function CartItemRow({
             ${itemTotal.toFixed(2)}
           </span>
         </div>
+
+        {/* Promoción del proveedor (si no hay descuento manual). */}
+        {promoApplies && promo && (
+          <div className="flex items-center gap-1.5 text-xs text-my-green-dark">
+            <span className="rounded bg-my-green-light px-1.5 py-px font-semibold">Promo</span>
+            {promo.name ? `${promo.name}: ` : ""}
+            {promoLabel(promo)} (-${itemDiscount.toFixed(2)})
+          </div>
+        )}
 
         {/* Descuento aplicado */}
         {item.discount && (

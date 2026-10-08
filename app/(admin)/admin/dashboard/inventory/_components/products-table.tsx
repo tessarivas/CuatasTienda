@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { ClipboardCheck, Package, User, UserRoundCheck } from "lucide-react";
 import {
@@ -69,8 +70,8 @@ export function ProductsTable({
 
   // Un servicio no lleva inventario: no tiene cantidad, siempre saldría
   // "Disponible" y no se puede apartar. En modo servicio se ocultan Estado,
-  // Cantidad y Apartados, y en su lugar va "Registrar" (aún sin
-  // funcionalidad: necesita que las ventas se guarden, ver TODO.md).
+  // Cantidad y Apartados, y en su lugar va "Registrar" (abre un pedido de
+  // servicio con ese servicio).
   const columnCount = isServiceMode ? 5 : 7;
 
   return (
@@ -226,16 +227,20 @@ export function ProductsTable({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-center">
-                        {/* Apagado a propósito hasta que exista dónde guardar
-                            el servicio realizado (no hay /api/sales). */}
+                        {/* Abre un pedido de servicio nuevo con este servicio
+                            (y su proveedor) ya puestos. Los servicios rápidos
+                            se siguen vendiendo en la caja. */}
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled
-                          title="Próximamente"
+                          className="cursor-pointer"
+                          title="Nuevo pedido de servicio"
+                          asChild
                         >
-                          <ClipboardCheck />
-                          Registrar
+                          <Link href={`/admin/dashboard/service-orders?nuevo=1&servicio=${product.id}`}>
+                            <ClipboardCheck />
+                            Registrar
+                          </Link>
                         </Button>
                       </div>
                     </TableCell>

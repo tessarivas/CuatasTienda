@@ -63,6 +63,16 @@ type DayData = {
     receiptUrl: string | null;
     Client: { id: number; name: string };
   }[];
+  // Anticipos y pagos de pedidos de servicio (Devolucion = se regresó).
+  orderPayments: {
+    id: number;
+    date: string;
+    amount: string;
+    method: Method;
+    kind: "Abono" | "Devolucion";
+    receiptUrl: string | null;
+    ServiceOrder: { folio: string; customerName: string };
+  }[];
   summary: { cashSales: string; cashPayments: string; bankTotal: string };
   closing: {
     openingCash: string;
@@ -78,7 +88,7 @@ type DayData = {
 // Un cobro con tarjeta o transferencia: venta de caja o abono de cliente.
 type BankCharge = {
   key: string;
-  kind: "venta" | "abono";
+  kind: "venta" | "abono" | "pedido";
   id: number;
   label: string;
   method: Method;
@@ -180,6 +190,17 @@ export default function CashClosingPage() {
             amount: Number(p.amount),
             receiptUrl: p.receiptUrl,
           })),
+        ...(data.orderPayments ?? [])
+          .filter((p) => p.method !== "Efectivo" && p.kind === "Abono")
+          .map((p) => ({
+            key: `pedido-${p.id}`,
+            kind: "pedido" as const,
+            id: p.id,
+            label: `Pedido ${p.ServiceOrder.folio} (${p.ServiceOrder.customerName})`,
+            method: p.method,
+            amount: Number(p.amount),
+            receiptUrl: p.receiptUrl,
+          })),
       ]
     : [];
   const pendingReceipts = bankCharges.filter((c) => !c.receiptUrl).length;
@@ -248,7 +269,19 @@ export default function CashClosingPage() {
           amount: p.kind === "Devolucion" ? -Number(p.amount) : Number(p.amount),
           hasReceipt: !!p.receiptUrl,
           isRefund: p.kind === "Devolucion",
-        })),
+        })).concat(
+          (data.orderPayments ?? []).map((p) => ({
+            client:
+              p.kind === "Devolucion"
+                ? `Devolución pedido ${p.ServiceOrder.folio}`
+                : `Pedido ${p.ServiceOrder.folio} · ${p.ServiceOrder.customerName}`,
+            date: p.date,
+            method: p.method,
+            amount: p.kind === "Devolucion" ? -Number(p.amount) : Number(p.amount),
+            hasReceipt: !!p.receiptUrl,
+            isRefund: p.kind === "Devolucion",
+          }))
+        ),
       });
     } catch (err) {
       console.error("Exportar corte de caja falló", err);
@@ -279,7 +312,9 @@ export default function CashClosingPage() {
       const url =
         charge.kind === "venta"
           ? `/api/sales/${charge.id}/receipt`
-          : `/api/payments/${charge.id}/receipt`;
+          : charge.kind === "pedido"
+            ? `/api/service-order-payments/${charge.id}/receipt`
+            : `/api/payments/${charge.id}/receipt`;
       const res = await fetch(url, { method: "POST", body: form });
       if (!res.ok) {
         const { error: message } = await res.json();
@@ -296,6 +331,9 @@ export default function CashClosingPage() {
           ),
           payments: prev.payments.map((p) =>
             charge.kind === "abono" && p.id === charge.id ? { ...p, receiptUrl } : p
+          ),
+          orderPayments: prev.orderPayments.map((p) =>
+            charge.kind === "pedido" && p.id === charge.id ? { ...p, receiptUrl } : p
           ),
         }
       );
@@ -449,7 +487,7 @@ export default function CashClosingPage() {
                 />
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>+ Ventas en efectivo</span>
+                <span>+ Ventas y pedidos en efectivo</span>
                 <span className="tabular-nums">{formatMoney(cashSales)}</span>
               </div>
               <div className="flex justify-between border-t-2 pt-2 font-semibold">

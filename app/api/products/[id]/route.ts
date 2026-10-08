@@ -49,6 +49,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     code?: unknown;
     status?: unknown;
     type?: unknown;
+    byOrder?: unknown;
   };
 
   if (input.code !== undefined) {
@@ -112,6 +113,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   const data: Prisma.ProductUpdateInput = {};
+
+  // "Se hace por pedido": sólo decide si el servicio aparece al crear un
+  // pedido de servicio. No toca precio ni existencia.
+  if (input.byOrder !== undefined) {
+    if (typeof input.byOrder !== "boolean") {
+      return NextResponse.json({ error: "Valor inválido" }, { status: 400 });
+    }
+    data.byOrder = input.byOrder;
+  }
 
   if (input.title !== undefined) {
     if (typeof input.title !== "string" || input.title.trim().length === 0) {

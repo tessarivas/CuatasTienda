@@ -16,13 +16,19 @@ const toDbDate = (date: string) => new Date(`${date}T00:00:00.000Z`);
 
 const closingInclude = { User: { select: { name: true } } } as const;
 
-// Cobros de una ventana [from, to): ventas de caja (con método de pago) y
-// abonos de clientes. Las liquidaciones de apartados no entran: no traen
-// dinero nuevo, ese dinero entró antes como abono.
+// Cobros de una ventana [from, to): ventas de caja (con método de pago),
+// abonos de clientes y anticipos/pagos de pedidos de servicio. Las
+// liquidaciones de apartados no entran: no traen dinero nuevo, ese dinero
+// entró antes como abono. La venta de un pedido de servicio tampoco: su
+// dinero entró con cada anticipo o pago (ServiceOrderPayment).
 async function collect(from: Date, to: Date) {
-  const [sales, payments] = await Promise.all([
+  const [sales, payments, orderPayments] = await Promise.all([
     prisma.sale.findMany({
-      where: { date: { gte: from, lt: to }, paymentMethod: { not: null } },
+      where: {
+        date: { gte: from, lt: to },
+        paymentMethod: { not: null },
+        ServiceOrder: { is: null },
+      },
       orderBy: { date: "asc" },
       select: {
         id: true,
@@ -46,6 +52,19 @@ async function collect(from: Date, to: Date) {
         Client: { select: { id: true, name: true } },
       },
     }),
+    prisma.serviceOrderPayment.findMany({
+      where: { date: { gte: from, lt: to } },
+      orderBy: { date: "asc" },
+      select: {
+        id: true,
+        date: true,
+        amount: true,
+        method: true,
+        kind: true,
+        receiptUrl: true,
+        ServiceOrder: { select: { folio: true, customerName: true } },
+      },
+    }),
   ]);
 
   const zero = new Prisma.Decimal(0);
@@ -63,7 +82,14 @@ async function collect(from: Date, to: Date) {
     if (p.method === "Efectivo") cashPayments = cashPayments.plus(amount);
     else bankTotal = bankTotal.plus(amount);
   }
-  return { sales, payments, cashSales, cashPayments, bankTotal };
+  // Pedidos de servicio: el efectivo va a la caja principal, como una venta
+  // (decidido con la tienda); una devolución de anticipo resta.
+  for (const p of orderPayments) {
+    const amount = p.kind === "Devolucion" ? p.amount.negated() : p.amount;
+    if (p.method === "Efectivo") cashSales = cashSales.plus(amount);
+    else bankTotal = bankTotal.plus(amount);
+  }
+  return { sales, payments, orderPayments, cashSales, cashPayments, bankTotal };
 }
 
 // Dónde empieza el corte abierto: donde terminó el último corte. Si nunca
@@ -137,7 +163,7 @@ export async function GET(req: Request) {
       }));
       if (isLatest) {
         const late = await collect(closing.periodEnd, new Date());
-        lateCount = late.sales.length + late.payments.length;
+        lateCount = late.sales.length + late.payments.length + late.orderPayments.length;
       }
     }
 
@@ -148,6 +174,7 @@ export async function GET(req: Request) {
       periodEnd: closing ? periodEnd : null,
       sales: day?.sales ?? [],
       payments: day?.payments ?? [],
+      orderPayments: day?.orderPayments ?? [],
       summary: {
         cashSales: (day?.cashSales ?? new Prisma.Decimal(0)).toFixed(2),
         cashPayments: (day?.cashPayments ?? new Prisma.Decimal(0)).toFixed(2),

@@ -26,6 +26,7 @@ import { SupplierProductsList } from "../_components/supplier-products-list";
 import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
 import { MonthlyCutoff, type CutoffPeriod } from "../_components/monthly-cutoff";
 import { SupplierMovements } from "../_components/supplier-movements";
+import { SupplierPromotions } from "../_components/supplier-promotions";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
 import {
   DropdownMenu,
@@ -286,6 +287,20 @@ export default function SupplierDetailPage({
         {/* Historial de movimientos: altas, retiros y ventas (incluye
             productos retirados). Se vuelve a pedir cuando se recarga el
             proveedor, p. ej. después de agregar o retirar unidades. */}
+        {/* Promociones: descuento por unos días que la caja aplica sola. */}
+        <SupplierPromotions
+          supplierId={id}
+          products={(supplier.Product ?? [])
+            .filter((p) => p.status !== "Retirado")
+            .map((p) => ({
+              id: p.id,
+              title: p.title,
+              price: Number(p.price),
+              picture: p.picture,
+              type: p.type === "SERVICE" ? ("SERVICE" as const) : ("PRODUCT" as const),
+            }))}
+        />
+
         <SupplierMovements supplierId={id} refreshKey={supplier} />
 
         {/* Detalles del Proveedor (sólo lectura; se edita en el modal) */}

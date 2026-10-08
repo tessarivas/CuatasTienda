@@ -11,15 +11,23 @@ export async function GET() {
   const startOfToday = storeDayRange(storeDateString())!.from;
   const bank = { in: ["Tarjeta" as const, "Transferencia" as const] };
   try {
-    const [sales, payments] = await Promise.all([
+    const [sales, payments, orderPayments] = await Promise.all([
       prisma.sale.count({
-        where: { paymentMethod: bank, receiptUrl: null, date: { lt: startOfToday } },
+        where: {
+          paymentMethod: bank,
+          receiptUrl: null,
+          date: { lt: startOfToday },
+          ServiceOrder: { is: null },
+        },
       }),
       prisma.payment.count({
         where: { kind: "Abono", method: bank, receiptUrl: null, date: { lt: startOfToday } },
       }),
+      prisma.serviceOrderPayment.count({
+        where: { kind: "Abono", method: bank, receiptUrl: null, date: { lt: startOfToday } },
+      }),
     ]);
-    return NextResponse.json({ count: sales + payments });
+    return NextResponse.json({ count: sales + payments + orderPayments });
   } catch (err) {
     console.error("GET comprobantes pendientes falló", err);
     return NextResponse.json(

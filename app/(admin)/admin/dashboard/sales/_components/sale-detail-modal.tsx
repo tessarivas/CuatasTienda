@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, Printer, Receipt } from "lucide-react";
 import { ReceiptDialog } from "./receipt-dialog";
-import { type ApiSaleRow, formatSaleDate, methodLabel } from "../sales-utils";
+import { type ApiSaleRow, formatSaleDate, methodLabel, saleOrigin } from "../sales-utils";
 import { SaleTicket, TicketPreview } from "../../_components/ticket";
 import { printTicket } from "@/lib/print-ticket";
 import { toast } from "@/lib/toast";
@@ -62,7 +62,7 @@ export function SaleDetailModal({ sale, onClose }: SaleDetailModalProps) {
               Venta {sale.folio ?? `#${sale.id}`}
             </DialogTitle>
             <DialogDescription>
-              {formatSaleDate(sale.date)} · {sale.Client ? `Apartado de ${sale.Client.name}` : "Caja"} ·{" "}
+              {formatSaleDate(sale.date)} · {sale.Client ? `Apartado de ${sale.Client.name}` : saleOrigin(sale)} ·{" "}
               {methodLabel(sale.paymentMethod)}
             </DialogDescription>
           </DialogHeader>

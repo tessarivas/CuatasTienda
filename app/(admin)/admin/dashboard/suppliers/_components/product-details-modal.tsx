@@ -75,6 +75,12 @@ export function ProductDetailsModal({
   const [pendingImage, setPendingImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  // "Se hace por pedido" (sólo servicios): se guarda al marcarlo.
+  const [byOrder, setByOrder] = React.useState(false);
+  const [isSavingByOrder, setIsSavingByOrder] = React.useState(false);
+  React.useEffect(() => {
+    setByOrder(!!product?.byOrder);
+  }, [product?.id, product?.byOrder]);
   const [error, setError] = React.useState("");
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [confirmPriceChange, setConfirmPriceChange] = React.useState(false);
@@ -185,6 +191,31 @@ export function ProductDetailsModal({
       return;
     }
     doSave();
+  };
+
+  const handleByOrderChange = async (value: boolean) => {
+    setByOrder(value);
+    setIsSavingByOrder(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ byOrder: value }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        setByOrder(!value);
+        toast.error(message ?? "No se pudo guardar el cambio");
+        return;
+      }
+      onChanged?.();
+      toast.success(value ? "Ahora se hace por pedido" : "Ya no se hace por pedido");
+    } catch {
+      setByOrder(!value);
+      toast.error("No se pudo guardar el cambio");
+    } finally {
+      setIsSavingByOrder(false);
+    }
   };
 
   // Borrado permanente (#6): sólo productos sin historial. El diálogo ya
@@ -438,6 +469,27 @@ export function ProductDetailsModal({
                   </div>
                 )}
               </div>
+
+              {/* Servicios: si se hace por pedido (instalaciones,
+                  mantenimientos) aparece al crear un pedido de servicio. */}
+              {isService && !isRetirado && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                  <input
+                    type="checkbox"
+                    checked={byOrder}
+                    disabled={isSavingByOrder}
+                    onChange={(e) => handleByOrderChange(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-foreground"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Se hace por pedido</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Aparece al crear un pedido de servicio. Los rápidos, como las
+                      copias, se venden en la caja.
+                    </span>
+                  </span>
+                </label>
+              )}
 
               {/* Alertas de inventario, pegadas al campo que describen.
                   Ocupan el ancho completo de la columna derecha. */}

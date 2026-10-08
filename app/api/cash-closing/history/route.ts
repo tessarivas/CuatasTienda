@@ -15,12 +15,13 @@ export async function GET() {
     const withPending = await Promise.all(
       closings.map(async (c) => {
         const window = { gte: c.periodStart, lt: c.periodEnd };
-        const [sales, payments] = await Promise.all([
+        const [sales, payments, orderPayments] = await Promise.all([
           prisma.sale.count({
             where: {
               date: window,
               paymentMethod: { in: ["Tarjeta", "Transferencia"] },
               receiptUrl: null,
+              ServiceOrder: { is: null },
             },
           }),
           prisma.payment.count({
@@ -31,8 +32,16 @@ export async function GET() {
               receiptUrl: null,
             },
           }),
+          prisma.serviceOrderPayment.count({
+            where: {
+              date: window,
+              kind: "Abono",
+              method: { in: ["Tarjeta", "Transferencia"] },
+              receiptUrl: null,
+            },
+          }),
         ]);
-        return { ...c, pendingReceipts: sales + payments };
+        return { ...c, pendingReceipts: sales + payments + orderPayments };
       })
     );
 

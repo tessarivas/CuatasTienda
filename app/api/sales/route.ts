@@ -7,6 +7,9 @@ import {
   unsyncedUserResponse,
 } from "@/lib/auth/require-user";
 import { nextFolio, isFolioCollision, FOLIO_RETRIES } from "@/lib/sales/folio";
+import { SALE_ROW_SELECT } from "@/lib/sales/select";
+import { storeDateString } from "@/lib/store-time";
+import { promoAppliesTo, promoUnitDiscount, toDbDate } from "@/lib/promotions";
 
 const VALID_METHODS: ReadonlyArray<PaymentMethod> = [
   PaymentMethod.Efectivo,
@@ -16,36 +19,8 @@ const VALID_METHODS: ReadonlyArray<PaymentMethod> = [
 
 const MAX_MONEY = 100_000_000;
 
-// Forma de una venta para la pantalla: la usan el Historial de Ventas (GET)
-// y la respuesta al cobrar en caja (POST), para que el ticket (vista previa
-// e impresión) se arme igual en los dos lugares.
-const SALE_ROW_SELECT = {
-  id: true,
-  folio: true,
-  date: true,
-  total: true,
-  discount: true,
-  paymentMethod: true,
-  receiptUrl: true,
-  Client: { select: { id: true, name: true } },
-  User: { select: { name: true } },
-  SaleItem: {
-    select: {
-      id: true,
-      quantity: true,
-      finalPrice: true,
-      discount: true,
-      Product: {
-        select: {
-          id: true,
-          title: true,
-          type: true,
-          Supplier: { select: { businessName: true } },
-        },
-      },
-    },
-  },
-} satisfies Prisma.SaleSelect;
+// La forma de una venta para la pantalla vive en lib/sales/select.ts
+// (la comparte "Entregar y cobrar" un pedido de servicio).
 
 type DiscountInput = { type: "percentage" | "fixed"; value: number };
 
@@ -115,7 +90,11 @@ export async function GET(req: Request) {
 // POST /api/sales
 // Venta de caja. Payload:
 //   { items: [{ productId, quantity, discount? }], totalDiscount?, paymentMethod }
-// con discount = { type: "percentage" | "fixed", value }.
+// con discount = { type: "percentage" | "fixed", value } (manual).
+//
+// Promociones (#34): si un renglón no trae descuento manual y su proveedor
+// tiene una promoción vigente hoy, se aplica aquí (por pieza) y se anota en
+// SaleItem.promotionId. El manual la reemplaza. Ver lib/promotions.ts.
 //
 // Todo en una transacción:
 //   1. Precios desde la BD (snapshot en SaleItem.finalPrice) — no se confía
@@ -210,6 +189,30 @@ export async function POST(req: Request) {
           },
         });
 
+        // Promociones vigentes hoy de los proveedores del ticket (un producto
+        // está en una como máximo). Se leen aquí, no se confía en la caja.
+        const today = toDbDate(storeDateString());
+        const promotions = await tx.supplierPromotion.findMany({
+          where: {
+            supplierId: { in: products.map((p) => p.supplierId).filter((id): id is number => id !== null) },
+            cancelledAt: null,
+            startsOn: { lte: today },
+            endsOn: { gte: today },
+          },
+          select: {
+            id: true,
+            supplierId: true,
+            type: true,
+            value: true,
+            allProducts: true,
+            Products: { select: { productId: true } },
+          },
+        });
+        const activePromos = promotions.map((p) => ({
+          ...p,
+          productIds: p.Products.map((x) => x.productId),
+        }));
+
         const computed = [];
         for (const line of lines) {
           const product = products.find((p) => p.id === line.productId);
@@ -239,8 +242,23 @@ export async function POST(req: Request) {
             }
           }
           const gross = product.price.times(line.quantity);
-          const discount = discountAmount(gross, line.discount);
-          computed.push({ line, product, gross, discount, net: gross.minus(discount) });
+          // Un descuento manual reemplaza a la promoción (uno por renglón).
+          // Sin manual, la promoción del proveedor descuenta por pieza.
+          let discount = discountAmount(gross, line.discount);
+          let promotionId: number | null = null;
+          const promo = line.discount
+            ? undefined
+            : activePromos.find((p) => promoAppliesTo(p, product));
+          if (promo) {
+            const unit = promoUnitDiscount(Number(product.price), {
+              type: promo.type,
+              value: Number(promo.value),
+            });
+            discount = new Prisma.Decimal(unit).times(line.quantity).toDecimalPlaces(2);
+            if (discount.greaterThan(gross)) discount = gross;
+            promotionId = promo.id;
+          }
+          computed.push({ line, product, gross, discount, promotionId, net: gross.minus(discount) });
         }
 
         const supplierIds = new Set(computed.map((c) => c.product.supplierId));
@@ -272,6 +290,7 @@ export async function POST(req: Request) {
                 finalPrice: c.product.price,
                 quantity: c.line.quantity,
                 discount: c.discount,
+                promotionId: c.promotionId,
               })),
             },
           },

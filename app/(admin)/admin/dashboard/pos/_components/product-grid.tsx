@@ -16,9 +16,12 @@ import { Card } from "@/components/ui/card";
 import { Search, Package, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { type ActivePromotion, promoUnitDiscount } from "@/lib/promotions";
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (productId: string) => void;
+  // Promoción vigente para un producto (por su proveedor), o null.
+  promoFor?: (product: Product) => ActivePromotion | null;
 }
 
 type SortOrder = "reciente" | "antiguos" | "precio-desc" | "precio-asc";
@@ -27,7 +30,7 @@ type TypeFilter = "todos" | "productos" | "servicios";
 // Con esta cantidad o menos de unidades libres, el contador se pone en rojo.
 const LOW_STOCK = 5;
 
-export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
+export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [sortOrder, setSortOrder] = React.useState<SortOrder>("reciente");
@@ -193,9 +196,25 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
                   >
                     {product.title}
                   </h3>
-                  <p className="text-lg font-bold">
-                    ${product.price.toFixed(2)}
-                  </p>
+                  {(() => {
+                    const promo = promoFor?.(product);
+                    if (!promo) {
+                      return <p className="text-lg font-bold">${product.price.toFixed(2)}</p>;
+                    }
+                    // Promoción: precio rebajado y el normal tachado.
+                    const promoPrice = product.price - promoUnitDiscount(product.price, promo);
+                    return (
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <p className="text-lg font-bold text-my-green-dark">${promoPrice.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground line-through">
+                          ${product.price.toFixed(2)}
+                        </p>
+                        <span className="rounded bg-my-green-light px-1.5 py-px text-[10px] font-semibold text-my-green-dark">
+                          Promo
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </Card>
             );

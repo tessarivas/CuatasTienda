@@ -19,12 +19,14 @@ function parseId(raw: string) {
 // movimientos, así que ése sólo se retira, nunca se borra. Además, sin esta
 // regla el borrado chocaría con las foreign keys (no hay onDelete: Cascade).
 async function historyCounts(productId: number) {
-  const [sales, layaways, movements] = await Promise.all([
+  const [sales, layaways, movements, orders] = await Promise.all([
     prisma.saleItem.count({ where: { productId } }),
     prisma.layawayItem.count({ where: { productId } }),
     prisma.stockMovement.count({ where: { productId } }),
+    prisma.serviceOrderItem.count({ where: { productId } }),
   ]);
-  return { sales, layaways, movements };
+  // Usado en un pedido de servicio cuenta como movimiento.
+  return { sales, layaways, movements: movements + orders };
 }
 
 const hasHistory = (c: { sales: number; layaways: number; movements: number }) =>
@@ -65,12 +67,13 @@ export async function DELETE(_req: Request, { params }: Ctx) {
       if (!product) {
         return { error: "Producto no encontrado" as const, status: 404 };
       }
-      const [sales, layaways, movements] = await Promise.all([
+      const [sales, layaways, movements, orders] = await Promise.all([
         tx.saleItem.count({ where: { productId: id } }),
         tx.layawayItem.count({ where: { productId: id } }),
         tx.stockMovement.count({ where: { productId: id } }),
+        tx.serviceOrderItem.count({ where: { productId: id } }),
       ]);
-      if (hasHistory({ sales, layaways, movements })) {
+      if (hasHistory({ sales, layaways, movements: movements + orders })) {
         return {
           error:
             "Este producto ya tiene ventas, apartados o movimientos; sólo se puede retirar." as const,

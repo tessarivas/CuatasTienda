@@ -43,6 +43,7 @@ export type DashboardData = {
     supplierCutoffs: SupplierCutoffPending[];
     coverable: { clientId: number; name: string; balance: number; items: number }[];
     lowStock: { productId: number; title: string; supplier: string }[];
+    serviceOrders: { id: number; folio: string; customerName: string; createdAt: string; total: number }[];
   };
 };
 

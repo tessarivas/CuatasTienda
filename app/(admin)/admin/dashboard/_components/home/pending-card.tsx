@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChevronDown,
+  ClipboardList,
   FileDown,
   HandCoins,
   ListTodo,
@@ -151,7 +152,7 @@ function DetailRow({ children, href }: { children: React.ReactNode; href?: strin
 
 export function PendingCard({ pending }: { pending: DashboardData["pending"] }) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
-  const { closing, receipts, supplierCutoffs, coverable, lowStock } = pending;
+  const { closing, receipts, supplierCutoffs, coverable, lowStock, serviceOrders } = pending;
   const readyCutoffs = supplierCutoffs.filter((c) => c.status === "listo").length;
 
   // Acciones que alguien tiene que hacer (para el contador del encabezado).
@@ -307,6 +308,25 @@ export function PendingCard({ pending }: { pending: DashboardData["pending"] }) 
             );
           })}
         </PendingItem>
+
+        {/* Pedidos de servicio que esperan que los recojan */}
+        {serviceOrders.length > 0 && (
+          <PendingItem
+            icon={ClipboardList}
+            tone="blue"
+            title="Servicios por entregar"
+            subtitle="Se cobran cuando el cliente recoge"
+            count={serviceOrders.length}
+          >
+            {serviceOrders.map((o) => (
+              <DetailRow key={o.id} href="/admin/dashboard/service-orders">
+                <span className="w-16 shrink-0 font-mono text-xs">{o.folio}</span>
+                <span className="min-w-0 flex-1 truncate">{o.customerName}</span>
+                <span className="w-24 shrink-0 text-right font-medium tabular-nums">{money(o.total)}</span>
+              </DetailRow>
+            ))}
+          </PendingItem>
+        )}
 
         {/* Clientes cuyo saldo ya alcanza para liquidar un apartado */}
         {coverable.length > 0 && (
