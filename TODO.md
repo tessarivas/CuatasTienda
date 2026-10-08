@@ -20,6 +20,17 @@ Cosas ya construidas que falta probar a mano (sin issue en GitHub):
       y estado de cuenta del cliente.
 - [ ] Fecha de apartado en las tarjetas y clip de comprobante en el
       historial del cliente.
+- [ ] Pedidos de servicio (#37): crear uno con anticipo, registrar otro
+      anticipo, imprimir ticket y "Exportar PDF", editarlo, entregar cobrando lo
+      que resta (venta en el Historial; en el Corte cada pago en su día, sin
+      contar doble) y cancelar otro con anticipo (devolver y quedarse).
+      Marcar algún servicio "Se hace por pedido" y revisar "Letras del
+      folio" en Editar proveedor.
+- [ ] Promociones (#34): crear una vigente en un proveedor, ver el precio
+      tachado en la caja, cobrar (en el ticket dice "Promoción") y revisar el
+      corte del proveedor; poner un descuento manual encima (debe
+      reemplazarla); una de "sólo algunos productos" (sólo esos se rebajan);
+      intentar una que encime un mismo producto (no debe dejar); terminarla.
 - [ ] Devolver saldo excedente (#36): con un cliente que abonó más de lo
       apartado, "Devolver" junto a "Le sobran"; revisar que baje su saldo,
       salga en su historial y estado de cuenta, y que en el Corte de Caja
@@ -45,17 +56,6 @@ Liquidar (marcar vendido) no cambia lo que falta por pagar: baja apartado y
 abonado por el mismo monto. Precios = snapshot de `LayawayItem.price`.
 
 
-## Inventario
-
-- [ ] **Servicios → darle funcionalidad al botón "Registrar"** (#37) (hoy está
-      deshabilitado a propósito, "Próximamente"): anotar que se hizo un
-      servicio (p. ej. una copia, un acta), incluyendo servicios
-      **personalizados** con descripción y precio propios. Ya no está
-      bloqueado: puede registrarse como venta con `POST /api/sales`. Los
-      servicios personalizados (precio propio, sin estar en catálogo)
-      necesitarán decidir cómo se guardan, porque hoy `SaleItem` apunta a un
-      producto existente.
-
 ## Gastos de la tienda (#33)
 
 Hoy los gastos del negocio que no son de proveedores (p. ej. luz, renta,
@@ -79,31 +79,6 @@ quedan registrados. Un módulo sencillo para anotarlos al momento.
     todo es "gasto" con su categoría?
   - ¿Quién puede registrar y borrar gastos? (Hoy cualquier usuario puede
     todo; ver roles en `CLAUDE.md`.)
-
-## Promociones por proveedor (descuento por periodo) (#34)
-
-Desde la página del proveedor, definir un descuento para **todos sus
-productos** durante un periodo (fecha de inicio y fin), por **porcentaje** o
-**cantidad fija**. Mientras esté vigente, la caja lo aplica sola.
-
-- [ ] Migración: tabla nueva (p. ej. `SupplierDiscount`: proveedor, tipo
-      `percentage`/`fixed`, valor, `startsAt`, `endsAt`, activa).
-- [ ] UI en `suppliers/[id]`: crear, ver y cancelar la promoción vigente o
-      programada (¿una tarjeta propia, o dentro de "Corte Mensual"?).
-- [ ] `POST /api/sales` debe aplicarla del lado del servidor (no confiar en
-      la pantalla) y guardarla en `SaleItem.discount`, para que el corte del
-      proveedor ya salga con el descuento.
-- [ ] Decidir antes de construirlo:
-  - "Cantidad fija": ¿es por pieza ($20 menos en cada producto) o por
-    ticket?
-  - ¿Se puede sumar con el descuento manual por producto de la caja, o uno
-    reemplaza al otro (p. ej. gana el mayor)?
-  - ¿Aplica también a la liquidación de apartados? Esos ya tienen el precio
-    pactado al apartar (`LayawayItem.price`), así que lo natural sería que
-    no.
-  - ¿Pueden empalmarse dos promociones del mismo proveedor?
-  - Mostrarlo en la caja: precio tachado o etiqueta "Promo" en la tarjeta y
-    en el carrito.
 
 ## Corte de Caja y comprobantes: lo que falta
 
@@ -139,7 +114,26 @@ mercancía, sin salir de la app.
 
 ## Completado
 
+### 2026-10-08
+- [x] Promociones por proveedor (#34): tarjeta "Promociones" en la página
+      del proveedor (porcentaje o pesos por pieza, a todos sus productos o
+      sólo a algunos, de tal a tal fecha, un producto en una sola a la vez,
+      programar y terminar). La caja la aplica sola (precio tachado,
+      "Promo" en el carrito y "Promoción" en el ticket); el descuento manual
+      la reemplaza; no aplica a apartados ni pedidos de servicio. Migración
+      `supplier_promotions`.
+
 ### 2026-10-07
+- [x] Pedidos de servicio (#37): servicios por pedido con nombre y teléfono
+      del cliente, varios servicios con su descripción y precio, folio por
+      letras del proveedor (CO-001), "Por entregar" hasta que se entrega y
+      cobra (ahí se crea la venta). Ticket de 58 mm y "Exportar PDF" (hoja carta). Página
+      "Pedidos de servicio", botón "Registrar" del inventario, "Se hace por
+      pedido" en cada servicio, "Letras del folio" en el proveedor y aviso en
+      Pendientes del inicio. Anticipos parciales o completos (cuentan en la
+      caja principal el día que se reciben; la venta se crea al quedar
+      pagado completo); al cancelar con anticipo se pregunta si se devuelve.
+      Migraciones `service_orders` y `service_order_payments`.
 - [x] Borrar producto para siempre (#6): dentro del diálogo de "Eliminar
       producto", sólo si no tiene ventas, apartados ni movimientos; pide
       escribir el nombre. Borra también su foto en Cloudinary. Se corrigió

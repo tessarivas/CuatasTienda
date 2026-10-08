@@ -8,10 +8,8 @@ Spanish-language (es-MX) retail back-office for a small consignment store: suppl
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
-its dated **Completado** section at the bottom (don't just delete them). Currently open: wiring up the deliberately disabled "Registrar" button in the inventory Servicios
-tab; printable barcode labels (PDF) from `Product.code`; time-boxed per-supplier
-discounts (promociones) applied automatically at checkout; and a store-expenses module (gastos) that
-feeds the cash closing.
+its dated **Completado** section at the bottom (don't just delete them). Currently open: printable barcode labels (PDF) from `Product.code`; and a store-expenses module
+(gastos) that feeds the cash closing.
 
 The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
 primary CTA right on the same row, then a 3-card highlights row, then a `grid-cols-2
@@ -349,6 +347,63 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
 - `GET /api/sales?from&to` lists a period's sales (POS + liquidations) for the "Historial de Ventas"
   page (`dashboard/sales/`); method/origin/search filters are client-side so the highlight cards
   always summarize the whole period.
+
+### Service orders ("Pedidos de servicio")
+
+Two ways to sell a service: **quick ones** (copies) go through the POS like any product; **by-order
+ones** (installs, maintenance) use a *pedido de servicio* (`ServiceOrder` + `ServiceOrderItem`,
+migration `service_orders`, page `dashboard/service-orders/`, routes `/api/service-orders/*`). A
+pedido has the customer's name/phone and one supplier's services, each with its own description,
+quantity and price for this job. It starts **"Por entregar"** (`PorEntregar`).
+
+**Money** (migration `service_order_payments`): every anticipo/pago is a `ServiceOrderPayment`
+(`kind` Abono; refunds `Devolucion`) and counts in the cash closing **the day it's received** —
+cash into the **main drawer** (like a sale), card/transfer into banco with a comprobante
+(`POST /api/service-order-payments/[id]/receipt`). The `Sale` (day folio, `SaleItem.description`
+carries the job text) is created the moment the pedido becomes **fully paid** (`settleIfPaid` in
+`lib/services/orders.ts`) — decided: the service counts for the supplier's cutoff when paid in
+full, not when delivered. That sale is **excluded from cash closing and receipt counts**
+(`ServiceOrder: { is: null }`), because its money already came in through the payments; every
+sale/receipt query that sums cash must keep that filter. Routes: `POST /api/service-orders` (optional
+`deposit`), `…/[id]/payments` (anticipo, ≤ what's left), `…/[id]/deliver` (charges what's left, if
+anything, then `Entregado`), `…/[id]/cancel` (with an anticipo the UI asks every time: refund it →
+`Devolucion` payment, or the store keeps it; a fully paid pedido can't be cancelled). `PATCH` edits
+only while "Por entregar" and not fully paid, and never below what's been paid.
+
+- **Folio per supplier letters**: `CO-001` (Compuservi), `CU-001` (Cuatas), `FM-001` (Full Moons).
+  `lib/services/folio.ts`: default letters = initials of the first two words, else first two
+  letters; overridable per supplier (`Supplier.servicePrefix`, "Letras del folio" in Editar
+  proveedor). The sequence is per letters (unique `folio`, retry on `P2002`).
+- `Product.byOrder` ("Se hace por pedido", checkbox in the service's detail modal) filters which
+  services the new-pedido form lists; if a supplier has none marked, all its services show.
+- Inventory → Servicios → "Registrar" links to `service-orders?nuevo=1&servicio={id}`.
+- Printing: `ServiceOrderTicket` (58 mm, `dashboard/_components/ticket.tsx`) and a letter PDF
+  (`lib/pdf/service-order-report.tsx`). Pendientes on the home page lists "Servicios por entregar".
+- A supplier with pedidos can't be deleted (409); a service used in a pedido can't be
+  permanently deleted. UI copy uses store words ("Por entregar", "Entregar y cobrar", "Letras del
+  folio"), never system terms.
+
+### Supplier promotions ("Promociones")
+
+`SupplierPromotion` (migrations `supplier_promotions`, `promotion_products`): a discount on one
+supplier's products — **all of them** (`allProducts`) or **only the chosen ones**
+(`SupplierPromotionProduct`) — for a date range (`startsOn`/`endsOn`, `@db.Date`, store days, both
+inclusive), `Porcentaje` (1–99) or `CantidadFija` (**pesos off per piece**). Never deleted, only
+cancelled (`cancelledAt`). **"One at a time" is per product**: `POST /api/suppliers/[id]/promotions`
+rejects (409) a promotion whose dates overlap another non-cancelled one of the supplier if either
+is "all products" or they share a product; a supplier can run several at once on different
+products. Only that supplier's products can be chosen. Which promotion applies to a product:
+`promoAppliesTo` in `lib/promotions.ts`. Card "Promociones" in `suppliers/[id]`
+(`supplier-promotions.tsx`).
+
+- The POS applies it automatically: `GET /api/promotions/active` (today's) feeds the product cards
+  (struck-through price + "Promo") and the cart; **`POST /api/sales` re-reads active promotions
+  itself** and writes the discount into `SaleItem.discount` + `SaleItem.promotionId`, so the
+  supplier cutoff already reflects it. A **manual line discount replaces** the promotion (one
+  discount per line). The ticket labels the line "Promoción".
+- **Not applied** to layaways (they keep the price at reservation) nor to service orders.
+- Shared math/labels in `lib/promotions.ts` (`promoUnitDiscount`, `promoLabel`) — used by both
+  the POS screen and the server so what's shown is what's charged.
 
 ### Supplier monthly cutoff
 
