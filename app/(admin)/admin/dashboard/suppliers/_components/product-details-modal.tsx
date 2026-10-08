@@ -43,6 +43,7 @@ import {
   User,
 } from "lucide-react";
 import { DeleteProductDialog } from "./delete-product-dialog";
+import { ProductLabel } from "../../_components/product-label";
 import {
   StockMovementModal,
   type StockMovementKind,
@@ -547,13 +548,24 @@ export function ProductDetailsModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-                <Label className="flex items-center gap-2 text-xl font-normal">
+              {/* Etiqueta con el código de barras real, el número, y
+                  proveedor y precio (#35). Sin código (productos viejos), el
+                  cuadro de siempre. */}
+              <div className="grid grid-cols-[110px_1fr] items-start gap-3">
+                <Label className="flex h-12 items-center gap-2 text-xl font-normal">
                   Código
                 </Label>
-                <div className="h-12 rounded-2xl border px-4 flex items-center text-base font-mono overflow-hidden">
-                  <span className="truncate">{product.barcode ?? "—"}</span>
-                </div>
+                {product.barcode ? (
+                  <ProductLabel
+                    code={product.barcode}
+                    supplierName={supplierName}
+                    price={product.price}
+                  />
+                ) : (
+                  <div className="flex h-12 items-center rounded-2xl border px-4 text-base text-muted-foreground">
+                    Sin código
+                  </div>
+                )}
               </div>
 
               {/*<div className="grid grid-cols-[110px_1fr] items-center gap-3">

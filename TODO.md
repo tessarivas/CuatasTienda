@@ -90,14 +90,11 @@ Ya están hechos (ver Completado). Quedan:
 ## Etiquetas con código de barras para imprimir (#35)
 
 Cada producto ya tiene un código único al crearse (`Product.code`,
-`CT-XXXXXXXX`; hoy los 11 lo tienen) y la caja ya busca por código. Lo que
+letras del proveedor + 8 al azar, p. ej. `CU-PAV6ANCG`) y la caja ya busca por código. Lo que
 falta es poder **imprimirlo como código de barras** para pegarlo en la
 mercancía, sin salir de la app.
 
-- [ ] Generar la imagen del código de barras a partir de `Product.code`
-      (Code 128 lee letras y guiones, así que el formato actual sirve tal
-      cual). Verlo en el detalle del producto.
-- [ ] Generar un PDF de etiquetas listo para la impresora de etiquetas, para
+- [ ] Generar un PDF de etiquetas (reusar `product-label.tsx`) listo para la impresora, para
       un grupo de productos — p. ej. "los registrados hoy" (por
       `createdAt`) o los de un proveedor — y mandarlo a imprimir desde la
       app.
@@ -115,6 +112,13 @@ mercancía, sin salir de la app.
 ## Completado
 
 ### 2026-10-08
+- [x] Etiqueta con código de barras en el detalle del producto (#35, primera
+      parte): código de barras real (Code 128 con JsBarcode), el número
+      del código, y proveedor y precio (`dashboard/_components/product-label.tsx`).
+      Falta exportar/imprimir etiquetas.
+- [x] El código del producto empieza con las letras del proveedor (las de
+      sus pedidos de servicio) + 8 al azar: `CU-PAV6ANCG`. Los 16 productos
+      que había se cambiaron de `CT-` (misma parte al azar).
 - [x] Promociones por proveedor (#34): tarjeta "Promociones" en la página
       del proveedor (porcentaje o pesos por pieza, a todos sus productos o
       sólo a algunos, de tal a tal fecha, un producto en una sola a la vez,

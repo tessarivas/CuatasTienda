@@ -5,6 +5,7 @@ import {
   deleteProductImage,
 } from "@/lib/cloudinary/product";
 import { randomBytes } from "crypto";
+import { servicePrefixFor } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
 import { supabaseServerClient } from "@/lib/supabase/server";
 
@@ -100,18 +101,23 @@ const MONEY_PATTERN = /^\d+(\.\d{1,2})?$/;
 // Alfabeto sin caracteres ambiguos (0/O, 1/I/L).
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
-function generateProductCode(): string {
+// Código del producto: letras del proveedor (las mismas del folio de sus
+// pedidos de servicio, p. ej. CU para Cuatas) + 8 caracteres al azar:
+// CU-PAV6ANCG. No cambia nunca, aunque después cambien las letras del
+// proveedor o el producto pase a otro: ya puede estar impreso en etiquetas.
+// (Antes de 2026-10-08 todos empezaban con "CT-"; se cambiaron una vez.)
+function generateProductCode(prefix: string): string {
   const bytes = randomBytes(8);
   let suffix = "";
   for (let i = 0; i < 8; i++) {
     suffix += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
   }
-  return `CT-${suffix}`;
+  return `${prefix}-${suffix}`;
 }
 
 // POST: crear producto. Flujo:
 //   1. Validar input + existencia del proveedor (404 temprano).
-//   2. Generar un código único.
+//   2. Generar un código único (letras del proveedor + 8 al azar).
 //   3. Si hay imagen, subirla a Cloudinary en `products/{code}/picture`.
 //   4. Insertar la fila con la URL de la imagen ya poblada.
 //   5. Si la inserción colisiona en `code` (P2002), borrar la imagen huérfana
@@ -182,7 +188,7 @@ export async function POST(req: Request) {
     // (#4) Verificar que el proveedor exista antes de tocar Cloudinary / DB.
     const supplier = await prisma.supplier.findUnique({
       where: { id: supplierId },
-      select: { id: true },
+      select: { id: true, servicePrefix: true, businessName: true, name: true },
     });
     if (!supplier) {
       return NextResponse.json(
@@ -197,7 +203,7 @@ export async function POST(req: Request) {
       : null;
 
     for (let attempt = 0; attempt < 5; attempt++) {
-      const code = generateProductCode();
+      const code = generateProductCode(servicePrefixFor(supplier));
       let pictureUrl: string | null = null;
 
       if (imageBuffer) {

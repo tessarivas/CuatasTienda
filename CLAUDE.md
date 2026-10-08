@@ -8,7 +8,9 @@ Spanish-language (es-MX) retail back-office for a small consignment store: suppl
 clients with credit balances, layaways ("apartados"), and a POS screen.
 
 Check `TODO.md` for agreed-but-not-built work. Finished items are marked `- [x]` and moved to
-its dated **Completado** section at the bottom (don't just delete them). Currently open: printable barcode labels (PDF) from `Product.code`; and a store-expenses module
+its dated **Completado** section at the bottom (don't just delete them). Currently open: exporting/printing barcode labels (the label itself already renders:
+`dashboard/_components/product-label.tsx`, Code 128 via `jsbarcode`, shown in the product detail
+modal with the barcode, code, supplier and price); and a store-expenses module
 (gastos) that feeds the cash closing.
 
 The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: title left, search +
@@ -239,7 +241,11 @@ Rules enforced in route handlers, **not** in the schema — preserve them:
   shortfall — computed server-side, never taken from the body — inside the same transaction before
   liquidating. Stock is decremented **per product by unit count**, since several items can share a
   product.
-- Product `code` is unique (`CT-XXXXXXXX`); creation retries on `P2002` with a new code.
+- Product `code` is unique: **supplier letters + 8 random chars** (`CU-PAV6ANCG`), the same letters as
+  the supplier's service-order folios (`servicePrefixFor`). Creation retries on `P2002` with a new
+  code. Codes never change afterwards (they may be printed on labels), even if the supplier's letters
+  change or the product moves supplier. Until 2026-10-08 all codes were `CT-…`; they were rewritten
+  once (keeping the random part).
 
 All money is `Decimal @db.Decimal(10, 2)` and serializes to a **string** over JSON — always
 `Number(...)` it at the boundary (the normalize helpers already do).
