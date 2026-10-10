@@ -474,27 +474,6 @@ export function ProductDetailsModal({
                 )}
               </div>
 
-              {/* Servicios: si se hace por pedido (instalaciones,
-                  mantenimientos) aparece al crear un pedido de servicio. */}
-              {isService && !isRetirado && (
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input
-                    type="checkbox"
-                    checked={byOrder}
-                    disabled={isSavingByOrder}
-                    onChange={(e) => handleByOrderChange(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 cursor-pointer accent-foreground"
-                  />
-                  <span className="text-sm">
-                    <span className="font-medium">Se hace por pedido</span>
-                    <span className="block text-xs text-muted-foreground">
-                      Aparece al crear un pedido de servicio. Los rápidos, como las
-                      copias, se venden en la caja.
-                    </span>
-                  </span>
-                </label>
-              )}
-
               {/* Alertas de inventario, pegadas al campo que describen.
                   Ocupan el ancho completo de la columna derecha. */}
               {hasReservations && (
@@ -570,6 +549,28 @@ export function ProductDetailsModal({
                   </div>
                 )}
               </div>
+
+              {/* Servicios: si se hace por pedido (instalaciones,
+                  mantenimientos) aparece al crear un pedido de servicio.
+                  Sólo al editar y hasta abajo, como los botones de stock. */}
+              {isEditing && isService && !isRetirado && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                  <input
+                    type="checkbox"
+                    checked={byOrder}
+                    disabled={isSavingByOrder}
+                    onChange={(e) => handleByOrderChange(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-foreground"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Se hace por pedido</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Sólo los marcados aparecen al crear un pedido de servicio. Los
+                      rápidos, como las copias, se venden en la caja.
+                    </span>
+                  </span>
+                </label>
+              )}
 
               {/*<div className="grid grid-cols-[110px_1fr] items-center gap-3">
                 <Label className="flex items-center gap-2 text-xl font-normal">

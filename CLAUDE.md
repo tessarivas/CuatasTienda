@@ -384,8 +384,10 @@ only while "Por entregar" and not fully paid, and never below what's been paid.
   `lib/services/folio.ts`: default letters = initials of the first two words, else first two
   letters; overridable per supplier (`Supplier.servicePrefix`, "Letras del folio" in Editar
   proveedor). The sequence is per letters (unique `folio`, retry on `P2002`).
-- `Product.byOrder` ("Se hace por pedido", checkbox in the service's detail modal) filters which
-  services the new-pedido form lists; if a supplier has none marked, all its services show.
+- `Product.byOrder` ("Se hace por pedido", checkbox in the service's detail modal, only while
+  editing) is the **only** way a service shows in the new-pedido form: unmarked ones never list
+  (no "none marked → show all" fallback), except one already on the order (from "Registrar" or an
+  old pedido). Suppliers with no marked service don't appear in its supplier select.
 - Inventory → Servicios → "Registrar" links to `service-orders?nuevo=1&servicio={id}`.
 - Printing: `ServiceOrderTicket` (58 mm, `dashboard/_components/ticket.tsx`) and a letter PDF
   (`lib/pdf/service-order-report.tsx`). Pendientes on the home page lists "Servicios por entregar".

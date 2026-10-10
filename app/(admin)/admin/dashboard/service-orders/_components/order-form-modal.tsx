@@ -118,22 +118,24 @@ export function OrderFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, order, initialServiceId]);
 
-  // Servicios del proveedor elegido. Si alguno está marcado "Se hace por
-  // pedido", sólo ésos (así no estorban los rápidos como las copias); si
-  // ninguno, todos sus servicios.
-  const supplierServices = products.filter(
-    (p) => p.type === "SERVICE" && p.status !== "Retirado" && p.supplierId === supplierId
+  // Sólo los servicios marcados "Se hace por pedido" (así no estorban los
+  // rápidos como las copias, que se venden en la caja). Los que ya están en
+  // el pedido siempre aparecen (p. ej. uno que llegó desde "Registrar" o un
+  // pedido viejo, aunque no estén marcados).
+  const isOrderService = (p: Product) =>
+    p.type === "SERVICE" && p.status !== "Retirado" && !!p.byOrder;
+  const services = products.filter(
+    (p) =>
+      p.type === "SERVICE" &&
+      p.status !== "Retirado" &&
+      p.supplierId === supplierId &&
+      (p.byOrder || rows.some((r) => r.productId === p.id))
   );
-  const byOrder = supplierServices.filter((p) => p.byOrder);
-  // Los que ya están en el pedido siempre aparecen (p. ej. uno que llegó
-  // desde "Registrar" aunque no esté marcado por pedido).
-  const services =
-    byOrder.length > 0
-      ? supplierServices.filter((p) => p.byOrder || rows.some((r) => r.productId === p.id))
-      : supplierServices;
-  // Sólo proveedores que tienen al menos un servicio.
-  const suppliersWithServices = suppliers.filter((s) =>
-    products.some((p) => p.type === "SERVICE" && p.status !== "Retirado" && p.supplierId === String(s.id))
+  // Sólo proveedores con al menos un servicio por pedido (y el ya elegido).
+  const suppliersWithServices = suppliers.filter(
+    (s) =>
+      String(s.id) === supplierId ||
+      products.some((p) => isOrderService(p) && p.supplierId === String(s.id))
   );
 
   const updateRow = (key: number, patch: Partial<Row>) =>
@@ -281,6 +283,11 @@ export function OrderFormModal({
                   ))}
                 </SelectContent>
               </Select>
+              {suppliersWithServices.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Ningún servicio está marcado &quot;Se hace por pedido&quot;. Márcalo al editar el servicio en Inventario.
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="order-name">Nombre del cliente</Label>
