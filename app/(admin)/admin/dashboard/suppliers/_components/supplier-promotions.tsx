@@ -353,7 +353,7 @@ function PromotionFormModal({
     <Dialog open={isOpen} onOpenChange={() => !isSaving && onClose()}>
       {/* Ancho y en dos columnas: a la izquierda cuánto y cuándo, a la
           derecha qué productos. En celular se apilan. */}
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-h-none sm:max-w-4xl sm:overflow-visible">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
@@ -364,7 +364,11 @@ function PromotionFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid max-h-[70vh] grid-cols-1 gap-6 overflow-y-auto py-2 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+        {/* En celular sin barra propia: se desliza todo el modal junto. En
+            dos columnas, alto fijo (30rem = h-120) para que el modal no cambie de
+            tamaño al pasar de "Todos" a "Sólo algunos"; la lista llena lo que
+            sobra y se desliza adentro. */}
+        <div className="grid grid-cols-1 gap-6 py-2 sm:max-h-[70vh] sm:overflow-y-auto md:h-120 md:max-h-none md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:overflow-visible">
           {/* Izquierda: nombre, cómo, cuánto y fechas. */}
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -455,7 +459,7 @@ function PromotionFormModal({
             </div>
 
             {scope === "todos" ? (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center">
+              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center sm:py-10">
                 <div className="mb-3 rounded-full bg-muted p-4">
                   <Tag className="h-6 w-6 text-muted-foreground" />
                 </div>
@@ -519,7 +523,7 @@ function PromotionFormModal({
                     {selected.length} {selected.length === 1 ? "elegido" : "elegidos"}
                   </span>
                 </div>
-                <div className="max-h-80 min-h-40 space-y-1 overflow-y-auto pr-1">
+                <div className="max-h-64 min-h-40 flex-1 space-y-1 overflow-y-auto pr-1 sm:max-h-80 md:max-h-none md:min-h-0">
                   {visible.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">Ningún producto coincide.</p>
                   ) : (
@@ -576,7 +580,8 @@ function PromotionFormModal({
           </div>
         </div>
 
-        <DialogFooter>
+        {/* En celular Cancelar | Guardar en un renglón. */}
+        <DialogFooter className="grid grid-cols-2 sm:flex">
           <Button variant="outline" onClick={onClose} disabled={isSaving} className="cursor-pointer">
             Cancelar
           </Button>

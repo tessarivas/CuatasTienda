@@ -146,7 +146,7 @@ export function SupplierMovements({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
-              <SelectTrigger className="cursor-pointer">
+              <SelectTrigger className="w-full cursor-pointer sm:w-auto">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -190,7 +190,7 @@ export function SupplierMovements({
               />
             </div>
             {hasFilters && (
-              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={clearFilters}>
+              <Button variant="ghost" size="sm" className="w-full cursor-pointer sm:w-auto" onClick={clearFilters}>
                 <X />
                 Limpiar
               </Button>

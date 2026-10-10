@@ -9,7 +9,7 @@ import {
   TrendingUp,
   UserRoundPlus,
 } from "lucide-react";
-import { StatCard } from "../_components/stat-card";
+import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { useRouter } from "next/navigation";
 import { SupplierCard } from "./_components/supplier-card";
 import { AddSupplierModal } from "./_components/add-supplier-modal";
@@ -144,7 +144,7 @@ export default function Page() {
         </div>
 
         {/* Highlights (StatCard), mismo formato en todas las páginas. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={STAT_ROW}>
           <StatCard
             color="yellow"
             icon={Store}

@@ -27,6 +27,15 @@ interface StatCardProps {
   loading?: boolean;
 }
 
+// Renglón de tarjetas de resumen. En celular es un carrusel de una fila que
+// se desliza de lado (cada tarjeta al 80% del ancho para que se asome la
+// siguiente) en vez de apilarlas; desde md, la cuadrícula de 3 columnas.
+// El -mx-4/px-4 deja que el carrusel llegue a las orillas de la pantalla
+// (las páginas tienen p-4). Es una clase y no un componente para poder
+// usarla también en un motion.div.
+export const STAT_ROW =
+  "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 [scrollbar-width:none] *:w-[80%] *:shrink-0 *:snap-start md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:*:w-auto";
+
 // Tarjeta de resumen ("highlight") de las páginas de lista: ícono + título,
 // valor principal y subtítulo pequeño. Úsala en vez de armar el div a mano
 // para que todas las páginas se vean igual.

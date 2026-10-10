@@ -895,11 +895,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   {/* "Liquidar Cuenta" no depende de la selección: liquida
                       todo, abonando lo que falte (con confirmación).
                       "Abono Completo" se habilita sólo si el saldo cubre la
-                      suma de lo seleccionado. */}
-                  <div className="shrink-0 flex flex-wrap justify-end gap-2 pt-2">
+                      suma de lo seleccionado. En celular, uno debajo del
+                      otro a todo lo ancho (los textos no caben juntos). */}
+                  <div className="shrink-0 flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
                     <Button
                       variant="outline"
-                      className="cursor-pointer"
+                      className="w-full cursor-pointer sm:w-auto"
                       disabled={actionInFlight}
                       onClick={() => {
                         setLiquidarMethod("Efectivo");
@@ -910,7 +911,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                       Liquidar Cuenta
                     </Button>
                     <Button
-                      className="cursor-pointer"
+                      className="w-full cursor-pointer sm:w-auto"
                       disabled={!canLiquidateSelection || actionInFlight}
                       onClick={handleAbonoCompleto}
                     >

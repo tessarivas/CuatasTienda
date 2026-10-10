@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AddClientModal } from "./_components/add-client-modal";
 import { ClientCard } from "./_components/client-card";
 import { Loader2, Search, UserCheck, UserPlus, Users, Wallet } from "lucide-react";
-import { StatCard } from "../_components/stat-card";
+import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { formatMoney } from "../sales/sales-utils";
 import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
 import { toast } from "@/lib/toast";
@@ -106,7 +106,7 @@ export default function Page() {
 
         {/* Highlights (StatCard), mismo formato en todas las páginas. El
             saldo es dinero a favor, no deuda, así que va en verde. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={STAT_ROW}>
           <StatCard
             color="yellow"
             icon={Users}

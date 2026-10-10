@@ -298,7 +298,7 @@ export default function Page() {
             value={sortOrder}
             onValueChange={(v) => setSortOrder(v as SortOrder)}
           >
-            <SelectTrigger className="w-44 cursor-pointer">
+            <SelectTrigger className="w-full cursor-pointer sm:w-44">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent className="cursor-pointer">
@@ -317,7 +317,7 @@ export default function Page() {
                 lo muestra completo. truncate
                 queda además como red de seguridad por si se elige un
                 proveedor con nombre largo. */}
-            <SelectTrigger className="w-52 cursor-pointer">
+            <SelectTrigger className="w-full cursor-pointer sm:w-52">
               <SelectValue
                 placeholder="Filtrar por proveedor"
                 className="truncate"
@@ -334,7 +334,7 @@ export default function Page() {
           </Select>
           {activeTab === "productos" && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-44 cursor-pointer">
+              <SelectTrigger className="w-full cursor-pointer sm:w-44">
                 <SelectValue placeholder="Filtrar por estatus" />
               </SelectTrigger>
               <SelectContent className="cursor-pointer">

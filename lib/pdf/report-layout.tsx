@@ -240,16 +240,24 @@ export function SignatureLines({ labels }: { labels: string[] }) {
   );
 }
 
-// Genera el PDF y lo descarga con `filename`.
+// Genera el PDF y lo descarga con `filename`. En celular lo abre en una
+// pestaña nueva: el navegador del celular lo mostraba encima del panel y
+// había que regresar para seguir. Si el navegador bloquea la pestaña nueva,
+// se descarga como en computadora.
 export async function downloadPdf(document: React.ReactElement, filename: string) {
   // @react-pdf espera un <Document>; ReportDocument lo regresa.
   const blob = await pdf(document as Parameters<typeof pdf>[0]).toBlob();
   const url = URL.createObjectURL(blob);
-  const a = window.document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const isMobile = window.matchMedia("(pointer: coarse)").matches;
+  const opened = isMobile ? window.open(url, "_blank") : null;
+  if (!opened) {
+    const a = window.document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+  }
+  // La pestaña nueva necesita el enlace mientras carga; un minuto basta.
+  setTimeout(() => URL.revokeObjectURL(url), opened ? 60_000 : 1000);
 }
 
 // Nombre de quien genera el reporte (para el pie). Si falla, "la tienda".

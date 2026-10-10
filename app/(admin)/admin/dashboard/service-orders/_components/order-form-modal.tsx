@@ -243,7 +243,9 @@ export function OrderFormModal({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={() => !isSaving && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      {/* En celular todo el modal se desliza junto (una sola barra); en
+          computadora sólo la parte de en medio, con total y botones fijos. */}
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-h-none sm:max-w-2xl sm:overflow-visible">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
@@ -254,7 +256,9 @@ export function OrderFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid max-h-[65vh] gap-4 overflow-y-auto py-2 pr-1">
+        {/* grid-cols-1: sin él, la columna crece al texto más largo (p. ej.
+            el servicio elegido) y el modal se sale de lado en celular. */}
+        <div className="grid min-w-0 grid-cols-1 gap-4 py-2 sm:max-h-[65vh] sm:overflow-y-auto sm:pr-1">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="order-supplier">Proveedor</Label>
@@ -324,28 +328,41 @@ export function OrderFormModal({
                     </Button>
                   )}
                 </div>
-                <Input
-                  placeholder="Qué se va a hacer (p. ej. Mantenimiento laptop HP)"
-                  value={r.description}
-                  onChange={(e) => updateRow(r.key, { description: e.target.value })}
-                />
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <Label className="text-muted-foreground">Cantidad</Label>
+                {/* Este texto es el que sale en el ticket y en la nota, por
+                    eso se dice en el nombre del campo. */}
+                <div className="space-y-1">
+                  <Label htmlFor={`order-desc-${r.key}`} className="text-xs text-muted-foreground">
+                    Lo que dirá el ticket
+                  </Label>
                   <Input
-                    inputMode="numeric"
-                    value={r.quantity}
-                    onChange={(e) => updateRow(r.key, { quantity: e.target.value })}
-                    className="w-16"
+                    id={`order-desc-${r.key}`}
+                    placeholder="Qué se va a hacer (p. ej. Mantenimiento laptop HP)"
+                    value={r.description}
+                    onChange={(e) => updateRow(r.key, { description: e.target.value })}
                   />
-                  <Label className="text-muted-foreground">Precio</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={r.price}
-                    onChange={(e) => updateRow(r.key, { price: e.target.value })}
-                    className="w-28"
-                  />
-                  <span className="ml-auto font-semibold tabular-nums">{money(rowTotal(r))}</span>
+                </div>
+                {/* Cantidad y precio con su nombre arriba, y el importe del
+                    renglón a la derecha: cabe igual en celular y en
+                    computadora. */}
+                <div className="grid grid-cols-[4.5rem_minmax(0,8rem)_minmax(0,1fr)] items-end gap-2 text-sm">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                    <Input
+                      inputMode="numeric"
+                      value={r.quantity}
+                      onChange={(e) => updateRow(r.key, { quantity: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Precio</Label>
+                    <Input
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={r.price}
+                      onChange={(e) => updateRow(r.key, { price: e.target.value })}
+                    />
+                  </div>
+                  <span className="truncate pb-2 text-right font-semibold tabular-nums">{money(rowTotal(r))}</span>
                 </div>
               </div>
             ))}
@@ -369,8 +386,10 @@ export function OrderFormModal({
           </div>
           {/* Al crear: anticipo opcional (parcial o completo). */}
           {!isEdit && (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Label htmlFor="order-deposit" className="text-muted-foreground">
+            // En celular: el nombre arriba y monto | forma de pago a la mitad
+            // cada uno; en computadora, todo en un renglón.
+            <div className="grid grid-cols-2 items-center gap-2 text-sm sm:flex sm:flex-wrap">
+              <Label htmlFor="order-deposit" className="col-span-2 text-muted-foreground">
                 Anticipo (opcional)
               </Label>
               <Input
@@ -379,10 +398,10 @@ export function OrderFormModal({
                 placeholder="0.00"
                 value={deposit}
                 onChange={(e) => setDeposit(e.target.value)}
-                className="w-28"
+                className="w-full sm:w-28"
               />
               <Select value={depositMethod} onValueChange={(v) => setDepositMethod(v as Method)}>
-                <SelectTrigger className="w-40 cursor-pointer">
+                <SelectTrigger className="w-full cursor-pointer sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,7 +411,7 @@ export function OrderFormModal({
                 </SelectContent>
               </Select>
               {hasDeposit && depositValid && depositValue <= total && (
-                <span className="ml-auto text-muted-foreground">
+                <span className="col-span-2 text-muted-foreground sm:ml-auto">
                   Resta al recoger {money(total - depositValue)}
                 </span>
               )}
@@ -405,13 +424,15 @@ export function OrderFormModal({
           )}
         </div>
 
-        <DialogFooter>
+        {/* En celular Cancelar | Guardar en un renglón; "Cancelar pedido"
+            arriba, a todo lo ancho. */}
+        <DialogFooter className="grid grid-cols-2 sm:flex">
           {isEdit && !fullyPaid && (
             <Button
               variant="ghost"
               onClick={() => setConfirmCancel(true)}
               disabled={isSaving}
-              className="cursor-pointer text-muted-foreground sm:mr-auto"
+              className="col-span-2 cursor-pointer text-muted-foreground sm:mr-auto"
             >
               <Ban />
               Cancelar pedido

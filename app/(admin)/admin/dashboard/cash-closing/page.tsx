@@ -24,7 +24,7 @@ import {
   Save,
   Wallet,
 } from "lucide-react";
-import { StatCard } from "../_components/stat-card";
+import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { cn } from "@/lib/utils";
 import { useTodayLabel } from "@/hooks/use-today-label";
 import { ReceiptDialog } from "../sales/_components/receipt-dialog";
@@ -382,11 +382,13 @@ export default function CashClosingPage() {
               </p>
             )}
           </div>
-          <div className="mt-4 md:mt-0 md:ml-auto flex flex-wrap items-center gap-2">
+          {/* En celular a todo lo ancho: los dos de consulta en un renglón y
+              el principal (o "Volver a hoy") solo en el suyo. */}
+          <div className="mt-4 grid grid-cols-2 gap-2 md:mt-0 md:ml-auto md:flex md:flex-wrap md:items-center">
             {!isToday && today && (
               <Button
                 variant="outline"
-                className="cursor-pointer"
+                className="col-span-2 cursor-pointer"
                 onClick={() => setDate(today)}
               >
                 <ArrowLeft />
@@ -411,7 +413,7 @@ export default function CashClosingPage() {
               {isExporting ? "Generando PDF..." : "Exportar"}
             </Button>
             <Button
-              className="cursor-pointer"
+              className="col-span-2 cursor-pointer"
               disabled={isLoading || isSaving || noClosing || !openingValid || !countedValid}
               onClick={handleSave}
               title={!countedValid ? "Escribe el efectivo contado" : undefined}
@@ -422,7 +424,7 @@ export default function CashClosingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={STAT_ROW}>
           <StatCard
             color="yellow"
             icon={Wallet}

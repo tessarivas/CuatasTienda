@@ -5,7 +5,7 @@ import { ClipboardList, Clock, HandCoins, Loader2, Plus, Search, Wallet } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardContext } from "../layout";
-import { StatCard } from "../_components/stat-card";
+import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { cn } from "@/lib/utils";
 import { OrderFormModal } from "./_components/order-form-modal";
 import { OrderDetailModal } from "./_components/order-detail-modal";
@@ -122,7 +122,7 @@ export default function ServiceOrdersPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className={STAT_ROW}>
           <StatCard
             color="yellow"
             icon={Clock}

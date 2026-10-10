@@ -256,19 +256,19 @@ export function EditSupplierModal({
             <Trash2 />
             Eliminar
           </Button>
-          <div className="flex gap-2">
+          <div className="flex w-full gap-2 sm:w-auto">
             <Button
               variant="outline"
               onClick={onClose}
               disabled={loading}
-              className="cursor-pointer"
+              className="flex-1 cursor-pointer sm:flex-none"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="cursor-pointer"
+              className="flex-1 cursor-pointer sm:flex-none"
             >
               {loading ? "Guardando..." : "Guardar"}
             </Button>

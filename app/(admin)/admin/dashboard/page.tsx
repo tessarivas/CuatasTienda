@@ -5,7 +5,8 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { Clock, Loader2, Lock, Package, ShoppingCart, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatCard } from "./_components/stat-card";
+import { cn } from "@/lib/utils";
+import { StatCard, STAT_ROW } from "./_components/stat-card";
 import { SalesFlowCard } from "./_components/home/sales-flow-card";
 import { PendingCard } from "./_components/home/pending-card";
 import { ActivityCard } from "./_components/home/activity-card";
@@ -70,7 +71,7 @@ export default function DashboardHome() {
             {date ? `${date}. Esto es lo que pasa hoy en la tienda.` : " "}
           </p>
         </div>
-        <div className="mt-4 flex items-center gap-2 md:mt-0 md:ml-auto">
+        <div className="mt-4 grid grid-cols-2 gap-2 md:mt-0 md:ml-auto md:flex md:items-center">
           <Button variant="outline" className="cursor-pointer" asChild>
             <Link href="/admin/dashboard/cash-closing">
               <Lock />
@@ -100,7 +101,7 @@ export default function DashboardHome() {
               alto de la gráfica) y, a su derecha, la gráfica de ventas. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <motion.div
-              className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-1 lg:grid-rows-3"
+              className={cn(STAT_ROW, "lg:grid-cols-1 lg:grid-rows-3")}
               {...fadeUp(0)}
             >
               <StatCard

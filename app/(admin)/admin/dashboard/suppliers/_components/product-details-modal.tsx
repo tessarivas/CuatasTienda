@@ -345,8 +345,9 @@ export function ProductDetailsModal({
               {/* Visible también en edición: si desaparece, el encabezado da
                   un salto de layout al entrar y salir del modo editar. */}
               {/* Estado + cuántas unidades están apartadas, juntos. El conteo
-                  se omite si el estado ya dice "Apartado" (todo apartado). */}
-              <div className="mt-1 flex shrink-0 items-center gap-1.5">
+                  se omite si el estado ya dice "Apartado" (todo apartado).
+                  En celular uno debajo del otro para dejarle ancho al nombre. */}
+              <div className="mt-1 flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
                 <Badge className={getStatusClasses(displayStatus ?? product.status)}>
                   {displayStatus}
                 </Badge>
@@ -380,7 +381,9 @@ export function ProductDetailsModal({
 
           <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1fr]">
             <div className="flex flex-col gap-2">
-              <div className="relative aspect-square w-full max-w-84 h-84 overflow-hidden rounded-3xl bg-muted">
+              {/* En celular la foto más chica (12rem) para que el modal no llegue
+                  a las orillas de la pantalla. */}
+              <div className="relative aspect-square h-48 w-48 max-w-84 self-center overflow-hidden rounded-3xl bg-muted sm:h-84 sm:w-full sm:self-auto">
                 <div className="absolute inset-0">
                   {displayedImage ? (
                     <Image
@@ -601,7 +604,9 @@ export function ProductDetailsModal({
 
           <Separator className="my-2" />
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          {/* En celular: Eliminar y Cancelar en un renglón (Eliminar siempre a
+              la izquierda) y la acción principal abajo, a todo lo ancho. */}
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
             {isRetirado ? (
               <>
                 <Button
@@ -626,7 +631,7 @@ export function ProductDetailsModal({
                   variant="destructive"
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={isSaving}
-                  className="cursor-pointer mr-auto"
+                  className="cursor-pointer sm:mr-auto"
                 >
                   {/* "Eliminar producto" y no "Retirar": este botón da de
                       baja TODO el producto (todas las unidades, fuera del
@@ -634,7 +639,10 @@ export function ProductDetailsModal({
                       descuenta parte del stock. Mismo verbo para dos acciones
                       muy distintas confundía. */}
                   <Trash2 />
-                  Eliminar producto
+                  {/* En celular sólo "Eliminar" para que quepa junto a
+                      Cancelar. */}
+                  <span className="sm:hidden">Eliminar</span>
+                  <span className="hidden sm:inline">Eliminar producto</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -647,7 +655,7 @@ export function ProductDetailsModal({
                 <Button
                   onClick={handleSaveClick}
                   disabled={isSaving}
-                  className="cursor-pointer w-full sm:w-auto"
+                  className="col-span-2 cursor-pointer w-full sm:w-auto"
                 >
                   <Save />
                   {isSaving ? "Guardando..." : "Guardar cambios"}
@@ -658,7 +666,7 @@ export function ProductDetailsModal({
                 <Button
                   onClick={() => setIsEditing(true)}
                   disabled={!canEdit}
-                  className="cursor-pointer w-full sm:w-auto"
+                  className="col-span-2 cursor-pointer w-full sm:w-auto"
                 >
                   <Edit />
                   Editar producto

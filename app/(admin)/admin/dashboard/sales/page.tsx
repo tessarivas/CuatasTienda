@@ -29,7 +29,7 @@ import {
   Trophy,
   Wallet,
 } from "lucide-react";
-import { StatCard } from "../_components/stat-card";
+import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { SaleDetailModal } from "./_components/sale-detail-modal";
 import { useTodayLabel } from "@/hooks/use-today-label";
 import {
@@ -277,7 +277,7 @@ export default function SalesHistoryPage() {
         {/* Highlights (StatCard): arriba el resumen del periodo, abajo el
             dinero por destino. Apartados en naranja, el color que la app ya
             usa para "apartado"; el rojo no se usa porque significa deuda. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={STAT_ROW}>
           <StatCard
             color="yellow"
             icon={Receipt}
@@ -308,7 +308,7 @@ export default function SalesHistoryPage() {
             loading={isLoading}
           />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={STAT_ROW}>
           <StatCard
             color="green"
             icon={Banknote}
@@ -335,12 +335,14 @@ export default function SalesHistoryPage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* En celular: los dos filtros en un renglón y Exportar abajo, todo a
+            lo ancho. */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Select
             value={methodFilter}
             onValueChange={(v) => setMethodFilter(v as MethodFilter)}
           >
-            <SelectTrigger className="cursor-pointer">
+            <SelectTrigger className="w-full cursor-pointer sm:w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -355,7 +357,7 @@ export default function SalesHistoryPage() {
             value={originFilter}
             onValueChange={(v) => setOriginFilter(v as OriginFilter)}
           >
-            <SelectTrigger className="cursor-pointer">
+            <SelectTrigger className="w-full cursor-pointer sm:w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -366,7 +368,7 @@ export default function SalesHistoryPage() {
           </Select>
           <Button
             variant="outline"
-            className="ml-auto cursor-pointer"
+            className="col-span-2 w-full cursor-pointer sm:ml-auto sm:w-auto"
             disabled={isLoading || !rangeIsValid || isExporting}
             onClick={handleExport}
           >

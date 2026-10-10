@@ -18,7 +18,8 @@ primary CTA right on the same row, then a 3-card highlights row, then a `grid-co
 md:grid-cols-4` card grid. Keep new list pages consistent with it.
 
 **Highlight cards always use `dashboard/_components/stat-card.tsx` (`StatCard`)** — icon + title,
-main value, small hint below — never a hand-built colored div. Used on suppliers, clients, sales
+main value, small hint below — never a hand-built colored div. Their row uses the `STAT_ROW` class from the
+same file: a one-row swipe carousel on mobile, the 3-column grid from `md:`. Used on suppliers, clients, sales
 history and cash closing. Colors by position: yellow → blue → green on suppliers/clients;
 yellow → blue → pink on sales and cash closing (green/purple/orange for the sales money row). Hints
 are short plain sentences (no em dashes).
