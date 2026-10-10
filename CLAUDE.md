@@ -151,14 +151,16 @@ It also exports `isUnsyncedUserError(err)` (Prisma `P2003`) and `unsyncedUserRes
 `clients/[id]/payments`, and `clients/[id]/layaway/liquidate`. Those last two derive
 `receivedBy` / `userId` from the session and never from the body — preserve that.
 
-**Roles.** `User.role` is plain text, `"ADMIN"` or `"USER"` (`lib/auth/roles.ts`: `ROLE_ADMIN`,
-`ROLE_USER`, `isAdminRole()` compares case-insensitively so a hand-typed "admin" works). Today the
+**Roles.** `User.role` is the Postgres enum `UserRole` (`ADMIN` | `USER`, default `USER`; migration
+`user_role_enum`), so Supabase's Table Editor shows a dropdown and the DB rejects anything else
+(`lib/auth/roles.ts`: `ROLE_ADMIN`, `ROLE_USER`, `isAdminRole()`). Today the
 **whole panel** (`/admin/*` and its API) is admin-only; a `USER` can log in but only sees
 "Sin acceso" — there are no non-admin pages yet (planned for later). The proxy reads the role from
 the DB on every request, so a change applies on the next page load without logging out.
 - `sync-user` makes the **first account ever** (empty `User` table, e.g. after a DB reset) `ADMIN`;
   every later account starts as `USER`.
-- Promote/demote someone by editing their `role` cell in Supabase's Table Editor (`User` table).
+- Promote/demote someone by picking `ADMIN`/`USER` in their `role` cell in Supabase's Table Editor
+  (`User` table).
   The row only exists after their first login.
 - The only object-level check is a layaway item's `Layaway.clientId` matching the route's client →
   `403`. There are no per-action roles (every ADMIN can do everything).

@@ -188,7 +188,7 @@ model User {
   id                  String                @id @default(uuid()) @db.Uuid
   name                String
   email               String                @unique
-  role                String
+  role                UserRole              @default(USER)
   createdAt           DateTime              @default(now())
   Payment             Payment[]
   Sale                Sale[]
@@ -233,6 +233,13 @@ model CashClosing {
   closedAt     DateTime @default(now())
   updatedAt    DateTime @updatedAt
   User         User     @relation(fields: [closedBy], references: [id])
+}
+
+// Rol de la cuenta. Enum (no texto) para que en el Table Editor de Supabase
+// sea una lista para elegir y la base rechace cualquier otro valor.
+enum UserRole {
+  ADMIN
+  USER
 }
 
 enum ProductType {
