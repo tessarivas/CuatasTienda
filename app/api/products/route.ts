@@ -5,6 +5,7 @@ import {
   deleteProductImage,
 } from "@/lib/cloudinary/product";
 import { imageFileError } from "@/lib/cloudinary/upload";
+import { isAdminRole } from "@/lib/auth/roles";
 import { randomBytes } from "crypto";
 import { servicePrefixFor } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
@@ -34,9 +35,11 @@ function toPublicProduct(p: {
 // disponibilidad. Cada producto incluye `reservedCount` = LayawayItem en
 // Layaways activos.
 //
-// Esta ruta es la única de /api que el middleware deja pasar sin sesión, para
-// servir de catálogo público. Sin sesión se devuelve la proyección recortada y
-// `?include=all` se rechaza; con sesión el comportamiento es el de siempre.
+// Esta ruta es la única de /api que proxy.ts deja pasar sin sesión (y sin
+// revisar el rol), para servir de catálogo público. Por eso el rol se revisa
+// aquí: sólo un ADMIN recibe el payload completo y puede pedir
+// `?include=all`; cualquier otro (sin sesión o USER) ve la proyección
+// recortada.
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -46,10 +49,22 @@ export async function GET(req: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    const isAuthenticated = Boolean(user);
+    const dbUser = user
+      ? await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        })
+      : null;
+    const isAdmin = isAdminRole(dbUser?.role);
 
-    if (includeAll && !isAuthenticated) {
+    if (includeAll && !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    if (includeAll && !isAdmin) {
+      return NextResponse.json(
+        { error: "Tu cuenta no tiene acceso al panel" },
+        { status: 403 }
+      );
     }
 
     const where = includeAll
@@ -89,7 +104,7 @@ export async function GET(req: Request) {
     // La misma URL responde distinto con y sin sesión: que ningún caché
     // (CDN del hosting) guarde una y se la sirva al otro.
     const noStore = { headers: { "Cache-Control": "private, no-store" } };
-    if (!isAuthenticated) {
+    if (!isAdmin) {
       return NextResponse.json(filtered.map(toPublicProduct), noStore);
     }
 

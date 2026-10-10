@@ -1,6 +1,9 @@
-// middleware.ts
+// proxy.ts (antes middleware.ts; Next 16 renombró la convención). Corre en
+// Node.js, así que puede consultar la base para revisar el rol.
 import { createServerClient } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/db/client"
+import { isAdminRole } from "@/lib/auth/roles"
 
 // Rutas alcanzables sin sesión. Cada excepción tiene un motivo concreto:
 //
@@ -24,7 +27,14 @@ function isPublicPath(request: NextRequest): boolean {
   return false
 }
 
-export async function middleware(request: NextRequest) {
+// Rutas que piden sesión pero no rol de ADMIN:
+//  - /api/sync-user   crea la fila de User al iniciar sesión; sin ella aún no
+//                     hay rol que revisar (y el primer usuario se vuelve ADMIN).
+//  - /admin/sin-acceso  a donde se manda a quien no es ADMIN; gatearla con el
+//                     rol sería un bucle.
+const NO_ROLE_PATHS = new Set(["/api/sync-user", "/admin/sin-acceso"])
+
+export async function proxy(request: NextRequest) {
   if (isPublicPath(request)) {
     return NextResponse.next()
   }
@@ -61,15 +71,40 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const isApi = request.nextUrl.pathname.startsWith("/api")
+
   if (!user) {
     // Las APIs contestan 401 JSON, nunca un redirect: un 302 a HTML rompe
     // cualquier fetch y llega al cliente como un error de parseo confuso.
-    if (request.nextUrl.pathname.startsWith("/api")) {
+    if (isApi) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
 
     const loginUrl = new URL("/admin/login", request.url)
     return NextResponse.redirect(loginUrl)
+  }
+
+  if (NO_ROLE_PATHS.has(request.nextUrl.pathname)) {
+    return supabaseResponse
+  }
+
+  // El panel completo es sólo para ADMIN. El rol vive en User.role y se cambia
+  // desde el Table Editor de Supabase; se lee en cada petición para que un
+  // cambio aplique en la siguiente carga, sin cerrar sesión. Sin fila (aún no
+  // sincronizado) cuenta como sin acceso.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  })
+
+  if (!isAdminRole(dbUser?.role)) {
+    if (isApi) {
+      return NextResponse.json(
+        { error: "Tu cuenta no tiene acceso al panel" },
+        { status: 403 }
+      )
+    }
+    return NextResponse.redirect(new URL("/admin/sin-acceso", request.url))
   }
 
   return supabaseResponse

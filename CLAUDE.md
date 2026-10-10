@@ -33,8 +33,10 @@ npm run lint           # eslint (flat config)
 npx tsc --noEmit       # typecheck — there is NO npm script for this
 ```
 
-`package.json` has a bug: `"type": "module"` is nested inside `"scripts"` instead of being a
-top-level field. It does nothing, and there is no `npm run type`. Use `npx tsc --noEmit`.
+Never run `npm run build` while `npm run dev` is running (it corrupts the dev cache, see the
+Turbopack gotcha below). `next build` typechecks every file, so a type error anywhere — even in an
+unused file — fails the deploy: keep `npx tsc --noEmit` at zero. `npm run lint` currently has one
+error in the generated `components/ui/sidebar.tsx` (`Math.random()` in render); leave it.
 
 ### Database (Prisma 7 — no npm scripts wrap these)
 
@@ -49,11 +51,11 @@ After `migrate deploy` + `generate`, **restart `npm run dev`**: the running serv
 client in memory and rejects queries that use the new fields (500s) until restarted; touching
 `lib/db/client.ts` does not reload it.
 
-Output goes to `generated/prisma/`, which is **gitignored**. A fresh clone will not typecheck
-until you run `prisma generate`. Nothing automates it — there is no `postinstall` hook.
+Output goes to `generated/prisma/`, which is **gitignored**. `npm install` regenerates it
+(`postinstall: prisma generate`), so a fresh clone or a deploy compiles; after editing
+`schema.prisma` you still run `npx prisma generate` yourself.
 
-Import the client from `@/generated/prisma/client`, **not** `@prisma/client`
-(`types/global.d.ts` still references the old path and is stale).
+Import the client from `@/generated/prisma/client`, **not** `@prisma/client`.
 
 ### Testing
 
@@ -96,19 +98,22 @@ Path alias: `@/*` → repo root.
 
 Supabase Auth (`@supabase/ssr`), cookie-based. No NextAuth, no custom JWT.
 
-**`middleware.ts` is the single gate.** Its matcher is `["/admin/:path*", "/api/:path*"]`, it
+**`proxy.ts` is the single gate** (Next 16 renamed `middleware.ts` → `proxy.ts`; it always runs on
+Node.js, which is what lets it query the DB). Its matcher is `["/admin/:path*", "/api/:path*"]`, it
 validates the session with `getUser()` (not `getSession()`, which doesn't revalidate the token),
-and it branches by route type:
+then checks the role, and it branches by route type:
 
 - `/api/*` unauthenticated → `401 { error: "No autenticado" }` as JSON. Never a redirect — a 302
   to HTML breaks `fetch` callers.
 - `/admin/*` unauthenticated → redirect to `/admin/login`.
+- Authenticated but not `ADMIN` → `/api/*` gets `403 { error: "Tu cuenta no tiene acceso al panel" }`,
+  `/admin/*` redirects to `/admin/sin-acceso` (logo, message, "Cerrar sesión").
 
 Because the gate is central, **individual route handlers do not repeat the check**. Do not add a
-`getUser()` call to a new route just to authenticate it; the middleware already covers it. Call
+`getUser()` or role check to a new route just to authenticate it; the proxy already covers it. Call
 `requireUser()` only when you need the user *object* (see below).
 
-Public exceptions, all in `isPublicPath()` in `middleware.ts`:
+Public exceptions, all in `isPublicPath()` in `proxy.ts`:
 
 | Path | Why |
 |---|---|
@@ -116,13 +121,23 @@ Public exceptions, all in `isPublicPath()` in `middleware.ts`:
 | `/api/auth` | the login primitive — gating it would deadlock. GET (probe) and DELETE (logout) also pass; the handlers self-check, and 401-ing logout would strand stale cookies. |
 | `GET /api/products` (exact path) | public catalogue. `POST /api/products` and all of `/api/products/[id]` stay protected. |
 
-`GET /api/products` serves three shapes: anonymous gets a trimmed projection (`id`, `title`,
-`price`, `picture`, `type`) of available stock; anonymous with `?include=all` gets 401; an
-authenticated caller gets the full admin payload unchanged. Keep internal fields (`supplierId`,
-`soldCount`, `code`, `quantity`, `reservedCount`) out of the anonymous branch.
+Session required but **no role check** (`NO_ROLE_PATHS` in `proxy.ts`): `/api/sync-user` (creates the
+`User` row at login, before there's a role to read) and `/admin/sin-acceso` (would loop).
 
-**There is no account signup by API.** `PUT /api/auth` was removed — it was public and unthrottled,
-so anyone could self-register into the panel. New users are created from the Supabase dashboard.
+`GET /api/products` serves three shapes, and since the proxy lets it through it **checks the role
+itself**: an `ADMIN` gets the full admin payload; anyone else (anonymous or `USER`) gets a trimmed
+projection (`id`, `title`, `price`, `picture`, `type`) of available stock; `?include=all` is 401
+anonymous / 403 for a `USER`. Keep internal fields (`supplierId`, `soldCount`, `code`, `quantity`,
+`reservedCount`) out of the public branch. It sends `Cache-Control: private, no-store` because the
+same URL answers differently per caller.
+
+**There is no account signup.** `PUT /api/auth` was removed (public and unthrottled), and Supabase's
+own sign-up is **turned off** in the dashboard (Authentication → Sign In / Providers → "Allow new
+users to sign up"): the anon key is public, so with it on anyone could register through Supabase
+directly. New users are created from the Supabase dashboard (Authentication → Users → Add user);
+they log in with **email** + password ("Correo" in the form). `POST /api/auth` always answers
+"Correo o contraseña incorrectos" on failure (Supabase's raw message revealed which emails exist),
+429 → "Demasiados intentos…".
 
 `lib/auth/require-user.ts` is the shared helper for handlers that need identity:
 
@@ -136,24 +151,25 @@ It also exports `isUnsyncedUserError(err)` (Prisma `P2003`) and `unsyncedUserRes
 `clients/[id]/payments`, and `clients/[id]/layaway/liquidate`. Those last two derive
 `receivedBy` / `userId` from the session and never from the body — preserve that.
 
-`User.role` exists and is written as the literal `"USER"` by `sync-user`, but **no code reads or
-enforces it**. There is no role-based authorization: any authenticated user can do anything. The
-only object-level check is a layaway item's `Layaway.clientId` matching the route's client → `403`.
-
-This is a **deliberate deferral, not an oversight** — role-gating is planned for a later version.
-Authenticated-only is the intended contract for now, so don't report it as a defect or add role
-checks unprompted. When it does land, the natural first candidates are the destructive verbs
-(`DELETE` on suppliers and clients, `POST /api/products/[id]/restore`), and it needs a prior manual
-step: promoting a real user to `ADMIN` in the DB, since `sync-user` only ever writes `"USER"`.
+**Roles.** `User.role` is plain text, `"ADMIN"` or `"USER"` (`lib/auth/roles.ts`: `ROLE_ADMIN`,
+`ROLE_USER`, `isAdminRole()` compares case-insensitively so a hand-typed "admin" works). Today the
+**whole panel** (`/admin/*` and its API) is admin-only; a `USER` can log in but only sees
+"Sin acceso" — there are no non-admin pages yet (planned for later). The proxy reads the role from
+the DB on every request, so a change applies on the next page load without logging out.
+- `sync-user` makes the **first account ever** (empty `User` table, e.g. after a DB reset) `ADMIN`;
+  every later account starts as `USER`.
+- Promote/demote someone by editing their `role` cell in Supabase's Table Editor (`User` table).
+  The row only exists after their first login.
+- The only object-level check is a layaway item's `Layaway.clientId` matching the route's client →
+  `403`. There are no per-action roles (every ADMIN can do everything).
 
 **Identity bridge:** the Prisma `User.id` is a `@db.Uuid` that *is* the Supabase auth user id.
 `app/api/sync-user/route.ts` upserts the Supabase user into the `User` table after login; on
-update it syncs `email` only and deliberately never touches `name`, which is owned by
-`PATCH /api/me` once the row exists.
+update it syncs `email` only and deliberately never touches `name` (owned by
+`PATCH /api/me` once the row exists) or `role` (owned by whoever edits it in Supabase).
 
-Server-side session access: `supabaseServerClient()` in `lib/supabase/server.ts`. There is also a
-`getCurrentUser()` wrapper in `modules/auth/auth.service.ts`, but nothing uses it — the `modules/`
-directory is an intended service layer that was never adopted; route handlers call Prisma directly.
+Server-side session access: `supabaseServerClient()` in `lib/supabase/server.ts`. There is no
+service layer; route handlers call Prisma directly.
 
 ### API route conventions
 
@@ -318,8 +334,8 @@ sidebar shell.
 
 Data fetching is plain `fetch("/api/...")` in `useEffect` + `useState`. Mutations are followed by
 manual `reload*()` calls or local `setState` patching, so cache coherence is hand-managed.
-`@tanstack/react-query` is installed and `providers.tsx` defines a `QueryClientProvider`, but
-**that provider is never mounted and React Query has zero usages.** Don't assume it's wired up.
+`@tanstack/react-query` is still in `package.json` but has **zero usages** and no provider is
+mounted. Don't assume it's wired up.
 
 ### Two different `DashboardContext` exports — a real trap
 
@@ -623,14 +639,17 @@ the browser picks a screen-wide variant. New upload or image spots must follow b
   right padding (`pr-4`) on the *inner* content div (not the `ScrollArea` root) so the scrollbar
   doesn't sit on top of it. See `supplier-products-list.tsx`.
 
-## Known-broken / dead code (do not copy or import)
+## Known leftovers (do not copy)
 
-- `hooks/use-auth.ts` — imports the **server** Supabase client into a client hook and calls
-  `.auth.getUser()` on the class rather than an instance. Cannot work.
-- `context/username-context.ts` — `UsernameProvider` returns the literal `0` instead of JSX.
-- `providers.tsx` — never mounted.
-- `modules/auth/auth.service.ts` — unused.
-- `types/global.d.ts` — stale `global.prisma` declaration pointing at `@prisma/client`.
+The broken/dead files (`hooks/use-auth.ts`, `providers.tsx`, `context/`, `modules/`,
+`types/global.d.ts`, unused modals) were deleted on 2026-10-10. Still left:
+
+- `app/layout.tsx` exports a mock-seeded `DashboardContext` and `lib/data.ts` still has mock arrays
+  (`initialClients`, `initialProducts`, `initialTransactions`) used as context defaults; the live
+  context is the dashboard one (see "Two different `DashboardContext` exports").
+- Dependencies with zero imports: `zod`, `@tanstack/react-query`, `next-cloudinary`,
+  `@supabase/auth-helpers-nextjs`, `lucide` (only `lucide-react` is used), `radix-ui`,
+  `@base-ui/react`.
 
 ## Highest-signal files to read first
 
@@ -638,4 +657,4 @@ the browser picks a screen-wide variant. New upload or image spots must follow b
 - `app/api/clients/[id]/layaway/liquidate/route.ts` — the core business transaction, fully commented
 - `app/api/products/[id]/route.ts` — reservation and soft-delete invariants
 - `app/(admin)/admin/dashboard/layout.tsx` — the client-side app shell and global store
-- `middleware.ts` + `lib/supabase/server.ts` — the entire auth surface
+- `proxy.ts` + `lib/auth/roles.ts` + `lib/supabase/server.ts` — the entire auth surface

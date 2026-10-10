@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireUser } from "@/lib/auth/require-user";
+import { ROLE_ADMIN, ROLE_USER } from "@/lib/auth/roles";
 
 export async function POST() {
   try {
@@ -24,16 +25,24 @@ export async function POST() {
 
     const fallbackName = email.split("@")[0];
 
+    // La primera cuenta que entra (tabla User vacía, p. ej. tras reiniciar la
+    // base) queda como ADMIN para que alguien pueda usar el panel; las demás
+    // empiezan como USER y se promueven a mano en la columna `role` desde el
+    // Table Editor de Supabase. Es seguro porque el registro público de
+    // Supabase está apagado: sólo existen cuentas creadas desde el dashboard.
+    const isFirstUser = (await prisma.user.count()) === 0;
+
     const dbUser = await prisma.user.upsert({
       where: { id: user.id },
-      // On update we keep Supabase email in sync but never touch `name` —
-      // the display name is owned by PATCH /api/me from the moment the row exists.
+      // On update we keep Supabase email in sync but never touch `name` or
+      // `role` — the display name is owned by PATCH /api/me, the role by
+      // whoever edits it in Supabase.
       update: { email },
       create: {
         id: user.id,
         email,
         name: metadataName ?? fallbackName,
-        role: "USER",
+        role: isFirstUser ? ROLE_ADMIN : ROLE_USER,
       },
     });
 
