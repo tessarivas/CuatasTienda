@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export function LoginForm({
   className,
@@ -15,7 +15,6 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false)
   const [username, setUsername] = useState("")
-  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -24,6 +23,7 @@ export function LoginForm({
 const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
   event.preventDefault();
   setError("");
+  setIsLoading(true);
 
   try {
     const res = await fetch("/api/auth", {
@@ -35,16 +35,20 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     if (!res.ok) {
       const { error } = await res.json();
       setError(error);
+      setIsLoading(false);
       return;
     }
 
     await res.json();
     await fetch("/api/sync-user", { method: "POST" });
 
+    // isLoading se queda en true: el botón sigue en "Entrando…" mientras
+    // carga el panel, en vez de volver a "Acceder" justo antes de cambiar.
     router.push("/admin/dashboard");
   } catch (err) {
     console.error("Error during login or sync:", err);
-    setError("Failed to login or sync user");
+    setError("No se pudo iniciar sesión. Intenta de nuevo.");
+    setIsLoading(false);
   }
 };
 
@@ -56,7 +60,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               {error && (
-                <p className="text-sm font-medium text-red-600">{error}</p>
+                <p className="text-sm font-medium text-my-red-dark">{error}</p>
               )}
               <Field>
                 <FieldLabel htmlFor="username">Usuario</FieldLabel>
@@ -99,8 +103,19 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
                 </div>
               </Field>
               <Field>
-                <Button type="submit" className="w-full cursor-pointer">
-                  Acceder
+                <Button
+                  type="submit"
+                  className="w-full cursor-pointer"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" />
+                      Entrando…
+                    </>
+                  ) : (
+                    "Acceder"
+                  )}
                 </Button>
               </Field>
             </FieldGroup>
