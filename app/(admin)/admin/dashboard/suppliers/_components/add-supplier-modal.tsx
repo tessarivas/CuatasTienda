@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { type Supplier } from "@/lib/data";
 import { X, UserRoundPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { compressImage } from "@/lib/images/compress";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export function AddSupplierModal({
     formData.append("businessName", businessName);
     formData.append("cellphone", cellphone);
     formData.append("email", email);
-    if (image) formData.append("image", image);
+    if (image) formData.append("image", await compressImage(image, "logo"));
 
     try {
       const res = await fetch("/api/suppliers", {

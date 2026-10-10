@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Pencil } from "lucide-react";
 import { type Product, type Supplier } from "@/lib/data";
+import { compressImage } from "@/lib/images/compress";
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ export function EditProductModal({
 
       if (pendingImage) {
         const formData = new FormData();
-        formData.append("file", pendingImage);
+        formData.append("file", await compressImage(pendingImage, "product"));
         const imgRes = await fetch(`/api/products/${product.id}`, {
           method: "POST",
           body: formData,

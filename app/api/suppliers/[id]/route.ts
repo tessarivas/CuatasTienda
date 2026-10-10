@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db/client";
-import { uploadSupplierImage } from "@/lib/cloudinary/supplier";
+import {
+  deleteSupplierImage,
+  relabelSupplierImages,
+  uploadSupplierImage,
+} from "@/lib/cloudinary/supplier";
+import { imageFileError } from "@/lib/cloudinary/upload";
 import { NextResponse } from "next/server";
 import { SERVICE_PREFIX_PATTERN } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
@@ -168,7 +173,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   try {
+    // Si cambia el nombre, las fotos en Cloudinary siguen al nombre nuevo
+    // (carpeta de sus productos y nombre del logo); hace falta el anterior.
+    const renaming = data.name !== undefined || data.businessName !== undefined;
+    const before = renaming
+      ? await prisma.supplier.findUnique({
+          where: { id },
+          select: { name: true, businessName: true },
+        })
+      : null;
+
     const updated = await prisma.supplier.update({ where: { id }, data });
+    if (before) await relabelSupplierImages(before, updated);
     return NextResponse.json(updated);
   } catch (err) {
     if (
@@ -237,7 +253,13 @@ export async function DELETE(_req: Request, { params }: Ctx) {
 
   try {
     await prisma.supplierPromotion.deleteMany({ where: { supplierId: id } });
-    await prisma.supplier.delete({ where: { id } });
+    const deleted = await prisma.supplier.delete({ where: { id } });
+    // Su logo ya no lo usa nadie; si falla sólo queda huérfano en Cloudinary.
+    if (deleted.logo) {
+      await deleteSupplierImage(id).catch((err) =>
+        console.error("No se pudo borrar el logo en Cloudinary", err)
+      );
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     if (
@@ -270,6 +292,10 @@ export async function POST(req: Request, { params }: Ctx) {
   if (!file) {
     return NextResponse.json({ error: "No file" }, { status: 400 });
   }
+  const fileError = imageFileError(file);
+  if (fileError) {
+    return NextResponse.json({ error: fileError }, { status: 400 });
+  }
 
   const supplier = await prisma.supplier.findUnique({
     where: { id: supplierId },
@@ -285,7 +311,7 @@ export async function POST(req: Request, { params }: Ctx) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   // 🔁 overwrite same public_id
-  const upload = await uploadSupplierImage(buffer, supplierId, supplier.name);
+  const upload = await uploadSupplierImage(buffer, supplier);
 
   const updated = await prisma.supplier.update({
     where: { id: supplierId },

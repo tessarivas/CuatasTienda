@@ -88,7 +88,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    // La foto vive en products/{code}/picture. Si falla el borrado en
+    // La foto vive en products/{code}. Si falla el borrado en
     // Cloudinary el producto ya no existe; sólo queda una imagen huérfana.
     if (result.product.code && result.product.picture) {
       try {

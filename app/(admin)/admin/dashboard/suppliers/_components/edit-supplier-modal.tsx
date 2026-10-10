@@ -16,6 +16,8 @@ import { type Supplier } from "@/lib/data";
 import { Pencil, Trash2, User } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { defaultServicePrefix } from "@/lib/services/folio";
+import { compressImage } from "@/lib/images/compress";
+import { cloudinaryUrl } from "@/lib/images/cloudinary-loader";
 
 interface EditSupplierModalProps {
   isOpen: boolean;
@@ -100,7 +102,7 @@ export function EditSupplierModal({
       // El logo va en una petición aparte: POST multipart al mismo recurso.
       if (image) {
         const formData = new FormData();
-        formData.append("file", image);
+        formData.append("file", await compressImage(image, "logo"));
         const logoRes = await fetch(`/api/suppliers/${supplier.id}`, {
           method: "POST",
           body: formData,
@@ -213,7 +215,7 @@ export function EditSupplierModal({
                 {displayedLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={displayedLogo}
+                    src={cloudinaryUrl(displayedLogo, 600)}
                     alt={`Logo de ${supplier.businessName}`}
                     className="h-full w-full object-cover"
                   />

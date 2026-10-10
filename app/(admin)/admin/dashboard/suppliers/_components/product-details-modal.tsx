@@ -49,6 +49,7 @@ import {
   type StockMovementKind,
 } from "./stock-movement-modal";
 import { toast } from "@/lib/toast";
+import { compressImage } from "@/lib/images/compress";
 
 interface ProductDetailsModalProps {
   product: Product | null;
@@ -162,7 +163,7 @@ export function ProductDetailsModal({
 
       if (pendingImage) {
         const formData = new FormData();
-        formData.append("file", pendingImage);
+        formData.append("file", await compressImage(pendingImage, "product"));
         const imgRes = await fetch(`/api/products/${product.id}`, {
           method: "POST",
           body: formData,
@@ -390,6 +391,7 @@ export function ProductDetailsModal({
                       src={displayedImage}
                       alt={product.title}
                       fill
+                      sizes="336px"
                       className="object-cover"
                     />
                   ) : (

@@ -506,12 +506,35 @@ To preview a report outside the browser, bundle it with esbuild to ESM
 ### Images
 
 Cloudinary, with **deterministic overwrite-in-place public ids** so re-uploading replaces the asset
-instead of accumulating copies: `products/{code}/picture` (`lib/cloudinary/product.ts`) and
-`suppliers/{id}-{slug}/logo` (`lib/cloudinary/supplier.ts`, with an accent-stripping
-`sanitizeFolderName`). Uploads arrive as `multipart/form-data` via `POST` to the entity route
+instead of accumulating copies. The account is in **dynamic folder mode**: the public id (what's in
+the URL) is independent of the folder and name shown in the Media Library, so ids are built from
+things that never change and the visible folder/name follow renames without breaking stored URLs:
+
+| Image | public id | Shown in Media Library as |
+|---|---|---|
+| Product photo (`lib/cloudinary/product.ts`) | `products/{code}` | `products/{Proveedor}/` + product title |
+| Supplier logo (`lib/cloudinary/supplier.ts`) | `suppliers/{id}` | `suppliers/` + supplier name |
+| Receipt (`lib/cloudinary/receipt.ts`) | `comprobantes/{ventas\|abonos\|pedidos}/{folio\|id}` | same folder + folio/id |
+
+`{Proveedor}` is `businessName`, else `name`, cleaned by `cloudinaryLabel`. `PATCH` on a product
+(title or supplier) calls `relabelProductImage`; `PATCH` on a supplier's name calls
+`relabelSupplierImages` (renames its products folder + logo label). Both are best-effort: a
+Cloudinary failure is logged and never fails the request. Deleting a supplier also deletes its logo.
+Uploads arrive as `multipart/form-data` via `POST` to the entity route
 (e.g. `POST /api/suppliers/[id]` with a `file` field), which writes `secure_url` to the DB. Product
 creation uploads *before* insert and cleans up orphans on code collision.
 `next.config.ts` allowlists `res.cloudinary.com` for `next/image`.
+
+**Size (free plan, 25 credits/month):** every upload is shrunk twice. The browser runs
+`compressImage(file, kind)` (`lib/images/compress.ts`, `browser-image-compression`) before appending
+it to the `FormData`; the server checks it with `imageFileError` (image type, ≤ 4 MB — under the
+~4.5 MB serverless body limit) and uploads through `uploadImage` in `lib/cloudinary/upload.ts`, whose
+incoming transformation stores only a resized WebP. Max side per kind lives in `lib/images/sizes.ts`
+(product 1200, logo 800, receipt 2000), shared by both sides. **Display** never loads the stored
+image as-is: `next/image` goes through the global custom loader `lib/images/cloudinary-loader.ts`
+(`f_auto,q_auto,c_limit,w_{width}`, so Next/the host doesn't optimize), and a plain `<img>` with a
+Cloudinary URL uses `cloudinaryUrl(src, width)` from the same file. A `fill` image needs `sizes`, or
+the browser picks a screen-wide variant. New upload or image spots must follow both rules.
 
 ## Conventions
 

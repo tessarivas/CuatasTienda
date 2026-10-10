@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
-import { uploadProductImage } from "@/lib/cloudinary/product";
+import {
+  relabelProductImage,
+  uploadProductImage,
+} from "@/lib/cloudinary/product";
+import { imageFileError } from "@/lib/cloudinary/upload";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -200,6 +204,27 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   try {
     const updated = await prisma.product.update({ where: { id }, data });
+
+    // La foto sigue al producto en la Media Library: nombre nuevo y/o carpeta
+    // del proveedor nuevo. La URL no cambia.
+    if (
+      (data.title !== undefined || data.Supplier !== undefined) &&
+      updated.picture &&
+      updated.code
+    ) {
+      const supplier = updated.supplierId
+        ? await prisma.supplier.findUnique({
+            where: { id: updated.supplierId },
+            select: { name: true, businessName: true },
+          })
+        : null;
+      await relabelProductImage({
+        code: updated.code,
+        title: updated.title,
+        Supplier: supplier,
+      });
+    }
+
     return NextResponse.json(updated);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -230,10 +255,20 @@ export async function POST(req: Request, { params }: Ctx) {
   if (!file) {
     return NextResponse.json({ error: "No se envió archivo" }, { status: 400 });
   }
+  const fileError = imageFileError(file);
+  if (fileError) {
+    return NextResponse.json({ error: fileError }, { status: 400 });
+  }
 
   const product = await prisma.product.findUnique({
     where: { id },
-    select: { id: true, code: true, status: true },
+    select: {
+      id: true,
+      code: true,
+      status: true,
+      title: true,
+      Supplier: { select: { name: true, businessName: true } },
+    },
   });
   if (!product) {
     return NextResponse.json(
@@ -258,7 +293,11 @@ export async function POST(req: Request, { params }: Ctx) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const upload = await uploadProductImage(buffer, product.code);
+  const upload = await uploadProductImage(buffer, {
+    code: product.code,
+    title: product.title,
+    Supplier: product.Supplier,
+  });
 
   const updated = await prisma.product.update({
     where: { id: product.id },

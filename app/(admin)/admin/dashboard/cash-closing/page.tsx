@@ -31,6 +31,7 @@ import { ReceiptDialog } from "../sales/_components/receipt-dialog";
 import { formatMoney } from "../sales/sales-utils";
 import { ClosingHistoryDialog } from "./_components/closing-history-dialog";
 import { toast } from "@/lib/toast";
+import { compressImage } from "@/lib/images/compress";
 
 type Method = "Efectivo" | "Tarjeta" | "Transferencia";
 
@@ -308,7 +309,7 @@ export default function CashClosingPage() {
     setUploadingKey(charge.key);
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", await compressImage(file, "receipt"));
       const url =
         charge.kind === "venta"
           ? `/api/sales/${charge.id}/receipt`

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { uploadSupplierImage } from "@/lib/cloudinary/supplier";
+import { imageFileError } from "@/lib/cloudinary/upload";
 import { storeDateString } from "@/lib/store-time";
 
 export async function GET() {
@@ -32,6 +33,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const imageError = image ? imageFileError(image) : null;
+    if (imageError) {
+      return NextResponse.json({ error: imageError }, { status: 400 });
+    }
+
     // Create supplier FIRST (no logo)
     const supplier = await prisma.supplier.create({
       data: {
@@ -49,7 +55,7 @@ export async function POST(req: Request) {
     // Upload image using supplier.id and name for folder structure
     if (image) {
       const buffer = Buffer.from(await image.arrayBuffer());
-      const upload = await uploadSupplierImage(buffer, supplier.id, supplier.name);
+      const upload = await uploadSupplierImage(buffer, supplier);
 
       // 3️⃣ Update supplier with logo URL
       const updated = await prisma.supplier.update({

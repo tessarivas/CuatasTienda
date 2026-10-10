@@ -38,6 +38,7 @@ export function SupplierDetailsForm({
                   src={supplier.logo}
                   alt={`Logo de ${supplier.businessName}`}
                   fill
+                  sizes="120px"
                   className="object-cover"
                 />
               ) : (

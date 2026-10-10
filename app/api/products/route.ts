@@ -4,6 +4,7 @@ import {
   uploadProductImage,
   deleteProductImage,
 } from "@/lib/cloudinary/product";
+import { imageFileError } from "@/lib/cloudinary/upload";
 import { randomBytes } from "crypto";
 import { servicePrefixFor } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
@@ -118,7 +119,8 @@ function generateProductCode(prefix: string): string {
 // POST: crear producto. Flujo:
 //   1. Validar input + existencia del proveedor (404 temprano).
 //   2. Generar un código único (letras del proveedor + 8 al azar).
-//   3. Si hay imagen, subirla a Cloudinary en `products/{code}/picture`.
+//   3. Si hay imagen, subirla a Cloudinary (`products/{code}`, en la carpeta
+//      visible del proveedor).
 //   4. Insertar la fila con la URL de la imagen ya poblada.
 //   5. Si la inserción colisiona en `code` (P2002), borrar la imagen huérfana
 //      y reintentar con otro código.
@@ -185,6 +187,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const imageError = image ? imageFileError(image) : null;
+    if (imageError) {
+      return NextResponse.json({ error: imageError }, { status: 400 });
+    }
+
     // (#4) Verificar que el proveedor exista antes de tocar Cloudinary / DB.
     const supplier = await prisma.supplier.findUnique({
       where: { id: supplierId },
@@ -207,7 +214,11 @@ export async function POST(req: Request) {
       let pictureUrl: string | null = null;
 
       if (imageBuffer) {
-        const upload = await uploadProductImage(imageBuffer, code);
+        const upload = await uploadProductImage(imageBuffer, {
+          code,
+          title,
+          Supplier: supplier,
+        });
         pictureUrl = upload.secure_url;
       }
 

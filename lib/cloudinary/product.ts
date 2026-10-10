@@ -1,28 +1,43 @@
 import cloudinary from "./cloudinary";
+import { supplierProductsFolder } from "./supplier";
+import { cloudinaryLabel, relabelImage, uploadImage } from "./upload";
 
-// Sube la foto del producto a `products/{code}/picture`, sobreescribiendo
-// siempre el mismo public_id. El código del producto es único e inmutable,
-// así que el folder se mantiene estable aunque cambie el título.
-export async function uploadProductImage(file: Buffer, code: string) {
-  return new Promise<{ secure_url: string }>((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          folder: `products/${code}`,
-          public_id: "picture",
-          overwrite: true,
-          resource_type: "image",
-        },
-        (error, result) => {
-          if (error || !result) return reject(error);
-          resolve({ secure_url: result.secure_url });
-        }
-      )
-      .end(file);
+type ProductPlacement = {
+  code: string;
+  title: string;
+  Supplier: { name: string; businessName: string | null } | null;
+};
+
+function productFolder(product: ProductPlacement) {
+  return product.Supplier
+    ? supplierProductsFolder(product.Supplier)
+    : "products/Sin proveedor";
+}
+
+// La foto del producto tiene public_id `products/{code}`: el código es único
+// y nunca cambia, así que la URL guardada tampoco. En la Media Library se ve
+// en `products/{Proveedor}` con el nombre del producto; si cambia el título o
+// el proveedor, `relabelProductImage` la reacomoda.
+function productPublicId(code: string) {
+  return `products/${code}`;
+}
+
+export function uploadProductImage(file: Buffer, product: ProductPlacement) {
+  return uploadImage(file, "product", {
+    publicId: productPublicId(product.code),
+    assetFolder: productFolder(product),
+    displayName: cloudinaryLabel(product.title),
+  });
+}
+
+export function relabelProductImage(product: ProductPlacement) {
+  return relabelImage(productPublicId(product.code), {
+    assetFolder: productFolder(product),
+    displayName: cloudinaryLabel(product.title),
   });
 }
 
 // Elimina la foto del producto (útil al limpiar uploads huérfanos).
 export async function deleteProductImage(code: string) {
-  await cloudinary.uploader.destroy(`products/${code}/picture`);
+  await cloudinary.uploader.destroy(productPublicId(code));
 }

@@ -1,45 +1,59 @@
 import cloudinary from "./cloudinary";
+import { cloudinaryLabel, relabelImage, uploadImage } from "./upload";
 
-// Sanitize name for use in Cloudinary public_id
-function sanitizeFolderName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^a-z0-9]/g, "-") // Replace non-alphanumeric with hyphen
-    .replace(/-+/g, "-") // Collapse multiple hyphens
-    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
+type SupplierNames = { name: string; businessName: string | null };
+
+// Cómo se llama el proveedor en Cloudinary: el nombre del negocio ("Full
+// Moons") y, si no tiene, el del contacto.
+function supplierLabel(supplier: SupplierNames): string {
+  return cloudinaryLabel(supplier.businessName?.trim() || supplier.name);
 }
 
-// Upload (always same public_id → overwrite)
-export async function uploadSupplierImage(
+// Carpeta visible donde quedan las fotos de sus productos.
+export function supplierProductsFolder(supplier: SupplierNames): string {
+  return `products/${supplierLabel(supplier)}`;
+}
+
+// Logo: public_id `suppliers/{id}` (el id no cambia), en la carpeta visible
+// `suppliers` con el nombre del proveedor.
+function logoPublicId(supplierId: number) {
+  return `suppliers/${supplierId}`;
+}
+
+export function uploadSupplierImage(
   file: Buffer,
-  supplierId: number,
-  supplierName: string
+  supplier: SupplierNames & { id: number }
 ) {
-  const folderName = `${supplierId}-${sanitizeFolderName(supplierName)}`;
-  return new Promise<{ secure_url: string }>((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          folder: `suppliers/${folderName}`,
-          public_id: "logo",
-          overwrite: true,
-          resource_type: "image",
-        },
-        (error, result) => {
-          if (error || !result) return reject(error);
-          resolve({ secure_url: result.secure_url });
-        }
-      )
-      .end(file);
+  return uploadImage(file, "logo", {
+    publicId: logoPublicId(supplier.id),
+    assetFolder: "suppliers",
+    displayName: supplierLabel(supplier),
   });
 }
 
-// Delete (deterministic public_id)
-export async function deleteSupplierImage(supplierId: number, supplierName: string) {
-  const folderName = `${supplierId}-${sanitizeFolderName(supplierName)}`;
-  await cloudinary.uploader.destroy(
-    `suppliers/${folderName}/logo`
-  );
+export async function deleteSupplierImage(supplierId: number) {
+  await cloudinary.uploader.destroy(logoPublicId(supplierId));
+}
+
+// Al renombrar un proveedor: su carpeta de productos y el nombre de su logo
+// siguen al nombre nuevo. Ninguna URL cambia. Si dos proveedores se llamaran
+// igual compartirían carpeta (es sólo visual).
+export async function relabelSupplierImages(
+  before: SupplierNames,
+  after: SupplierNames & { id: number; logo: string | null }
+) {
+  const from = supplierProductsFolder(before);
+  const to = supplierProductsFolder(after);
+  if (from === to) return;
+  try {
+    await cloudinary.api.rename_folder(from, to);
+  } catch (err) {
+    // Lo normal es que no exista todavía (proveedor sin fotos de productos).
+    console.warn("No se renombró la carpeta en Cloudinary", from, "→", to, err);
+  }
+  if (after.logo) {
+    await relabelImage(logoPublicId(after.id), {
+      displayName: supplierLabel(after),
+    });
+  }
 }

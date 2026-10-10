@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, ImageIcon } from "lucide-react";
+import { cloudinaryUrl } from "@/lib/images/cloudinary-loader";
 
 interface ReceiptDialogProps {
   url: string | null;
@@ -34,7 +35,7 @@ export function ReceiptDialog({ url, title, onClose }: ReceiptDialogProps) {
           <>
             <div className="max-h-[65vh] overflow-auto rounded-md border bg-muted">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`Comprobante: ${title}`} className="w-full" />
+              <img src={cloudinaryUrl(url, 1000)} alt={`Comprobante: ${title}`} className="w-full" />
             </div>
             <Button variant="outline" asChild className="cursor-pointer">
               <a href={url} target="_blank" rel="noopener noreferrer">

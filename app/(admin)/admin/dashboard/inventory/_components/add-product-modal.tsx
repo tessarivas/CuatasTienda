@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Product, type ProductType, type Supplier } from "@/lib/data";
 import { Check, Loader2, PackagePlus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { compressImage } from "@/lib/images/compress";
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -100,7 +101,7 @@ export function AddProductModal({
     formData.append("type", type);
     if (!isService) formData.append("quantity", String(quantity));
     formData.append("supplierId", supplierId);
-    if (image) formData.append("image", image);
+    if (image) formData.append("image", await compressImage(image, "product"));
 
     try {
       const res = await fetch("/api/products", {
