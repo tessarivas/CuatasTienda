@@ -26,7 +26,7 @@ import {
 } from "@/lib/products/normalize";
 import { toast } from "@/lib/toast";
 
-export default function Page() {
+function InventoryPage() {
   const {
     products,
     setProducts,
@@ -378,5 +378,16 @@ export default function Page() {
         }
       />
     </>
+  );
+}
+
+// useSearchParams (filtro ?supplier=) exige un <Suspense> arriba: sin él,
+// `next build` falla al pre-renderizar la página. Los parámetros se leen ya
+// en el navegador, así que el fallback no llega a verse al navegar.
+export default function Page() {
+  return (
+    <React.Suspense fallback={null}>
+      <InventoryPage />
+    </React.Suspense>
   );
 }
