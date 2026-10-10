@@ -132,36 +132,6 @@ export const initialTransactions: Transaction[] = [
   },
 ];
 
-export const initialSuppliers: Supplier[] = [
-  {
-    id: "1",
-    providerName: "Maribel Barrón",
-    businessName: "Básica Boutique",
-    logo: "/suppliers/BASICA-BOUTIQUE-LOGO.jpg",
-    phone: "123-456-7890",
-    email: "maribel.barron@basica.com",
-    cutoffDay: 25, // Día de corte añadido
-  },
-  {
-    id: "2",
-    providerName: "Alejandra Gómez",
-    businessName: "CIIA",
-    logo: "/suppliers/CIIA-LOGO.jpg",
-    phone: "098-765-4321",
-    email: "alejandra.gomez@ciia.com",
-    cutoffDay: 1, // Día de corte añadido
-  },
-  {
-    id: "3",
-    providerName: "Elizabeth",
-    businessName: "Eli´s Home",
-    logo: "/suppliers/ELIS-HOME-LOGO.jpg",
-    phone: "555-555-5555",
-    email: "elizabeth@elishome.com",
-    cutoffDay: 15, // Día de corte añadido
-  },
-];
-
 export const initialProducts: Product[] = [
   {
     id: "prod-001",

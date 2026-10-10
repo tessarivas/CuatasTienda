@@ -18,6 +18,9 @@ interface EditCutoffDayModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier;
+  // Día de corte efectivo (el guardado o, si no hay, el día de alta), el
+  // mismo que muestra "Corte Mensual". supplier.cutoffDay puede venir vacío.
+  cutoffDay: number;
   onSave: (newCutoffDay: number) => void;
 }
 
@@ -25,9 +28,16 @@ export function EditCutoffDayModal({
   isOpen,
   onClose,
   supplier,
+  cutoffDay,
   onSave,
 }: EditCutoffDayModalProps) {
-  const [day, setDay] = React.useState(supplier.cutoffDay);
+  const [day, setDay] = React.useState(cutoffDay);
+
+  // Cada vez que se abre parte del día vigente, no del que había al cargar
+  // la página (el modal vive montado todo el tiempo).
+  React.useEffect(() => {
+    if (isOpen) setDay(cutoffDay);
+  }, [isOpen, cutoffDay]);
 
   const handleSave = () => {
     onSave(day);

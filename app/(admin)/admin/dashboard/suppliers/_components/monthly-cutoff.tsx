@@ -288,6 +288,7 @@ export function MonthlyCutoff({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         supplier={supplier}
+        cutoffDay={data?.cutoffDay ?? supplier.cutoffDay ?? 1}
         onSave={onCutoffDayChange}
       />
     </>

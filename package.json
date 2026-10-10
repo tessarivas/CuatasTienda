@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "type": "module"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",

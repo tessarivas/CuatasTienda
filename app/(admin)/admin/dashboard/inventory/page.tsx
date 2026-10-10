@@ -76,26 +76,6 @@ export default function Page() {
     setProductToAssign(null);
   };
 
-  const handleAddSupplier = async (newSupplier) => {
-  try {
-    const res = await fetch("/api/suppliers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newSupplier),
-    });
-
-    if (!res.ok) throw new Error("Error creando proveedor");
-
-    const createdSupplier = await res.json();
-
-    // 🔥 sincroniza estado global
-    setSuppliers((prev) => [createdSupplier, ...prev]);
-  } catch (error) {
-    console.error(error);
-    toast.error("No se pudo crear el proveedor");
-  }
-};
-
   // ProductDetailsModal (el aprobado, compartido con la página de proveedor)
   // no devuelve el producto actualizado — avisa con onChanged y el padre
   // vuelve a pedir la lista completa.

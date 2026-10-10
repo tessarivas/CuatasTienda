@@ -79,12 +79,9 @@ export const DashboardContext = React.createContext<DashboardContextType>({
 
 export default function DashboardLayout({
   children,
-  username
 }: {
   children: React.ReactNode;
-  username?: string;
 }) {
-  console.log("Username en dashboard/layout 1:", username);
   const pathname = usePathname();
   // Las subsecciones (p. ej. "Historial de Ventas" dentro de Caja
   // Registradora) se buscan primero para que el encabezado diga su nombre;
