@@ -25,13 +25,17 @@ import { toast } from "@/lib/toast";
 
 type Tone = "yellow" | "green" | "purple" | "pink" | "orange" | "blue";
 
+// Dos colores nada más (un color por tipo se veía cargado): relleno amarillo
+// = falta algo por hacer; verde = ya está completo (ver AnimatedCheck).
+// `tone` se conserva por si algún día se quiere distinguir alguno.
+const OUTLINE = "bg-my-yellow-light text-my-yellow-dark";
 const TONES: Record<Tone, string> = {
-  yellow: "bg-my-yellow-light text-my-yellow-dark",
-  green: "bg-my-green-light text-my-green-dark",
-  purple: "bg-my-purple-light text-my-purple-dark",
-  pink: "bg-my-pink-light text-my-pink-dark",
-  orange: "bg-my-orange-light text-my-orange-dark",
-  blue: "bg-my-blue-light text-my-blue-dark",
+  yellow: OUTLINE,
+  green: OUTLINE,
+  purple: OUTLINE,
+  pink: OUTLINE,
+  orange: OUTLINE,
+  blue: OUTLINE,
 };
 
 const formatTime = (iso: string) =>

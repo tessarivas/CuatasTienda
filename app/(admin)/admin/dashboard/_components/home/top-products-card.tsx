@@ -33,10 +33,12 @@ export function TopProductsCard({ products }: { products: DashboardData["topProd
           <div className="space-y-4">
             {products.map((p, i) => (
               <div key={p.title} className="space-y-1.5">
-                <div className="flex items-baseline gap-3 text-sm">
+                <div className="flex items-center gap-3 text-sm">
+                  {/* Lugar en un círculo con contorno, como los iconos de
+                      Actividad reciente. */}
                   <span
                     className={cn(
-                      "w-4 shrink-0 font-bold tabular-nums",
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-foreground/70 bg-card font-bold tabular-nums",
                       i === 0 ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
@@ -49,7 +51,7 @@ export function TopProductsCard({ products }: { products: DashboardData["topProd
                     {p.units} {p.units === 1 ? "pieza" : "piezas"} · {money(p.total)}
                   </span>
                 </div>
-                <div className="ml-7 h-2 overflow-hidden rounded-full bg-muted">
+                <div className="ml-11 h-2 overflow-hidden rounded-full bg-muted">
                   <motion.div
                     className={cn("h-full rounded-full", BAR[i])}
                     initial={{ width: 0 }}

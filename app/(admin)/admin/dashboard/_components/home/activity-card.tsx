@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   Activity,
@@ -17,15 +17,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type ActivityItem, money } from "./types";
 
-// Icono y color por tipo, con los tonos de la app: abono verde (como en el
-// historial del cliente), apartado naranja, retiro rojo.
+// Icono por tipo. Todos con el mismo contorno oscuro y sin relleno (como
+// Pendientes): el icono basta para distinguirlos.
+const OUTLINE = "border border-foreground/70 bg-card text-foreground";
 const KIND: Record<ActivityItem["type"], { icon: typeof Receipt; tone: string }> = {
-  venta: { icon: Receipt, tone: "bg-my-yellow-light text-my-yellow-dark" },
-  liquidacion: { icon: HandCoins, tone: "bg-my-purple-light text-my-purple-dark" },
-  abono: { icon: Wallet, tone: "bg-my-green-light text-my-green-dark" },
-  apartado: { icon: Clock, tone: "bg-my-orange-light text-my-orange-dark" },
-  alta: { icon: PackagePlus, tone: "bg-my-blue-light text-my-blue-dark" },
-  retiro: { icon: PackageMinus, tone: "bg-my-red-light text-my-red-dark" },
+  venta: { icon: Receipt, tone: OUTLINE },
+  liquidacion: { icon: HandCoins, tone: OUTLINE },
+  abono: { icon: Wallet, tone: OUTLINE },
+  apartado: { icon: Clock, tone: OUTLINE },
+  alta: { icon: PackagePlus, tone: OUTLINE },
+  retiro: { icon: PackageMinus, tone: OUTLINE },
 };
 
 // Línea de tiempo con lo último que pasó en la tienda.
@@ -69,7 +70,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem[] }) {
                       <p className="text-sm font-semibold tabular-nums">{money(item.amount)}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(item.date), { addSuffix: true, locale: es })}
+                      {formatDistanceToNowStrict(new Date(item.date), { addSuffix: true, locale: es })}
                     </p>
                   </div>
                 </>
