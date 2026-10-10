@@ -263,14 +263,14 @@ Regresa sólo lo que está a la venta (sin retirados ni agotados), con estos cam
     "id": 19,
     "title": "Ratón Logitech Usado",
     "price": "50",
-    "picture": "https://res.cloudinary.com/.../products/CT-PAV6ANCG/picture.jpg",
+    "picture": "https://res.cloudinary.com/.../image/upload/v…/products/CU-PAV6ANCG.webp",
     "type": "PRODUCT"
   },
   {
     "id": 21,
     "title": "Office 360 Professional Plus",
     "price": "400",
-    "picture": "https://res.cloudinary.com/.../picture.jpg",
+    "picture": "https://res.cloudinary.com/.../image/upload/v…/products/CU-K7M2QX9R.webp",
     "type": "SERVICE"
   }
 ]
@@ -289,7 +289,8 @@ Limitaciones actuales que el diseño debe tomar en cuenta (o pedir para la v2):
 - **No hay categorías** ni descripciones de producto.
 - **No se expone el proveedor** en el catálogo público, ni las existencias.
 - **No viene la promoción vigente** en el público (en la caja sí se ve el precio rebajado).
-- Las fotos son de formatos variados (jpg, webp); se ven mejor recortadas en cuadrado.
+- Las fotos se guardan en WebP (lado mayor de 1200 px como máximo); las subidas antes de ese
+  cambio pueden venir en otro formato. No son cuadradas: se ven mejor recortadas en cuadrado.
 
 ---
 

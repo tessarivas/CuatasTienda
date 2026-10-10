@@ -77,8 +77,8 @@ quedan registrados. Un módulo sencillo para anotarlos al momento.
     Transporte, Otro) o que se puedan crear desde la app?
   - ¿Se separan los gastos de la tienda de los personales/familiares, o
     todo es "gasto" con su categoría?
-  - ¿Quién puede registrar y borrar gastos? (Hoy cualquier usuario puede
-    todo; ver roles en `CLAUDE.md`.)
+  - ¿Quién puede registrar y borrar gastos? (Hoy el panel completo es sólo
+    para ADMIN y no hay permisos por acción; ver `proxy.ts`.)
 
 ## Corte de Caja y comprobantes: lo que falta
 
