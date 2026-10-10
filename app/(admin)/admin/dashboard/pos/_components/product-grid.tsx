@@ -27,9 +27,6 @@ interface ProductGridProps {
 type SortOrder = "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
 type TypeFilter = "todos" | "productos" | "servicios";
 
-// Con esta cantidad o menos de unidades libres, el contador se pone en rojo.
-const LOW_STOCK = 5;
-
 export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -185,9 +182,7 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
                       "absolute top-2 right-2 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums",
                       isService
                         ? "bg-background/90 text-muted-foreground shadow-sm"
-                        : available <= LOW_STOCK
-                          ? "bg-my-red-light text-my-red-dark"
-                          : "bg-foreground text-background"
+                        : "bg-foreground text-background"
                     )}
                   >
                     {isService ? <Wrench className="h-3.5 w-3.5" /> : available}
