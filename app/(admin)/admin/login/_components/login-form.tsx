@@ -14,7 +14,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false)
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -29,7 +29,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: username, password }),
+      body: JSON.stringify({ email, password }),
     });
 
     if (!res.ok) {
@@ -63,14 +63,17 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
                 <p className="text-sm font-medium text-my-red-dark">{error}</p>
               )}
               <Field>
-                <FieldLabel htmlFor="username">Usuario</FieldLabel>
+                {/* Las cuentas se identifican por correo (Supabase Auth). */}
+                <FieldLabel htmlFor="email">Correo</FieldLabel>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="admin"
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="tucorreo@ejemplo.com"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </Field>
               <Field>
@@ -78,6 +81,8 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
                 <div className="relative">
                   <Input
                     id="password"
+                    autoComplete="current-password"
+                    disabled={isLoading}
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"

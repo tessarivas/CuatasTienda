@@ -15,8 +15,8 @@ export default function Page() {
               priority
             />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Cuatas Tienda</h1>
-          <p className="text-slate-600 mt-1">Panel de Administración</p>
+          <h1 className="text-2xl font-bold text-foreground">Cuatas Tienda</h1>
+          <p className="text-muted-foreground mt-1">Panel de Administración</p>
         </div>
         <LoginForm />
       </div>

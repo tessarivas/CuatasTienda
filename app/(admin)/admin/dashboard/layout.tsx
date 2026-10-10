@@ -143,6 +143,7 @@ export default function DashboardLayout({
   async function loadProducts() {
     try {
       const res = await fetch("/api/products?include=all");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ApiProduct[] = await res.json();
       setProducts(normalizeProducts(data));
     } catch (error) {
@@ -172,16 +173,6 @@ export default function DashboardLayout({
       setSuppliers(data);
     } catch (error) {
       console.error("Error reloading suppliers", error);
-    }
-  };
-
-  const reloadProducts = async () => {
-    try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data); // <--- ESTO ES CRUCIAL
-    } catch (error) {
-      console.error("Error reloading products", error);
     }
   };
 

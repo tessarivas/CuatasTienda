@@ -86,14 +86,20 @@ export async function GET(req: Request) {
             : (p.quantity ?? 0) - p.reservedCount > 0
         );
 
+    // La misma URL responde distinto con y sin sesión: que ningún caché
+    // (CDN del hosting) guarde una y se la sirva al otro.
+    const noStore = { headers: { "Cache-Control": "private, no-store" } };
     if (!isAuthenticated) {
-      return NextResponse.json(filtered.map(toPublicProduct));
+      return NextResponse.json(filtered.map(toPublicProduct), noStore);
     }
 
-    return NextResponse.json(filtered);
+    return NextResponse.json(filtered, noStore);
   } catch (err) {
     console.error("GET productos falló", err);
-    return NextResponse.json([], { status: 500 });
+    return NextResponse.json(
+      { error: "No se pudieron cargar los productos" },
+      { status: 500 }
+    );
   }
 }
 

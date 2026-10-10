@@ -18,18 +18,42 @@ export async function GET() {
 }
 
 
-// (POST method can be added here for login, logout, etc.)
+// POST: iniciar sesión con correo y contraseña.
 export async function POST(req: Request) {
-  const { email, password } = await req.json();
-  const supabase = await supabaseServerClient();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
+  const { email, password } = body as { email?: unknown; password?: unknown };
+  if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
+    return NextResponse.json(
+      { error: "Escribe tu correo y tu contraseña" },
+      { status: 400 }
+    );
+  }
 
+  const supabase = await supabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: email.trim(),
     password,
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 401 });
+    // Siempre el mismo mensaje: el de Supabase (en inglés) distingue "correo
+    // sin confirmar" de "credenciales inválidas", y eso le dice a un atacante
+    // qué correos tienen cuenta. Los límites de intentos sí se avisan aparte.
+    if (error.status === 429) {
+      return NextResponse.json(
+        { error: "Demasiados intentos. Espera unos minutos y vuelve a intentar." },
+        { status: 429 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Correo o contraseña incorrectos" },
+      { status: 401 }
+    );
   }
 
   // No se devuelve `data.session`: lleva el access token y el refresh token en
@@ -39,7 +63,9 @@ export async function POST(req: Request) {
 
 // No hay alta de cuenta por API a propósito. Era un PUT público y sin throttle,
 // así que cualquiera podía registrarse y entrar al panel. Las altas se hacen
-// desde el dashboard de Supabase.
+// desde el dashboard de Supabase, que además tiene apagado "Allow new users
+// to sign up": la llave anon es pública, y con el registro de Supabase
+// prendido cualquiera podía crearse una cuenta sin pasar por esta API.
 
 // DELETE method to log out the current user
 export async function DELETE() {
