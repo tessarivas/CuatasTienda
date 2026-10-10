@@ -483,7 +483,8 @@ To preview a report outside the browser, bundle it with esbuild to ESM
   run in UTC, so never derive the store's day from `new Date()` server-side. Client titles use
   `hooks/use-today-label.ts`, which computes the date **after mount** to avoid hydration mismatches.
 - **Corte de Caja** (`dashboard/cash-closing/`, `GET/PUT /api/cash-closing`,
-  `GET /api/cash-closing/history`): one `CashClosing` row per store day (`date` is `@db.Date`,
+  `GET /api/cash-closing/history?from&to` — "Cortes anteriores" sums a period's closed cortes:
+  total cobrado, efectivo (cashSales, never the summed floats) and banco): one `CashClosing` row per store day (`date` is `@db.Date`,
   unique), but it covers a **time window**, not the calendar day: `[periodStart, periodEnd)` = from
   the previous closing's `periodEnd` (or start of today if none) to the moment it was closed. So a
   sale made after closing lands in the next corte automatically. Only **today** can be closed; any
