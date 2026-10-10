@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { PaymentMethod } from "@/generated/prisma/client";
+import { lockClient } from "@/lib/clients/lock";
 import {
   requireUser,
   isUnsyncedUserError,
@@ -72,6 +73,10 @@ export async function POST(req: Request, { params }: Ctx) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Bloquea la fila del cliente hasta terminar: dos clics seguidos (o dos
+      // pestañas) leerían el mismo saldo y devolverían dos veces el excedente.
+      // Con el candado, la segunda espera a la primera y ve el saldo ya bajado.
+      await lockClient(tx, clientId);
       const client = await tx.client.findUnique({
         where: { id: clientId },
         select: { currentBalance: true },

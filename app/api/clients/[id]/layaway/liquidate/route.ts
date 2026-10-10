@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/client";
 import { NextResponse } from "next/server";
 import { Prisma, PaymentMethod } from "@/generated/prisma/client";
 import { nextFolio, isFolioCollision, FOLIO_RETRIES } from "@/lib/sales/folio";
+import { lockClient } from "@/lib/clients/lock";
 import {
   requireUser,
   isUnsyncedUserError,
@@ -9,6 +10,12 @@ import {
 } from "@/lib/auth/require-user";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+// Se lanza (no se devuelve) dentro de la transacción cuando algún item dejó
+// de estar activo entre la lectura y la escritura: lanzar es lo que deshace la
+// venta y el stock ya escritos. Con el candado del cliente no debería pasar;
+// es la red de seguridad.
+class StaleItemsError extends Error {}
 
 function parseId(raw: string | number) {
   const id = Number(raw);
@@ -99,6 +106,10 @@ export async function POST(req: Request, { params }: Ctx) {
 
   try {
     const run = () => prisma.$transaction(async (tx) => {
+      // Candado sobre el cliente: dos clics en "Liquidar" (o dos pestañas)
+      // leerían el mismo saldo y los mismos items activos, y liquidarían dos
+      // veces. La segunda petición espera aquí y luego ve todo ya liquidado.
+      await lockClient(tx, clientId);
       const client = await tx.client.findUnique({
         where: { id: clientId },
         select: { id: true, currentBalance: true },
@@ -215,31 +226,37 @@ export async function POST(req: Request, { params }: Ctx) {
         );
       }
       for (const [productId, units] of unitsByProduct) {
-        const product = items.find((i) => i.productId === productId)!.Product;
-        const currentQty = product.quantity ?? units;
-        const newQty = Math.max(0, currentQty - units);
+        // decrement y no "cantidad leída − unidades": una venta de caja del
+        // mismo producto a la vez cambia la cantidad entre la lectura y la
+        // escritura, y escribir el número calculado pisaría esa venta.
+        const updated = await tx.product.update({
+          where: { id: productId },
+          data: {
+            quantity: { decrement: units },
+            soldCount: { increment: units },
+          },
+          select: { quantity: true },
+        });
         // Sólo levanta la bandera "Vendido" cuando el SKU queda sin stock.
         // Si aún quedan unidades, status se deja intacto (sigue "Disponible");
         // esto evita pisar un producto que pudo haber sido soft-deleted.
-        const data: {
-          quantity: number;
-          soldCount: { increment: number };
-          status?: "Vendido";
-        } = {
-          quantity: newQty,
-          soldCount: { increment: units },
-        };
-        if (newQty === 0) data.status = "Vendido";
-        await tx.product.update({
-          where: { id: productId },
-          data,
-        });
+        if (updated.quantity !== null && updated.quantity <= 0) {
+          await tx.product.update({
+            where: { id: productId },
+            data: { quantity: 0, status: "Vendido" },
+          });
+        }
       }
 
-      await tx.layawayItem.updateMany({
-        where: { id: { in: itemIds } },
+      // Sólo los que siguen activos; si alguno ya no (otra petición lo
+      // liquidó o canceló), la cuenta no cuadra y se deshace todo.
+      const marked = await tx.layawayItem.updateMany({
+        where: { id: { in: itemIds }, status: "Activo" },
         data: { status: "Liquidado", resolvedAt: new Date(), saleId: sale.id },
       });
+      if (marked.count !== itemIds.length) {
+        throw new StaleItemsError();
+      }
 
       const remaining = await tx.layawayItem.count({
         where: { layawayId, status: "Activo" },
@@ -305,6 +322,12 @@ export async function POST(req: Request, { params }: Ctx) {
   } catch (err) {
     if (isUnsyncedUserError(err)) {
       return unsyncedUserResponse();
+    }
+    if (err instanceof StaleItemsError) {
+      return NextResponse.json(
+        { error: "Alguno de los productos ya no está apartado" },
+        { status: 409 }
+      );
     }
     console.error("POST liquidate falló", err);
     return NextResponse.json(
