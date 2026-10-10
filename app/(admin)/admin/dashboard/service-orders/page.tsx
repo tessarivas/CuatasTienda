@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { ClipboardList, Clock, HandCoins, Loader2, Plus, Search, Wallet } from "lucide-react";
+import { ClipboardList, Clock, HandCoins, Plus, Search, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardContext } from "../layout";
 import { StatCard, STAT_ROW } from "../_components/stat-card";
+import { TableRowsSkeleton } from "../_components/skeletons";
 import { cn } from "@/lib/utils";
 import { OrderFormModal } from "./_components/order-form-modal";
 import { OrderDetailModal } from "./_components/order-detail-modal";
@@ -182,14 +183,10 @@ export default function ServiceOrdersPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="h-24">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Cargando pedidos...
-                    </div>
-                  </td>
-                </tr>
+                <TableRowsSkeleton
+                  rows={6}
+                  cells={["text", "text", "text", "text", "text", "center", "end", "end", "text"]}
+                />
               ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12">

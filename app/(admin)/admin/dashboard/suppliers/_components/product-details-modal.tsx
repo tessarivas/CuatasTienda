@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { type Product } from "@/lib/data";
 import {
   Dialog,
@@ -387,7 +387,7 @@ export function ProductDetailsModal({
               <div className="relative aspect-square h-48 w-48 max-w-84 self-center overflow-hidden rounded-3xl bg-muted sm:h-84 sm:w-full sm:self-auto">
                 <div className="absolute inset-0">
                   {displayedImage ? (
-                    <Image
+                    <FadeInImage
                       src={displayedImage}
                       alt={product.title}
                       fill

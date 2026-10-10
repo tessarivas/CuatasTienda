@@ -3,7 +3,7 @@
 import * as React from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { DashboardContext } from "../../layout";
 import {
   Card,
@@ -35,6 +35,11 @@ import { EditClientModal } from "../_components/edit-client-modal";
 import { ReceiptDialog } from "../../sales/_components/receipt-dialog";
 import { PaymentTicketDialog } from "../_components/payment-ticket-dialog";
 import { RefundModal } from "../_components/refund-modal";
+import {
+  ClientDetailSkeleton,
+  LayawayGridSkeleton,
+} from "../_components/client-detail-skeleton";
+import { ListRowsSkeleton } from "../../_components/skeletons";
 import { type TicketPayment } from "../../_components/ticket";
 import { CardActionButton } from "../../suppliers/_components/card-action-button";
 import {
@@ -663,15 +668,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   }
 
   if (!client) {
-    // Mismo loader que suppliers/[id].
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando cliente...</p>
-        </div>
-      </div>
-    );
+    return <ClientDetailSkeleton />;
   }
 
   // Las tres preguntas del mostrador, cada una con su propio renglón para no
@@ -778,14 +775,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             </CardHeader>
             <CardContent className="flex-1 min-h-0 flex flex-col">
               {isLoadingLayaway ? (
-                <div className="flex flex-1 items-center justify-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Cargando apartados...
-                    </p>
-                  </div>
-                </div>
+                <LayawayGridSkeleton />
               ) : reservedGroups.length > 0 ? (
                 <div className="flex-1 min-h-0 flex flex-col gap-4">
                   {/* Sólo esta grilla scrollea; los botones de abajo quedan
@@ -850,7 +840,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                           )}
                           <div className="aspect-square w-full overflow-hidden rounded-md border bg-muted flex items-center justify-center">
                             {group.picture ? (
-                              <Image
+                              <FadeInImage
                                 src={group.picture}
                                 alt={group.title}
                                 width={96}
@@ -963,14 +953,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             </CardHeader>
             <CardContent className="flex-1 min-h-0 flex flex-col">
               {isLoadingMovements ? (
-                <div className="flex flex-1 items-center justify-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Cargando movimientos...
-                    </p>
-                  </div>
-                </div>
+                <ListRowsSkeleton rows={6} />
               ) : movements.length > 0 ? (
                 <div
                   ref={ledgerScrollRef}

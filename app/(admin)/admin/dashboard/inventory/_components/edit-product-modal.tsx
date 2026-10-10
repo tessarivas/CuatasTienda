@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import {
   Dialog,
   DialogContent,
@@ -199,7 +199,7 @@ export function EditProductModal({
             <div className="flex justify-center">
               <div className="relative">
                 {displayedImage ? (
-                  <Image
+                  <FadeInImage
                     src={displayedImage}
                     alt={product.title}
                     width={96}

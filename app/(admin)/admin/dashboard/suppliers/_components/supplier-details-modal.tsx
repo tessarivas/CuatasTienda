@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import {
   Dialog,
   DialogContent,
@@ -83,7 +83,7 @@ export function SupplierDetailsModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="items-center text-center">
           <div className="relative">
-            <Image
+            <FadeInImage
               src={editedSupplier?.logo || supplier.logo}
               alt={`Logo de ${supplier.businessName}`}
               width={100}

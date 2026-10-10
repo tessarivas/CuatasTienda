@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { History, Loader2, X } from "lucide-react";
+import { History, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { ListRowsSkeleton } from "../../_components/skeletons";
 
 // Forma de GET /api/suppliers/[id]/movements.
 type Movement = {
@@ -200,9 +201,7 @@ export function SupplierMovements({
       </CardHeader>
       <CardContent>
         {!data ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <ListRowsSkeleton rows={4} />
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center py-10 text-center">
             <div className="mb-3 rounded-full bg-muted p-5">

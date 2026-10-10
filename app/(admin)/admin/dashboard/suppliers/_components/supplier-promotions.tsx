@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { Ban, Check, Loader2, Package, Plus, Search, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { type PromotionType, promoLabel, promoUnitDiscount } from "@/lib/promotions";
 import { CardActionButton } from "./card-action-button";
+import { ListRowsSkeleton } from "../../_components/skeletons";
 
 // Forma de GET /api/suppliers/[id]/promotions.
 type Promotion = {
@@ -155,9 +156,7 @@ export function SupplierPromotions({
         </CardHeader>
         <CardContent>
           {!promotions ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <ListRowsSkeleton rows={2} />
           ) : list.length === 0 ? (
             <div className="flex flex-col items-center py-6 text-center">
               <div className="mb-3 rounded-full bg-muted p-4">
@@ -551,7 +550,7 @@ function PromotionFormModal({
                           </span>
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
                             {p.picture ? (
-                              <Image src={p.picture} alt="" width={32} height={32} className="h-full w-full object-cover" />
+                              <FadeInImage src={p.picture} alt="" width={32} height={32} className="h-full w-full object-cover" />
                             ) : (
                               <Package className="h-4 w-4 text-muted-foreground" />
                             )}

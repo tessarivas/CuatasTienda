@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddClientModal } from "./_components/add-client-modal";
 import { ClientCard } from "./_components/client-card";
-import { Loader2, Search, UserCheck, UserPlus, Users, Wallet } from "lucide-react";
+import { ClientCardSkeleton } from "./_components/client-card-skeleton";
+import { Search, UserCheck, UserPlus, Users, Wallet } from "lucide-react";
 import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { formatMoney } from "../sales/sales-utils";
 import { normalizeClient, type ApiClient } from "@/lib/clients/normalize";
@@ -62,19 +63,6 @@ export default function Page() {
   const clientsWithBalance = clients.filter((c) => c.balance > 0).length;
   const totalBalance = clients.reduce((sum, c) => sum + c.balance, 0);
 
-  // Mismo loader que suppliers/[id]: clients viene de DashboardContext
-  // (fetch en layout.tsx), no de un fetch propio de esta página.
-  if (isLoadingClients) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando clientes...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="p-4 space-y-4">
@@ -113,6 +101,7 @@ export default function Page() {
             title="Total de Clientes"
             value={totalClients}
             hint="Registrados en la tienda"
+            loading={isLoadingClients}
           />
           <StatCard
             color="blue"
@@ -120,6 +109,7 @@ export default function Page() {
             title="Clientes con Saldo"
             value={clientsWithBalance}
             hint="Con abonos a su favor"
+            loading={isLoadingClients}
           />
           <StatCard
             color="green"
@@ -127,10 +117,19 @@ export default function Page() {
             title="Saldo Total entre todos los Clientes"
             value={formatMoney(totalBalance)}
             hint="Dinero abonado que la tienda guarda"
+            loading={isLoadingClients}
           />
         </div>
-        {/* Grid de Clientes */}
-        {filteredClients.length > 0 ? (
+        {/* Grid de Clientes. clients viene de DashboardContext (fetch en
+            layout.tsx): mientras llega, la página ya está armada y sólo la
+            cuadrícula muestra tarjetas grises. */}
+        {isLoadingClients ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }, (_, i) => (
+              <ClientCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredClients.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {filteredClients.map((client, index) => (
               <ClientCard

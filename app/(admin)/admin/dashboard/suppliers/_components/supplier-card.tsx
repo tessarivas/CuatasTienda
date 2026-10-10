@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { type Supplier } from "@/lib/data"; 
 
@@ -15,7 +15,7 @@ export function SupplierCard({ supplier, onClick }: SupplierCardProps) {
     >
       <CardHeader className="flex items-center justify-center p-4">
       {supplier.logo ? (
-        <Image
+        <FadeInImage
           src={supplier.logo}
           alt={`Logo de ${supplier.businessName}`}
           width={120}

@@ -30,6 +30,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { StatCard, STAT_ROW } from "../_components/stat-card";
+import { TableRowsSkeleton } from "../_components/skeletons";
 import { SaleDetailModal } from "./_components/sale-detail-modal";
 import { useTodayLabel } from "@/hooks/use-today-label";
 import {
@@ -397,14 +398,10 @@ export default function SalesHistoryPage() {
                   </TableCell>
                 </TableRow>
               ) : isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Cargando ventas...
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableRowsSkeleton
+                  rows={8}
+                  cells={["text", "text", "text", "center", "text", "end"]}
+                />
               ) : visibleSales.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-12">

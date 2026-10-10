@@ -17,17 +17,21 @@ import { Search, Package, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { type ActivePromotion, promoUnitDiscount } from "@/lib/promotions";
+import { FadeInImage } from "../../_components/fade-in-image";
+import { ProductCardSkeleton } from "./product-card-skeleton";
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (productId: string) => void;
   // Promoción vigente para un producto (por su proveedor), o null.
   promoFor?: (product: Product) => ActivePromotion | null;
+  // Mientras llegan los productos: tarjetas grises; filtros y carrito ya se ven.
+  loading?: boolean;
 }
 
 type SortOrder = "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
 type TypeFilter = "todos" | "productos" | "servicios";
 
-export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProps) {
+export function ProductGrid({ products, onAddToCart, promoFor, loading }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
   // Al abrir la caja: los más vendidos primero, de todos los proveedores y
@@ -145,7 +149,8 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
       {/* Grid de productos */}
       <div className="flex-1 min-h-0 overflow-auto p-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {visibleProducts.map((product) => {
+          {loading && Array.from({ length: 8 }, (_, i) => <ProductCardSkeleton key={i} />)}
+          {!loading && visibleProducts.map((product) => {
             const isService = product.type === "SERVICE";
             const available = availableOf(product);
             return (
@@ -158,11 +163,14 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
               >
                 <div className="relative aspect-square overflow-hidden rounded-md bg-muted flex items-center justify-center">
                   {product.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    // sizes: 4 columnas en el 70% de la pantalla (lg), 3 en
+                    // md, 2 en celular.
+                    <FadeInImage
                       src={product.photoUrl}
                       alt={product.title}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(min-width: 1024px) 18vw, (min-width: 768px) 33vw, 50vw"
+                      className="object-cover"
                     />
                   ) : isService ? (
                     <Wrench className="h-10 w-10 text-muted-foreground" />
@@ -225,7 +233,7 @@ export function ProductGrid({ products, onAddToCart, promoFor }: ProductGridProp
         </div>
 
         {/* Mensaje si no hay productos */}
-        {visibleProducts.length === 0 && (
+        {!loading && visibleProducts.length === 0 && (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">
               No se encontraron productos disponibles

@@ -7,7 +7,6 @@ import { type CartItem, type PaymentMethod, type Discount, type Product } from "
 import { ProductGrid } from "./_components/product-grid";
 import { Cart } from "./_components/cart";
 import { SaleCompleteModal } from "./_components/sale-complete-modal";
-import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -213,19 +212,6 @@ export default function POSPage() {
     return Math.max(0, finalTotal);
   };
 
-  // Mismo loader que suppliers/[id]: products viene de DashboardContext
-  // (fetch en layout.tsx), no de un fetch propio de esta página.
-  if (isLoadingProducts) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando caja registradora...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Mismo carrito en las dos presentaciones (columna o hoja de celular).
   const renderCart = (sheet?: { expanded: boolean; onToggle: () => void }) => (
     <Cart
@@ -257,6 +243,10 @@ export default function POSPage() {
             products={products}
             onAddToCart={handleAddToCart}
             promoFor={promoFor}
+            // products viene de DashboardContext (fetch en layout.tsx): la
+            // caja se dibuja completa desde el inicio y sólo la cuadrícula
+            // muestra tarjetas grises mientras llegan.
+            loading={isLoadingProducts}
           />
         </div>
 

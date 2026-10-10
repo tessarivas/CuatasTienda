@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, PackagePlus, Wrench } from "lucide-react";
+import { PackagePlus, Wrench } from "lucide-react";
 import { SelectClientModal } from "./_components/select-client-modal"; // ¡Importar el nuevo modal!
 import {
   normalizeProduct,
@@ -231,20 +231,6 @@ export default function Page() {
   // DD/MM/YY calculado sólo en el navegador (ver hooks/use-today-label.ts).
   const formattedDate = useTodayLabel();
 
-  // Mismo loader que suppliers/[id]: products y suppliers vienen de
-  // DashboardContext (fetch en layout.tsx). Esta tabla necesita ambos —
-  // productos para las filas, proveedores para nombres/logo/filtro.
-  if (isLoadingProducts || isLoadingSuppliers) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando inventario...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
@@ -265,7 +251,7 @@ export default function Page() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            Productos ({productItems.length})
+            Productos{!(isLoadingProducts || isLoadingSuppliers) && ` (${productItems.length})`}
           </button>
           <button
             type="button"
@@ -276,7 +262,7 @@ export default function Page() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            Servicios ({serviceItems.length})
+            Servicios{!(isLoadingProducts || isLoadingSuppliers) && ` (${serviceItems.length})`}
           </button>
         </div>
 
@@ -372,6 +358,10 @@ export default function Page() {
           mode={activeTab === "servicios" ? "service" : "product"}
           onAssign={handleOpenAssignModal}
           onRowClick={handleOpenDetailsModal}
+          // products y suppliers vienen de DashboardContext (fetch en
+          // layout.tsx) y la tabla necesita ambos: renglones grises hasta
+          // que lleguen, con filtros y encabezado ya visibles.
+          loading={isLoadingProducts || isLoadingSuppliers}
         />
       </div>
 

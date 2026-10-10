@@ -567,6 +567,18 @@ the browser picks a screen-wide variant. New upload or image spots must follow b
   `supplier-details-form.tsx` is read-only and only takes `supplier` + `onEdit`. Don't reintroduce
   an `isEditing` prop there.
 
+- **Loading states are skeletons, not page spinners.** Render the real page frame (title, filters,
+  buttons, card headers) right away and put gray placeholders only where data goes, shaped like
+  the real thing so nothing jumps when it arrives. Shared pieces live in
+  `dashboard/_components/skeletons/` (`TableRowsSkeleton` with per-column `cells`,
+  `ListRowsSkeleton`, `CardSkeleton`, `PageHeaderSkeleton`); a component- or page-specific skeleton
+  goes in its own `*-skeleton.tsx` beside the real component (`client-card-skeleton.tsx`,
+  `product-card-skeleton.tsx`, `supplier-detail-skeleton.tsx`, `home/home-skeleton.tsx`, …).
+  `StatCard` takes `loading` (bars in the card's color, hint hidden). A full-page skeleton is only
+  for detail pages whose header comes from the data (`clients/[id]`, `suppliers/[id]`). Spinners
+  stay for button actions (`Loader2` + "Guardando…") and small loads inside modals. Login keeps
+  "Entrando…" until the dashboard opens. Cloudinary photos/logos render with `FadeInImage`
+  (`dashboard/_components/fade-in-image.tsx`), not bare `next/image`.
 - **Notifications are toasts, never `alert()`.** `toast.success / error / warning / info(message)`
   from `lib/toast.ts` — a tiny store outside React, so it can be called from any handler without
   hooks. `<Toaster />` (`components/smoothui/basic-toast`, SmoothUI's Basic Toast adapted to the

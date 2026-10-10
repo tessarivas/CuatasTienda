@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { Loader2, Search, ShoppingBag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -166,7 +166,7 @@ export function AssignProductModal({
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                       {product.photoUrl ? (
-                        <Image
+                        <FadeInImage
                           src={product.photoUrl}
                           alt={product.title}
                           width={48}

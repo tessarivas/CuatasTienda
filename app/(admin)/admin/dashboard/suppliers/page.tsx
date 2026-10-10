@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  Loader2,
   Package,
   Search,
   Store,
@@ -12,6 +11,7 @@ import {
 import { StatCard, STAT_ROW } from "../_components/stat-card";
 import { useRouter } from "next/navigation";
 import { SupplierCard } from "./_components/supplier-card";
+import { SupplierCardSkeleton } from "./_components/supplier-card-skeleton";
 import { AddSupplierModal } from "./_components/add-supplier-modal";
 import { DashboardContext } from "../layout";
 import { Button } from "@/components/ui/button";
@@ -101,20 +101,6 @@ export default function Page() {
       s.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Mismo loader que suppliers/[id]: suppliers viene de DashboardContext
-  // (fetch en layout.tsx), no de un fetch propio de esta página, por eso el
-  // gate se lee de ahí en vez de un estado local.
-  if (isLoadingSuppliers) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando proveedores...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="p-4 space-y-4">
@@ -151,6 +137,7 @@ export default function Page() {
             title="Total de Proveedores"
             value={suppliers.length}
             hint="Registrados en la tienda"
+            loading={isLoadingSuppliers}
           />
           <StatCard
             color="blue"
@@ -163,7 +150,7 @@ export default function Page() {
                 ? `${topByProducts.count} ${topByProducts.count === 1 ? "producto en tienda" : "productos en tienda"}`
                 : "Ningún producto con unidades"
             }
-            loading={isLoadingProducts}
+            loading={isLoadingProducts || isLoadingSuppliers}
           />
           <StatCard
             color="green"
@@ -176,12 +163,17 @@ export default function Page() {
                 ? `$${Number(topBySales.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })} vendidos`
                 : "Aún no hay ventas este mes"
             }
-            loading={salesBySupplier === null}
+            loading={salesBySupplier === null || isLoadingSuppliers}
           />
         </div>
 
+        {/* suppliers viene de DashboardContext (fetch en layout.tsx):
+            mientras llega, la página ya está armada y sólo la cuadrícula
+            muestra tarjetas grises. */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {filteredSuppliers.map((supplier) => (
+          {isLoadingSuppliers &&
+            Array.from({ length: 8 }, (_, i) => <SupplierCardSkeleton key={i} />)}
+          {!isLoadingSuppliers && filteredSuppliers.map((supplier) => (
             <SupplierCard
               key={supplier.id}
               supplier={supplier}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { type Supplier } from "@/lib/data";
 import { CardActionButton } from "./card-action-button";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,7 @@ export function SupplierDetailsForm({
           <div className="flex flex-col items-center gap-4 py-6 lg:border-r lg:pr-8">
             <div className="w-30 h-30 relative rounded-lg border-2 overflow-hidden bg-muted flex items-center justify-center">
               {supplier.logo ? (
-                <Image
+                <FadeInImage
                   src={supplier.logo}
                   alt={`Logo de ${supplier.businessName}`}
                   fill

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { ClipboardCheck, Package, User, UserRoundCheck } from "lucide-react";
 import {
   Table,
@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type Product, type Supplier } from "@/lib/data";
+import { TableRowsSkeleton } from "../../_components/skeletons";
 
 interface ProductsTableProps {
   products: Product[];
@@ -24,6 +25,9 @@ interface ProductsTableProps {
   // el detalle de sólo lectura — ahí viven Editar, Eliminar y los
   // movimientos de stock, ya no en esta tabla.
   onRowClick: (product: Product) => void;
+  // Mientras llegan productos/proveedores: renglones grises con la forma de
+  // la tabla; el encabezado ya se ve.
+  loading?: boolean;
 }
 
 // Anchos en porcentaje del ancho total de la tabla (requiere table-fixed).
@@ -52,6 +56,7 @@ export function ProductsTable({
   mode = "product",
   onAssign,
   onRowClick,
+  loading,
 }: ProductsTableProps) {
   const isServiceMode = mode === "service";
   const widths = isServiceMode ? SERVICE_WIDTHS : PRODUCT_WIDTHS;
@@ -118,7 +123,16 @@ export function ProductsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.length > 0 ? (
+          {loading ? (
+            <TableRowsSkeleton
+              rows={8}
+              cells={
+                isServiceMode
+                  ? ["image", "text", "text", "center", "center"]
+                  : ["image", "text", "text", "center", "center", "center", "center"]
+              }
+            />
+          ) : products.length > 0 ? (
             products.map((product) => {
               // Misma regla que antes decidía si "Apartar a Cliente"
               // aparecía en el menú: no es servicio, está Disponible, y
@@ -137,7 +151,7 @@ export function ProductsTable({
                 >
                   <TableCell className="pl-4">
                     {product.photoUrl ? (
-                      <Image
+                      <FadeInImage
                         src={product.photoUrl}
                         alt={product.title}
                         width={48}
@@ -165,7 +179,7 @@ export function ProductsTable({
                           cuando no tiene logo cargado. */}
                       <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full border bg-muted flex items-center justify-center">
                         {supplier?.logo ? (
-                          <Image
+                          <FadeInImage
                             src={supplier.logo}
                             alt={`Logo de ${supplier.businessName}`}
                             width={24}

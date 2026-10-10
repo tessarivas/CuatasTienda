@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save, UserPen } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { ProfileSkeleton } from "./_components/profile-skeleton";
 
 type MeResponse = {
   id: string;
@@ -86,13 +87,7 @@ export default function ProfilePage() {
       </div>
 
       {isLoading ? (
-        // Mismo loader que suppliers/[id].
-        <div className="flex items-center justify-center p-8">
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Cargando perfil...</p>
-          </div>
-        </div>
+        <ProfileSkeleton />
       ) : !me ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
           No se pudo cargar el perfil. Recarga la página para intentar de nuevo.

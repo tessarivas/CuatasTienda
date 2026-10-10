@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -32,6 +33,7 @@ import { formatMoney } from "../sales/sales-utils";
 import { ClosingHistoryDialog } from "./_components/closing-history-dialog";
 import { toast } from "@/lib/toast";
 import { compressImage } from "@/lib/images/compress";
+import { ListRowsSkeleton } from "../_components/skeletons";
 
 type Method = "Efectivo" | "Tarjeta" | "Transferencia";
 
@@ -491,11 +493,11 @@ export default function CashClosingPage() {
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>+ Ventas y pedidos en efectivo</span>
-                <span className="tabular-nums">{formatMoney(cashSales)}</span>
+                <span className="tabular-nums">{isLoading ? <Skeleton className="inline-block h-4 w-16 align-middle" /> : formatMoney(cashSales)}</span>
               </div>
               <div className="flex justify-between border-t-2 pt-2 font-semibold">
                 <span>Esperado en caja</span>
-                <span className="tabular-nums">{formatMoney(expectedCash)}</span>
+                <span className="tabular-nums">{isLoading ? <Skeleton className="inline-block h-4 w-16 align-middle" /> : formatMoney(expectedCash)}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-1">
                 <label htmlFor="counted-cash" className="font-medium">
@@ -542,7 +544,7 @@ export default function CashClosingPage() {
                   </p>
                 </div>
                 <span className="font-semibold tabular-nums">
-                  {formatMoney(cashPayments)}
+                  {isLoading ? <Skeleton className="inline-block h-4 w-16 align-middle" /> : formatMoney(cashPayments)}
                 </span>
               </div>
               <Textarea
@@ -570,9 +572,7 @@ export default function CashClosingPage() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
+                <ListRowsSkeleton rows={3} />
               ) : bankCharges.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                   <div className="rounded-full bg-muted p-5 mb-3">

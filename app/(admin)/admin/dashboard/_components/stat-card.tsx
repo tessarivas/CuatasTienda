@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 // Fondo -light con texto -dark del mismo color de marca.
@@ -54,14 +55,23 @@ export function StatCard({
         <Icon className="h-4 w-4 shrink-0" />
         <span className="truncate">{title}</span>
       </div>
+      {/* Cargando: barras del color de la tarjeta (bg-current) en el lugar
+          del valor y de la pista, con el mismo alto que el texto real. La
+          pista no se muestra antes de tiempo ("Sin ventas" mientras carga
+          sería falso). */}
       {loading ? (
-        <Loader2 className="mt-1 h-8 w-8 animate-spin" />
+        <>
+          <Skeleton className="mt-2 mb-1.5 h-6 w-24 bg-current/15" />
+          <Skeleton className="h-3 w-32 bg-current/10" />
+        </>
       ) : (
-        <p className="mt-1 truncate text-2xl font-bold" title={valueTitle}>
-          {value}
-        </p>
+        <>
+          <p className="mt-1 truncate text-2xl font-bold" title={valueTitle}>
+            {value}
+          </p>
+          {hint && <p className="truncate text-xs opacity-75">{hint}</p>}
+        </>
       )}
-      {hint && <p className="truncate text-xs opacity-75">{hint}</p>}
     </div>
   );
 }

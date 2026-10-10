@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Clock, Loader2, Lock, Package, ShoppingCart, Wallet } from "lucide-react";
+import { Clock, Lock, Package, ShoppingCart, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatCard, STAT_ROW } from "./_components/stat-card";
@@ -11,6 +11,7 @@ import { SalesFlowCard } from "./_components/home/sales-flow-card";
 import { PendingCard } from "./_components/home/pending-card";
 import { ActivityCard } from "./_components/home/activity-card";
 import { TopProductsCard } from "./_components/home/top-products-card";
+import { HomeSkeleton } from "./_components/home/home-skeleton";
 import { type DashboardData, money } from "./_components/home/types";
 
 // Saludo y fecha según la hora de quien ve la página (la de la tienda). Se
@@ -92,9 +93,7 @@ export default function DashboardHome() {
           No se pudo cargar el inicio. Recarga la página para intentar de nuevo.
         </p>
       ) : !data ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <HomeSkeleton />
       ) : (
         <>
           {/* Arriba: las tres tarjetas de resumen apiladas (se estiran al

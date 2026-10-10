@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { FadeInImage } from "../../_components/fade-in-image";
 import { useRouter } from "next/navigation";
 import { type Product, type Client } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -199,7 +199,7 @@ export function SupplierProductsList({
                         {/* Contenedor de imagen fijo; placeholder cuando no hay foto. */}
                         <div className="w-14 h-14 relative rounded-lg border-2 border-muted overflow-hidden bg-muted flex items-center justify-center shrink-0">
                           {product.photoUrl ? (
-                            <Image
+                            <FadeInImage
                               src={product.photoUrl}
                               alt={product.title}
                               fill

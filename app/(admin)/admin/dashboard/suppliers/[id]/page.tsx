@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ChevronDown,
-  Loader2,
   PackagePlus,
   Search,
   Wrench,
@@ -27,6 +26,7 @@ import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
 import { MonthlyCutoff, type CutoffPeriod } from "../_components/monthly-cutoff";
 import { SupplierMovements } from "../_components/supplier-movements";
 import { SupplierPromotions } from "../_components/supplier-promotions";
+import { SupplierDetailSkeleton } from "../_components/supplier-detail-skeleton";
 import { AddProductModal } from "../../inventory/_components/add-product-modal";
 import {
   DropdownMenu,
@@ -181,14 +181,7 @@ export default function SupplierDetailPage({
   }, [supplier, searchTerm]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando proveedor...</p>
-        </div>
-      </div>
-    );
+    return <SupplierDetailSkeleton />;
   }
 
   if (!supplier) {
