@@ -57,6 +57,14 @@ Output goes to `generated/prisma/`, which is **gitignored**. `npm install` regen
 
 Import the client from `@/generated/prisma/client`, **not** `@prisma/client`.
 
+**Seed:** `prisma/seed/cuatas.sql` loads the store itself (Cuatas, supplier **id 1**, cutoff day 15,
+letters CU) with its products and services; idempotent, run it in Supabase's SQL Editor after
+emptying the DB. Its photos/logo already live in Cloudinary under the current ids (`products/{code}`,
+`suppliers/1`), so the codes and the supplier id are fixed in the file. To empty the DB, `TRUNCATE`
+every table except `_prisma_migrations` with `RESTART IDENTITY CASCADE` rather than `prisma migrate
+reset`, which can recreate the `public` schema and re-grant Supabase's `anon`/`authenticated` roles
+access (today they have none). After emptying it, the first account to log in becomes ADMIN.
+
 ### Testing
 
 There is no test framework, no test files, and no test script. Do not invent one unless asked.
