@@ -13,12 +13,15 @@ import { supabaseServerClient } from "@/lib/supabase/server";
 
 // Proyección para consumidores anónimos (catálogo público). Deja fuera
 // supplierId, soldCount, code, quantity y reservedCount: son datos internos.
+// Sí lleva el nombre comercial del proveedor (`supplier`): la página pública
+// filtra "Marcas locales" por proveedor, y ese nombre ya es público.
 function toPublicProduct(p: {
   id: number;
   title: string;
   price: Prisma.Decimal;
   picture: string | null;
   type: string;
+  Supplier: { businessName: string | null } | null;
 }) {
   return {
     id: p.id,
@@ -26,6 +29,7 @@ function toPublicProduct(p: {
     price: p.price,
     picture: p.picture,
     type: p.type,
+    supplier: p.Supplier?.businessName ?? null,
   };
 }
 
@@ -44,6 +48,9 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const includeAll = url.searchParams.get("include") === "all";
+    // La página pública pide `?view=public` para recibir siempre la
+    // proyección recortada, aunque quien la visite tenga sesión de ADMIN.
+    const forcePublic = url.searchParams.get("view") === "public";
 
     const supabase = await supabaseServerClient();
     const {
@@ -75,6 +82,7 @@ export async function GET(req: Request) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
+        Supplier: { select: { businessName: true } },
         _count: {
           select: {
             LayawayItem: {
@@ -104,7 +112,7 @@ export async function GET(req: Request) {
     // La misma URL responde distinto con y sin sesión: que ningún caché
     // (CDN del hosting) guarde una y se la sirva al otro.
     const noStore = { headers: { "Cache-Control": "private, no-store" } };
-    if (!isAdmin) {
+    if (!isAdmin || (forcePublic && !includeAll)) {
       return NextResponse.json(filtered.map(toPublicProduct), noStore);
     }
 

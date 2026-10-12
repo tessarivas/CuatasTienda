@@ -134,10 +134,19 @@ Session required but **no role check** (`NO_ROLE_PATHS` in `proxy.ts`): `/api/sy
 
 `GET /api/products` serves three shapes, and since the proxy lets it through it **checks the role
 itself**: an `ADMIN` gets the full admin payload; anyone else (anonymous or `USER`) gets a trimmed
-projection (`id`, `title`, `price`, `picture`, `type`) of available stock; `?include=all` is 401
-anonymous / 403 for a `USER`. Keep internal fields (`supplierId`, `soldCount`, `code`, `quantity`,
-`reservedCount`) out of the public branch. It sends `Cache-Control: private, no-store` because the
-same URL answers differently per caller.
+projection (`id`, `title`, `price`, `picture`, `type`, `supplier` = the supplier's `businessName`,
+never its `name`, which holds the owners' personal names) of available stock; `?include=all` is 401
+anonymous / 403 for a `USER`. `?view=public` forces the trimmed projection even for an ADMIN — the
+public landing (`app/page.tsx`) uses it. Keep internal fields (`supplierId`, `soldCount`, `code`,
+`quantity`, `reservedCount`) out of the public branch. It sends `Cache-Control: private, no-store`
+because the same URL answers differently per caller.
+
+**Public landing** (`app/page.tsx` + `app/_components/landing/`): the store's showcase at `/`
+(outside the proxy matcher, no session). Poppins only there; copy, prices and documents in
+`content.ts`; hours/WhatsApp/social in `lib/store-info.ts` (`STORE_HOURS` drives the
+open/closed pill, computed in store time after mount). Images are compressed WebP copies in
+`public/landing/` — local images aren't resized by the Cloudinary loader, so never point it at
+multi-MB originals.
 
 **There is no account signup.** `PUT /api/auth` was removed (public and unthrottled), and Supabase's
 own sign-up is **turned off** in the dashboard (Authentication → Sign In / Providers → "Allow new

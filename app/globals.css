@@ -268,3 +268,10 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+/* Página pública: fila de productos que corre sola (colectivo-products.tsx).
+   La pista lleva dos vueltas iguales y se mueve una: el reinicio no se nota. */
+@keyframes landing-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
