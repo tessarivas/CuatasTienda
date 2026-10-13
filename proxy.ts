@@ -1,9 +1,12 @@
-// proxy.ts (antes middleware.ts; Next 16 renombró la convención). Corre en
-// Node.js, así que puede consultar la base para revisar el rol.
+// proxy.ts (antes middleware.ts; Next 16 renombró la convención).
+//
+// En Netlify el proxy corre como Edge Function, donde no carga `pg` ni el
+// cliente de Prisma: el deploy falla si este archivo importa (aunque sea de
+// rebote) algo que llegue a la base. Por eso aquí sólo va lo ligero (sesión
+// con @supabase/ssr) y el rol se le pregunta a GET /api/auth/role, que sí
+// corre en un servidor normal. No importes lib/db ni lib/auth/roles aquí.
 import { createServerClient } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db/client"
-import { isAdminRole } from "@/lib/auth/roles"
 
 // Rutas alcanzables sin sesión. Cada excepción tiene un motivo concreto:
 //
@@ -32,7 +35,26 @@ function isPublicPath(request: NextRequest): boolean {
 //                     hay rol que revisar (y el primer usuario se vuelve ADMIN).
 //  - /admin/sin-acceso  a donde se manda a quien no es ADMIN; gatearla con el
 //                     rol sería un bucle.
-const NO_ROLE_PATHS = new Set(["/api/sync-user", "/admin/sin-acceso"])
+//  - /api/auth/role   la que contesta el rol; revisarle el rol sería llamarse
+//                     a sí misma.
+const ROLE_PATH = "/api/auth/role"
+const NO_ROLE_PATHS = new Set(["/api/sync-user", "/admin/sin-acceso", ROLE_PATH])
+
+// Pregunta a /api/auth/role si la sesión es ADMIN, con las mismas cookies
+// (ya refrescadas por getUser). null = no se pudo saber.
+async function fetchIsAdmin(request: NextRequest): Promise<boolean | null> {
+  try {
+    const res = await fetch(new URL(ROLE_PATH, request.url), {
+      headers: { cookie: request.headers.get("cookie") ?? "" },
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const body: { isAdmin?: unknown } = await res.json()
+    return body.isAdmin === true
+  } catch {
+    return null
+  }
+}
 
 export async function proxy(request: NextRequest) {
   if (isPublicPath(request)) {
@@ -92,12 +114,15 @@ export async function proxy(request: NextRequest) {
   // desde el Table Editor de Supabase; se lee en cada petición para que un
   // cambio aplique en la siguiente carga, sin cerrar sesión. Sin fila (aún no
   // sincronizado) cuenta como sin acceso.
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  })
+  const isAdmin = await fetchIsAdmin(request)
 
-  if (!isAdminRole(dbUser?.role)) {
+  if (isAdmin === null && isApi) {
+    return NextResponse.json(
+      { error: "No se pudo revisar tu acceso, intenta de nuevo" },
+      { status: 503 }
+    )
+  }
+  if (!isAdmin) {
     if (isApi) {
       return NextResponse.json(
         { error: "Tu cuenta no tiene acceso al panel" },

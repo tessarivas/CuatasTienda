@@ -106,9 +106,13 @@ Path alias: `@/*` → repo root.
 
 Supabase Auth (`@supabase/ssr`), cookie-based. No NextAuth, no custom JWT.
 
-**`proxy.ts` is the single gate** (Next 16 renamed `middleware.ts` → `proxy.ts`; it always runs on
-Node.js, which is what lets it query the DB). Its matcher is `["/admin/:path*", "/api/:path*"]`, it
-validates the session with `getUser()` (not `getSession()`, which doesn't revalidate the token),
+**`proxy.ts` is the single gate** (Next 16 renamed `middleware.ts` → `proxy.ts`). **On Netlify it
+runs as an Edge Function, where `pg` and the Prisma client can't load** — the first deploy failed
+with `Failed to load external module pg-…`. So it must never import anything that reaches the DB,
+not even indirectly (`lib/db/*`, `lib/auth/roles.ts`, which imports the generated client). It checks
+the session with `@supabase/ssr` and asks `GET /api/auth/role` (a normal Node function, forwarding
+the request's cookies) whether the user is ADMIN. Its matcher is `["/admin/:path*", "/api/:path*"]`,
+it validates the session with `getUser()` (not `getSession()`, which doesn't revalidate the token),
 then checks the role, and it branches by route type:
 
 - `/api/*` unauthenticated → `401 { error: "No autenticado" }` as JSON. Never a redirect — a 302
@@ -130,7 +134,8 @@ Public exceptions, all in `isPublicPath()` in `proxy.ts`:
 | `GET /api/products` (exact path) | public catalogue. `POST /api/products` and all of `/api/products/[id]` stay protected. |
 
 Session required but **no role check** (`NO_ROLE_PATHS` in `proxy.ts`): `/api/sync-user` (creates the
-`User` row at login, before there's a role to read) and `/admin/sin-acceso` (would loop).
+`User` row at login, before there's a role to read), `/admin/sin-acceso` and `/api/auth/role`
+(both would loop). If the role lookup fails, `/api/*` gets `503` and pages go to "Sin acceso".
 
 `GET /api/products` serves three shapes, and since the proxy lets it through it **checks the role
 itself**: an `ADMIN` gets the full admin payload; anyone else (anonymous or `USER`) gets a trimmed
