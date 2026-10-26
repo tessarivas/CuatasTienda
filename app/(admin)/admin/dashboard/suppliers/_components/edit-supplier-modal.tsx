@@ -75,7 +75,7 @@ export function EditSupplierModal({
 
   const handleSubmit = async () => {
     if (!name.trim() || !businessName.trim()) {
-      toast.warning("Proveedor y negocio son obligatorios");
+      toast.warning("Negocio y responsable son obligatorios");
       return;
     }
 
@@ -95,7 +95,7 @@ export function EditSupplierModal({
 
       if (!patchRes.ok) {
         const { error: message } = await patchRes.json();
-        toast.error(message ?? "No se pudo guardar el proveedor");
+        toast.error(message ?? "No se pudo guardar el negocio");
         return;
       }
 
@@ -111,16 +111,16 @@ export function EditSupplierModal({
           const { error: message } = await logoRes.json();
           toast.warning(
             message ??
-              "El proveedor se guardó, pero no se pudo subir el nuevo logo"
+              "El negocio se guardó, pero no se pudo subir el nuevo logo"
           );
         }
       }
 
       onSaved();
       onClose();
-      toast.success("Proveedor actualizado");
+      toast.success("Negocio actualizado");
     } catch {
-      toast.error("No se pudo guardar el proveedor");
+      toast.error("No se pudo guardar el negocio");
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function EditSupplierModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-5 w-5" />
-            Editar Proveedor
+            Editar Negocio
           </DialogTitle>
           <DialogDescription>
             Actualiza los datos de {supplier.businessName}.
@@ -158,11 +158,11 @@ export function EditSupplierModal({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
-              Proveedor <span className="-ml-1 text-my-red">*</span>
+              Responsable <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               value={name}
-              placeholder="Nombre del Proveedor"
+              placeholder="Nombre del responsable"
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
             />
@@ -172,7 +172,7 @@ export function EditSupplierModal({
             <Label className="text-right">Teléfono</Label>
             <Input
               value={cellphone}
-              placeholder="Teléfono del Proveedor"
+              placeholder="Teléfono del negocio"
               onChange={(e) => setCellphone(e.target.value)}
               className="col-span-3"
             />

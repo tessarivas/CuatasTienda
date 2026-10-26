@@ -44,7 +44,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
   if (!supplier) {
     return NextResponse.json(
-      { error: "Proveedor no encontrado" },
+      { error: "Negocio no encontrado" },
       { status: 404 }
     );
   }
@@ -192,13 +192,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
       err.code === "P2025"
     ) {
       return NextResponse.json(
-        { error: "Proveedor no encontrado" },
+        { error: "Negocio no encontrado" },
         { status: 404 }
       );
     }
     console.error("PATCH supplier failed", err);
     return NextResponse.json(
-      { error: "No se pudo actualizar el proveedor" },
+      { error: "No se pudo actualizar el negocio" },
       { status: 500 }
     );
   }
@@ -219,7 +219,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     return NextResponse.json(
       {
         error:
-          "No se puede eliminar el proveedor porque tiene productos activos asociados",
+          "No se puede eliminar el negocio porque tiene productos activos asociados",
         productCount,
       },
       { status: 409 }
@@ -232,7 +232,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   if (orderCount > 0) {
     return NextResponse.json(
       {
-        error: "No se puede eliminar el proveedor porque tiene pedidos de servicio registrados",
+        error: "No se puede eliminar el negocio porque tiene pedidos de servicio registrados",
         orderCount,
       },
       { status: 409 }
@@ -246,7 +246,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   });
   if (usedPromotions > 0) {
     return NextResponse.json(
-      { error: "No se puede eliminar el proveedor porque tiene ventas con promoción" },
+      { error: "No se puede eliminar el negocio porque tiene ventas con promoción" },
       { status: 409 }
     );
   }
@@ -267,13 +267,13 @@ export async function DELETE(_req: Request, { params }: Ctx) {
       err.code === "P2025"
     ) {
       return NextResponse.json(
-        { error: "Proveedor no encontrado" },
+        { error: "Negocio no encontrado" },
         { status: 404 }
       );
     }
     console.error("DELETE supplier failed", err);
     return NextResponse.json(
-      { error: "No se pudo eliminar el proveedor" },
+      { error: "No se pudo eliminar el negocio" },
       { status: 500 }
     );
   }

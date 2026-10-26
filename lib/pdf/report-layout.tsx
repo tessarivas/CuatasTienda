@@ -180,11 +180,13 @@ export function ReportDocument({ title, subtitle, generatedBy, children }: Repor
 // Columna de tabla: ancho relativo y alineación.
 export type Column = { label: string; flex: number; align?: "left" | "center" | "right" };
 
-export function TableHeader({ columns }: { columns: Column[] }) {
+// `align` fuerza la misma alineación en todos los títulos (p. ej. todos
+// centrados); sin él, cada título sigue la alineación de su columna.
+export function TableHeader({ columns, align }: { columns: Column[]; align?: Column["align"] }) {
   return (
     <View style={styles.tableHeader} fixed>
       {columns.map((c) => (
-        <Text key={c.label} style={{ flex: c.flex, textAlign: c.align ?? "left" }}>
+        <Text key={c.label} style={{ flex: c.flex, textAlign: align ?? c.align ?? "left" }}>
           {c.label}
         </Text>
       ))}

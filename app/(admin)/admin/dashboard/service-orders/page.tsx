@@ -174,7 +174,7 @@ export default function ServiceOrdersPage() {
                 <th className="px-2 py-2.5 font-medium">Fecha</th>
                 <th className="px-2 py-2.5 font-medium">Cliente</th>
                 <th className="px-2 py-2.5 font-medium">Teléfono</th>
-                <th className="px-2 py-2.5 font-medium">Proveedor</th>
+                <th className="px-2 py-2.5 font-medium">Negocio</th>
                 <th className="px-2 py-2.5 text-center font-medium">Servicios</th>
                 <th className="px-2 py-2.5 text-right font-medium">Total</th>
                 <th className="px-2 py-2.5 text-right font-medium">Resta</th>

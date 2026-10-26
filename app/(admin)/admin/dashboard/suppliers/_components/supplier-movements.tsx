@@ -29,6 +29,8 @@ type Movement = {
   detail: string | null;
   folio: string | null;
   amount: number | null;
+  // Altas: valor de la mercancía que entró (precio × piezas), no cobrado.
+  value: number | null;
   user: string | null;
 };
 type MovementsData = {
@@ -209,7 +211,7 @@ export function SupplierMovements({
             </div>
             <p className="text-sm text-muted-foreground">
               {data.movements.length === 0
-                ? "Todavía no hay movimientos de este proveedor"
+                ? "Todavía no hay movimientos de este negocio"
                 : "Ningún movimiento coincide con los filtros"}
             </p>
           </div>
@@ -264,7 +266,19 @@ export function SupplierMovements({
                           </p>
                         </td>
                         <td className="whitespace-nowrap px-2 py-2.5 text-right font-semibold tabular-nums">
-                          {m.amount !== null ? money(m.amount) : ""}
+                          {m.amount !== null ? (
+                            money(m.amount)
+                          ) : m.value !== null ? (
+                            // Valor de lo que entró, no dinero cobrado: en gris.
+                            <span
+                              className="font-normal text-muted-foreground"
+                              title="Valor de la mercancía a precio de venta, no es dinero cobrado"
+                            >
+                              {money(m.value)}
+                            </span>
+                          ) : (
+                            ""
+                          )}
                         </td>
                         <td className="truncate px-4 py-2.5 text-muted-foreground">
                           {m.user ?? ""}
@@ -280,7 +294,8 @@ export function SupplierMovements({
               {totals.alta} {totals.alta === 1 ? "pieza dada de alta" : "piezas dadas de alta"} ·{" "}
               {totals.retiro} {totals.retiro === 1 ? "retirada" : "retiradas"} · {totals.venta}{" "}
               {totals.venta === 1 ? "vendida" : "vendidas"} por {money(totals.amount)}. Las altas
-              iniciales se calculan con lo que hay hoy más lo vendido y retirado.
+              iniciales se calculan con lo que hay hoy más lo vendido y retirado. En gris, lo que vale la
+              mercancía que entró (no es dinero cobrado).
             </p>
           </>
         )}

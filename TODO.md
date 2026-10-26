@@ -111,6 +111,14 @@ mercancía, sin salir de la app.
 
 ## Completado
 
+### 2026-10-26
+
+- [x] Historial de movimientos del negocio: el "Alta inicial" dice quién
+      creó el producto (`Product.createdBy`, migración
+      `product_created_by`; vacío en los productos que ya existían) y las
+      altas muestran en gris lo que vale la mercancía que entró (precio ×
+      piezas, no es dinero cobrado). Los retiros no llevan valor.
+
 ### 2026-10-08
 - [x] Etiqueta con código de barras en el detalle del producto (#35, primera
       parte): código de barras real (Code 128 con JsBarcode), el número

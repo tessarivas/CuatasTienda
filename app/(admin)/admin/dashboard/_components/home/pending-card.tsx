@@ -272,7 +272,7 @@ export function PendingCard({ pending }: { pending: DashboardData["pending"] }) 
           icon={Store}
           tone="pink"
           done={supplierCutoffs.length === 0}
-          title={supplierCutoffs.length === 0 ? "Sin cortes de proveedor cerca" : "Cortes de proveedor"}
+          title={supplierCutoffs.length === 0 ? "Sin cortes de negocios cerca" : "Cortes de negocios"}
           subtitle={
             supplierCutoffs.length === 0
               ? "Ningún corte termina esta semana"

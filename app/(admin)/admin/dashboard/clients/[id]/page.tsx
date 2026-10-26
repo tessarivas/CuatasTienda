@@ -717,7 +717,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </div>
           <div className="mt-4 md:mt-0 md:ml-auto flex flex-wrap items-center gap-2">
             {/* Editar abre el modal de datos del cliente; eliminar vive
-                dentro de ese modal (mismo patrón que proveedores), para no
+                dentro de ese modal (mismo patrón que negocios), para no
                 tener un botón rojo en la pantalla principal. */}
             <Button
               variant="outline"
@@ -1183,7 +1183,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 <>
                   {client.name} tiene historial (abonos, apartados o ventas).
                   Ese historial forma parte de su cuenta y de los cortes de
-                  los proveedores, así que no se borra.
+                  los negocios, así que no se borra.
                 </>
               ) : (
                 <>

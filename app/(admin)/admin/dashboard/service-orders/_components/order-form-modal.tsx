@@ -165,7 +165,7 @@ export function OrderFormModal({
 
   const handleSave = async () => {
     if (isSaving) return;
-    if (!supplierId) return toast.warning("Elige el proveedor del servicio.");
+    if (!supplierId) return toast.warning("Elige el negocio del servicio.");
     if (!customerName.trim()) return toast.warning("Escribe el nombre del cliente.");
     for (const r of rows) {
       if (!r.productId) return toast.warning("Elige el servicio de cada renglón.");
@@ -263,7 +263,7 @@ export function OrderFormModal({
         <div className="grid min-w-0 grid-cols-1 gap-4 py-2 sm:max-h-[65vh] sm:overflow-y-auto sm:pr-1">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="order-supplier">Proveedor</Label>
+              <Label htmlFor="order-supplier">Negocio</Label>
               <Select
                 value={supplierId}
                 onValueChange={(v) => {
@@ -273,7 +273,7 @@ export function OrderFormModal({
                 disabled={isEdit}
               >
                 <SelectTrigger id="order-supplier" className="w-full cursor-pointer">
-                  <SelectValue placeholder="Elige el proveedor" />
+                  <SelectValue placeholder="Elige el negocio" />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliersWithServices.map((s) => (
@@ -312,7 +312,7 @@ export function OrderFormModal({
                   <span className="w-5 shrink-0 text-sm text-muted-foreground">{idx + 1}.</span>
                   <Select value={r.productId} onValueChange={(v) => chooseService(r, v)} disabled={!supplierId}>
                     <SelectTrigger className="min-w-0 flex-1 cursor-pointer">
-                      <SelectValue placeholder={supplierId ? "Elige el servicio" : "Primero elige el proveedor"} />
+                      <SelectValue placeholder={supplierId ? "Elige el servicio" : "Primero elige el negocio"} />
                     </SelectTrigger>
                     <SelectContent>
                       {services.map((p) => (

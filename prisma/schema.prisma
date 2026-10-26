@@ -93,6 +93,10 @@ model Product {
   byOrder                  Boolean                    @default(false)
   ServiceOrderItem         ServiceOrderItem[]
   SupplierPromotionProduct SupplierPromotionProduct[]
+  // Quién dio de alta el producto (para el "Alta inicial" del historial del
+  // negocio). Null en los productos creados antes de guardarlo (2026-10-26).
+  createdBy                String?                    @db.Uuid
+  User                     User?                      @relation(fields: [createdBy], references: [id])
 }
 
 // Bitácora de entradas y salidas de inventario que NO son ventas: altas de
@@ -197,6 +201,7 @@ model User {
   ServiceOrder        ServiceOrder[]
   ServiceOrderPayment ServiceOrderPayment[]
   SupplierPromotion   SupplierPromotion[]
+  Product             Product[]
 }
 
 // Corte de caja: uno por día de la tienda (hora del Pacífico). Cubre los

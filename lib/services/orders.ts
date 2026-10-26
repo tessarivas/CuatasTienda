@@ -119,7 +119,7 @@ export async function checkOrderProducts(
   for (const p of products) {
     if (p.type !== "SERVICE") return "Sólo se pueden agregar servicios a un pedido";
     if (p.status === "Retirado") return "Uno de los servicios ya no está disponible";
-    if (p.supplierId !== supplierId) return "Todos los servicios del pedido deben ser del mismo proveedor";
+    if (p.supplierId !== supplierId) return "Todos los servicios del pedido deben ser del mismo negocio";
   }
   return null;
 }

@@ -533,7 +533,7 @@ export function ProductDetailsModal({
               )}
 
               {/* Etiqueta con el código de barras real, el número, y
-                  proveedor y precio (#35). Sin código (productos viejos), el
+                  negocio y precio (#35). Sin código (productos viejos), el
                   cuadro de siempre. */}
               <div className="grid grid-cols-[110px_1fr] items-start gap-3">
                 <Label className="flex h-12 items-center gap-2 text-xl font-normal">

@@ -21,7 +21,14 @@ function parseId(raw: string) {
 // Alta inicial: al crear un producto no se escribe un StockMovement con sus
 // piezas iniciales, así que aquí se reconstruye un renglón "Alta inicial"
 // en la fecha de creación: existencia actual + vendidas + retiradas − altas
-// posteriores. Los servicios no llevan existencia y no tienen alta.
+// posteriores. Los servicios no llevan existencia y no tienen alta. Su
+// "Registró" es quien creó el producto (Product.createdBy, vacío en los
+// creados antes de 2026-10-26).
+//
+// `value` en las altas: lo que vale la mercancía que entró (precio actual ×
+// piezas). No es dinero cobrado (la tienda no compra la mercancía, es a
+// consignación); la pantalla lo muestra en gris. `amount` sigue siendo sólo
+// el de las ventas.
 export async function GET(_req: Request, { params }: Ctx) {
   const { id: rawId } = await params;
   const supplierId = parseId(rawId);
@@ -34,14 +41,23 @@ export async function GET(_req: Request, { params }: Ctx) {
     select: { id: true },
   });
   if (!supplier) {
-    return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
   }
 
   try {
     const [products, stockMovements, saleItems] = await Promise.all([
       prisma.product.findMany({
         where: { supplierId },
-        select: { id: true, title: true, type: true, status: true, quantity: true, createdAt: true },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          quantity: true,
+          price: true,
+          createdAt: true,
+          User: { select: { name: true } },
+        },
         orderBy: { title: "asc" },
       }),
       prisma.stockMovement.findMany({
@@ -93,8 +109,11 @@ export async function GET(_req: Request, { params }: Ctx) {
       detail: string | null;
       folio: string | null;
       amount: number | null;
+      value: number | null;
       user: string | null;
     };
+    const valueOf = (productId: number, quantity: number) =>
+      Number(productById.get(productId)!.price) * quantity;
     const base = (productId: number) => {
       const p = productById.get(productId)!;
       return { productId, product: p.title, retired: p.status === "Retirado" };
@@ -122,6 +141,7 @@ export async function GET(_req: Request, { params }: Ctx) {
         detail: detail || null,
         folio: null,
         amount: null,
+        value: m.type === "Alta" ? valueOf(m.productId, m.quantity) : null,
         user: m.User.name,
       });
     }
@@ -144,6 +164,7 @@ export async function GET(_req: Request, { params }: Ctx) {
         detail: [origin, method, ticketDiscount].filter(Boolean).join(" · "),
         folio: sale.folio,
         amount: Number(item.finalPrice) * item.quantity - Number(item.discount),
+        value: null,
         user: sale.User.name,
       });
     }
@@ -165,7 +186,8 @@ export async function GET(_req: Request, { params }: Ctx) {
         detail: "Alta inicial",
         folio: null,
         amount: null,
-        user: null,
+        value: valueOf(p.id, initial),
+        user: p.User?.name ?? null,
       });
     }
 
@@ -182,7 +204,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   } catch (err) {
     console.error("GET movimientos de proveedor falló", err);
     return NextResponse.json(
-      { error: "No se pudo cargar el historial del proveedor" },
+      { error: "No se pudo cargar el historial del negocio" },
       { status: 500 }
     );
   }

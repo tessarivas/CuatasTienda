@@ -146,13 +146,13 @@ export default function SupplierDetailPage({
       });
       if (!res.ok) {
         const { error: message } = await res.json();
-        toast.error(message ?? "No se pudo eliminar el proveedor");
+        toast.error(message ?? "No se pudo eliminar el negocio");
         return;
       }
-      toast.success("Proveedor eliminado");
+      toast.success("Negocio eliminado");
       router.push("/admin/dashboard/suppliers");
     } catch {
-      toast.error("No se pudo eliminar el proveedor");
+      toast.error("No se pudo eliminar el negocio");
     }
   };
 
@@ -188,9 +188,9 @@ export default function SupplierDetailPage({
     return (
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="text-center space-y-4">
-          <p className="text-lg font-semibold">Proveedor no encontrado</p>
+          <p className="text-lg font-semibold">Negocio no encontrado</p>
           <p className="text-sm text-muted-foreground">
-            No se pudo encontrar el proveedor con ID: {id}
+            No se pudo encontrar el negocio con ID: {id}
           </p>
           <Button
             variant="outline"
@@ -279,7 +279,9 @@ export default function SupplierDetailPage({
 
         {/* Historial de movimientos: altas, retiros y ventas (incluye
             productos retirados). Se vuelve a pedir cuando se recarga el
-            proveedor, p. ej. después de agregar o retirar unidades. */}
+            negocio, p. ej. después de agregar o retirar unidades. */}
+        <SupplierMovements supplierId={id} refreshKey={supplier} />
+
         {/* Promociones: descuento por unos días que la caja aplica sola. */}
         <SupplierPromotions
           supplierId={id}
@@ -293,8 +295,6 @@ export default function SupplierDetailPage({
               type: p.type === "SERVICE" ? ("SERVICE" as const) : ("PRODUCT" as const),
             }))}
         />
-
-        <SupplierMovements supplierId={id} refreshKey={supplier} />
 
         {/* Detalles del Proveedor (sólo lectura; se edita en el modal) */}
         <SupplierDetailsForm

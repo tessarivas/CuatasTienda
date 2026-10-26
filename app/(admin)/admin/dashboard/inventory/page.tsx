@@ -282,15 +282,15 @@ function InventoryPage() {
             {/* w-45 recortaba "Todos los proveedores" a la mitad; w-52 ya
                 lo muestra completo. truncate
                 queda además como red de seguridad por si se elige un
-                proveedor con nombre largo. */}
+                negocio con nombre largo. */}
             <SelectTrigger className="w-full cursor-pointer sm:w-52">
               <SelectValue
-                placeholder="Filtrar por proveedor"
+                placeholder="Filtrar por negocio"
                 className="truncate"
               />
             </SelectTrigger>
             <SelectContent className="cursor-pointer">
-              <SelectItem value="todos">Todos los proveedores</SelectItem>
+              <SelectItem value="todos">Todo el colectivo</SelectItem>
               {suppliers.map((supplier) => (
                 <SelectItem key={supplier.id} value={String(supplier.id)}>
                   {supplier.businessName}
@@ -363,7 +363,7 @@ function InventoryPage() {
         type={activeTab === "servicios" ? "SERVICE" : "PRODUCT"}
       />
       {/* Click en cualquier parte de la fila → el mismo modal de detalle que
-          usa la página de proveedor, abierto en modo lectura. Editar,
+          usa la página de negocio, abierto en modo lectura. Editar,
           Eliminar producto y los movimientos de stock viven dentro de él. */}
       <ProductDetailsModal
         isOpen={isDetailsModalOpen}

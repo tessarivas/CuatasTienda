@@ -162,7 +162,7 @@ export function SupplierPromotions({
               <div className="mb-3 rounded-full bg-muted p-4">
                 <Tag className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground">Este proveedor no tiene promociones</p>
+              <p className="text-sm text-muted-foreground">Este negocio no tiene promociones</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -464,8 +464,8 @@ function PromotionFormModal({
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {products.length === 1
-                    ? "Aplica al único producto de este proveedor."
-                    : `Aplica a los ${products.length} productos de este proveedor.`}
+                    ? "Aplica al único producto de este negocio."
+                    : `Aplica a los ${products.length} productos de este negocio.`}
                 </p>
               </div>
             ) : (

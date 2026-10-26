@@ -123,7 +123,7 @@ export function DeleteProductDialog({
         ) : (
           <p className="text-xs text-muted-foreground">
             Tiene ventas, apartados o movimientos, así que sólo se puede retirar
-            (se conserva para los cortes del proveedor).
+            (se conserva para los cortes del negocio).
           </p>
         )}
 

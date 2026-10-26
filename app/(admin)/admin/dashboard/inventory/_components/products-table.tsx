@@ -175,7 +175,7 @@ export function ProductsTable({
                   <TableCell>
                     <div className="flex items-center gap-2 overflow-hidden">
                       {/* Logo pequeño y circular, mismo ícono de respaldo
-                          (User) que usa la vista de detalle del proveedor
+                          (User) que usa la vista de detalle del negocio
                           cuando no tiene logo cargado. */}
                       <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full border bg-muted flex items-center justify-center">
                         {supplier?.logo ? (
@@ -242,7 +242,7 @@ export function ProductsTable({
                     >
                       <div className="flex justify-center">
                         {/* Abre un pedido de servicio nuevo con este servicio
-                            (y su proveedor) ya puestos. Los servicios rápidos
+                            (y su negocio) ya puestos. Los servicios rápidos
                             se siguen vendiendo en la caja. */}
                         <Button
                           variant="outline"

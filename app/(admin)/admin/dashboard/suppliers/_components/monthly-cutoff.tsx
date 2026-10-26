@@ -55,6 +55,7 @@ type CutoffData = {
   totalSold: string;
   unitsSold: number;
   salesCount: number;
+  availablePieces: number;
   availableProducts: number;
   products: { title: string; units: number; total: string }[];
   sales: {
@@ -173,7 +174,7 @@ export function MonthlyCutoff({
           <CardDescription className="text-sm">
             {data
               ? `${isCurrentPeriod ? "Periodo actual" : "Rango elegido"}: del ${shortDate(data.period.from)} al ${shortDate(data.period.to)}.`
-              : "Ventas del proveedor en el periodo de corte."}
+              : "Ventas del negocio en el periodo de corte."}
           </CardDescription>
         </CardHeader>
 
@@ -184,16 +185,20 @@ export function MonthlyCutoff({
               icon={DollarSign}
               title="Total vendido"
               value={formatMoney(Number(data?.totalSold ?? 0))}
-              hint="Ganancia del proveedor en el periodo"
+              hint="Ganancia del negocio en el periodo"
               loading={isLoading}
             />
             <div className="grid grid-cols-2 gap-3">
               <StatCard
                 color="blue"
                 icon={Package}
-                title="Productos disponibles"
-                value={data?.availableProducts ?? 0}
-                hint="Con unidades libres hoy"
+                title="Piezas en tienda"
+                value={data?.availablePieces ?? 0}
+                hint={
+                  data
+                    ? `En ${data.availableProducts} ${data.availableProducts === 1 ? "producto" : "productos"}, sin apartadas`
+                    : undefined
+                }
                 loading={isLoading}
               />
               <StatCard

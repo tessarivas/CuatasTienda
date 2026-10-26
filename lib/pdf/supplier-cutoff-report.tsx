@@ -24,6 +24,7 @@ export type SupplierCutoffReportData = {
   totalSold: string;
   unitsSold: number;
   salesCount: number;
+  availablePieces: number;
   availableProducts: number;
   products: { title: string; units: number; total: string }[];
   sales: {
@@ -58,7 +59,7 @@ export function SupplierCutoffDocument({
   const range = `Del ${pdfDate(data.period.from)} al ${pdfDate(data.period.to)}`;
   return (
     <ReportDocument
-      title="Corte de proveedor"
+      title="Corte del negocio"
       subtitle={`${data.supplierName}\n${range}`}
       generatedBy={generatedBy}
     >
@@ -73,7 +74,7 @@ export function SupplierCutoffDocument({
           {
             label: "Total vendido",
             value: pdfMoney(Number(data.totalSold)),
-            hint: "Ganancia del proveedor en el periodo",
+            hint: "Ganancia del negocio en el periodo",
           },
           {
             label: "Piezas vendidas",
@@ -81,9 +82,9 @@ export function SupplierCutoffDocument({
             hint: `En ${data.salesCount} ${data.salesCount === 1 ? "venta" : "ventas"}`,
           },
           {
-            label: "Productos disponibles",
-            value: String(data.availableProducts),
-            hint: "Con unidades libres al generar el reporte",
+            label: "Piezas en tienda",
+            value: String(data.availablePieces),
+            hint: `En ${data.availableProducts} ${data.availableProducts === 1 ? "producto" : "productos"}, sin apartadas, al generar el reporte`,
           },
         ]}
       />

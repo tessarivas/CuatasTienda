@@ -41,7 +41,6 @@ const COLUMNS: Column[] = [
   { label: "Apartadas", flex: 1.4, align: "center" },
   { label: "Disponibles", flex: 1.5, align: "center" },
   { label: "Vendidas", flex: 1.3, align: "center" },
-  { label: "Estado", flex: 1.6 },
 ];
 
 export function SupplierStockDocument({
@@ -63,7 +62,7 @@ export function SupplierStockDocument({
 
   return (
     <ReportDocument
-      title="Existencias del proveedor"
+      title="Existencias del negocio"
       subtitle={`${data.supplierName}\n${range}`}
       generatedBy={generatedBy}
     >
@@ -98,21 +97,22 @@ export function SupplierStockDocument({
         <Text style={styles.muted}>No hay productos con existencia ni ventas en este periodo.</Text>
       ) : (
         <View>
-          <TableHeader columns={COLUMNS} />
+          <TableHeader columns={COLUMNS} align="center" />
           {data.products.map((p, i) => (
             <TableRow
               key={`${p.code}-${i}`}
               muted={p.status === "Retirado"}
               columns={COLUMNS}
+              // Sin columna de estado: los retirados van en gris y lo dicen
+              // junto al nombre.
               cells={[
-                p.title,
+                p.status === "Retirado" ? `${p.title} (retirado)` : p.title,
                 p.code ?? "",
                 pdfMoney(p.price),
                 String(p.quantity),
                 String(p.reserved),
                 String(p.available),
                 String(p.soldUnits),
-                p.status,
               ]}
             />
           ))}
@@ -127,7 +127,6 @@ export function SupplierStockDocument({
               String(reserved),
               String(pieces - reserved),
               String(soldUnits),
-              "",
             ]}
           />
         </View>

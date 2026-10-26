@@ -271,7 +271,7 @@ export async function GET() {
         lowStock.push({
           productId: p.id,
           title: p.title,
-          supplier: p.Supplier?.businessName || p.Supplier?.name || "Sin proveedor",
+          supplier: p.Supplier?.businessName || p.Supplier?.name || "Sin negocio",
         });
       }
     }

@@ -158,14 +158,14 @@ export async function POST(req: Request, { params }: Ctx) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const supplier = await tx.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
-      if (!supplier) return { error: "Proveedor no encontrado" as const, status: 404 };
+      if (!supplier) return { error: "Negocio no encontrado" as const, status: 404 };
 
       if (!allProducts) {
         const owned = await tx.product.count({
           where: { id: { in: productIds }, supplierId, status: { not: "Retirado" } },
         });
         if (owned !== productIds.length) {
-          return { error: "Sólo se pueden elegir productos de este proveedor" as const, status: 400 };
+          return { error: "Sólo se pueden elegir productos de este negocio" as const, status: 400 };
         }
       }
 

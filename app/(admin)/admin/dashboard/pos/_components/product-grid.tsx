@@ -31,14 +31,29 @@ interface ProductGridProps {
 type SortOrder = "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
 type TypeFilter = "todos" | "productos" | "servicios";
 
+// La tienda misma como proveedor (Cuatas, id fijo en prisma/seed/cuatas.sql).
+const STORE_SUPPLIER_ID = "1";
+
 export function ProductGrid({ products, onAddToCart, promoFor, loading }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
-  // Al abrir la caja: los más vendidos primero, de todos los proveedores y
-  // sólo productos (los servicios están a un clic en el filtro).
+  // Al abrir la caja: los más vendidos primero, de la tienda misma (el
+  // proveedor id 1, ver prisma/seed/cuatas.sql), con productos y servicios.
   const [sortOrder, setSortOrder] = React.useState<SortOrder>("vendidos");
-  const [supplierFilter, setSupplierFilter] = React.useState<string>("todos");
-  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("productos");
+  const [supplierFilter, setSupplierFilter] = React.useState<string>(STORE_SUPPLIER_ID);
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("todos");
+
+  // Si ese proveedor no existe (base vacía o borrado), se ven todos para que
+  // la caja no abra en blanco.
+  React.useEffect(() => {
+    if (
+      supplierFilter === STORE_SUPPLIER_ID &&
+      suppliers.length > 0 &&
+      !suppliers.some((s) => String(s.id) === STORE_SUPPLIER_ID)
+    ) {
+      setSupplierFilter("todos");
+    }
+  }, [suppliers, supplierFilter]);
 
   // Unidades libres: total menos las apartadas en Layaways activos.
   const availableOf = (p: Product) => p.quantity - (p.reservedCount ?? 0);
@@ -117,12 +132,12 @@ export function ProductGrid({ products, onAddToCart, promoFor, loading }: Produc
           </Select>
           <Select value={supplierFilter} onValueChange={setSupplierFilter}>
             {/* Se ajusta al texto (w-fit, default del trigger) para que
-                "Todos los proveedores" no se corte; max-w para nombres largos. */}
+                "Todo el colectivo" no se corte; max-w para nombres largos. */}
             <SelectTrigger className="max-w-56 cursor-pointer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos los proveedores</SelectItem>
+              <SelectItem value="todos">Todo el colectivo</SelectItem>
               {suppliers.map((supplier) => (
                 <SelectItem key={supplier.id} value={String(supplier.id)}>
                   {supplier.businessName}

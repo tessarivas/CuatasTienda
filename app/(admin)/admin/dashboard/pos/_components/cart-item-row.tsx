@@ -86,7 +86,7 @@ export function CartItemRow({
               {item.product.title}
             </h4>
             {/* Proveedor junto al precio: en un ticket con varios
-                proveedores ayuda a saber a quién se le carga cada venta. */}
+                negocios ayuda a saber a quién se le carga cada venta. */}
             <p className="truncate text-xs text-muted-foreground">
               ${item.product.price.toFixed(2)} c/u
               {supplierName && <> · {supplierName}</>}

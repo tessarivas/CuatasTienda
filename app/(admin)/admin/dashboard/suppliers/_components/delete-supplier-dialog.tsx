@@ -38,7 +38,7 @@ export function DeleteSupplierDialog({
             Esta acción eliminará permanentemente a {supplier.businessName}.
             {supplierProductsCount > 0 && (
               <span className="block mt-2 text-destructive font-medium">
-                Advertencia: Este proveedor tiene {supplierProductsCount}{" "}
+                Advertencia: Este negocio tiene {supplierProductsCount}{" "}
                 producto(s) asociado(s).
               </span>
             )}

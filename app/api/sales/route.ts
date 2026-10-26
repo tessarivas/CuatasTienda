@@ -265,7 +265,7 @@ export async function POST(req: Request) {
         if (totalDiscountInput && supplierIds.size > 1) {
           return {
             error:
-              "No se puede aplicar un descuento al total con productos de varios proveedores; sólo por producto." as const,
+              "No se puede aplicar un descuento al total con productos de varios negocios; sólo por producto." as const,
             status: 400,
           };
         }

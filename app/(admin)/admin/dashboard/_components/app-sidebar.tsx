@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 export const data = {
   navMain: [
     {
-      title: "Proveedores",
+      title: "Colectivo",
       url: "/admin/dashboard/suppliers",
     },
     {

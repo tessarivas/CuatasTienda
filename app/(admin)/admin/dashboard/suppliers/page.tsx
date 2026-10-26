@@ -62,16 +62,17 @@ export default function Page() {
 
   const supplierName = (id: string | number) =>
     suppliers.find((s) => String(s.id) === String(id))?.businessName ??
-    "Proveedor";
+    "Negocio";
 
-  // Productos en tienda ahora: con unidades y no retirados. Los servicios no
-  // cuentan — no son artículos físicos.
+  // Piezas en tienda ahora (no productos distintos): unidades libres, sin las
+  // apartadas, de productos no retirados. Los servicios no cuentan, no son
+  // artículos físicos.
   const topByProducts = React.useMemo(() => {
     const counts = new Map<string, number>();
     for (const p of products) {
-      if (p.type === "SERVICE" || p.status === "Retirado" || p.quantity <= 0)
-        continue;
-      counts.set(p.supplierId, (counts.get(p.supplierId) ?? 0) + 1);
+      const free = p.quantity - (p.reservedCount ?? 0);
+      if (p.type === "SERVICE" || p.status === "Retirado" || free <= 0) continue;
+      counts.set(p.supplierId, (counts.get(p.supplierId) ?? 0) + free);
     }
     let best: { supplierId: string; count: number } | null = null;
     for (const [supplierId, count] of counts) {
@@ -107,7 +108,7 @@ export default function Page() {
         {/* Sección del Encabezado */}
         <div className="flex flex-col md:flex-row md:items-center md:gap-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">Lista de Proveedores</h1>
+            <h1 className="text-2xl font-bold">Colectivo</h1>
           </div>
           {/* Busqueda y Agregar Proveedor */}
           <div className="mt-4 md:mt-0 md:ml-auto flex items-center gap-2">
@@ -124,7 +125,7 @@ export default function Page() {
             </div>
             <Button onClick={() => setIsAddSupplierModalOpen(true)} className="cursor-pointer">
               <UserRoundPlus className="h-4 w-4" />
-              Agregar Proveedor
+              Agregar Negocio
             </Button>
           </div>
         </div>
@@ -134,7 +135,7 @@ export default function Page() {
           <StatCard
             color="yellow"
             icon={Store}
-            title="Total de Proveedores"
+            title="Negocios en el colectivo"
             value={suppliers.length}
             hint="Registrados en la tienda"
             loading={isLoadingSuppliers}
@@ -142,12 +143,12 @@ export default function Page() {
           <StatCard
             color="blue"
             icon={Package}
-            title="Proveedor con más artículos"
+            title="Negocio con más piezas"
             value={topByProducts ? supplierName(topByProducts.supplierId) : "Sin productos"}
             valueTitle={topByProducts ? supplierName(topByProducts.supplierId) : undefined}
             hint={
               topByProducts
-                ? `${topByProducts.count} ${topByProducts.count === 1 ? "producto en tienda" : "productos en tienda"}`
+                ? `${topByProducts.count} ${topByProducts.count === 1 ? "pieza en tienda" : "piezas en tienda"}`
                 : "Ningún producto con unidades"
             }
             loading={isLoadingProducts || isLoadingSuppliers}

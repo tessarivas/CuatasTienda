@@ -48,7 +48,7 @@ export function AddSupplierModal({
 
   const handleSubmit = async () => {
     if (!name || !businessName) {
-      toast.warning("Proveedor y negocio son obligatorios");
+      toast.warning("Negocio y responsable son obligatorios");
       return;
     }
 
@@ -71,7 +71,7 @@ export function AddSupplierModal({
 
       const supplier: Supplier = await res.json();
       onAdd(supplier);
-      toast.success("Proveedor agregado");
+      toast.success("Negocio agregado");
 
       setName("");
       setBusinessName("");
@@ -80,7 +80,7 @@ export function AddSupplierModal({
       setImage(null);
       onClose();
     } catch {
-      toast.error("Error creando proveedor");
+      toast.error("Error creando negocio");
     } finally {
       setLoading(false);
     }
@@ -103,10 +103,10 @@ export function AddSupplierModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserRoundPlus className="h-5 w-5" />
-            Agregar Proveedor
+            Agregar Negocio
           </DialogTitle>
           <DialogDescription>
-            Completa los datos para registrar un nuevo proveedor en el sistema.
+            Completa los datos para registrar un nuevo negocio del colectivo.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,11 +125,11 @@ export function AddSupplierModal({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
-              Proveedor <span className="-ml-1 text-my-red">*</span>
+              Responsable <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Input
               value={name}
-              placeholder="Nombre del Proveedor"
+              placeholder="Nombre del responsable"
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
             />
@@ -139,7 +139,7 @@ export function AddSupplierModal({
             <Label className="text-right">Teléfono</Label>
             <Input
               value={cellphone}
-              placeholder="Teléfono del Proveedor"
+              placeholder="Teléfono del negocio"
               onChange={(e) => setCellphone(e.target.value)}
               className="col-span-3"
             />

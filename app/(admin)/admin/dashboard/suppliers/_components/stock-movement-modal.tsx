@@ -131,7 +131,7 @@ export function StockMovementModal({
           <DialogDescription>
             {isAlta
               ? `Entrada de mercancía para ${product.title}.`
-              : `Salida por merma, daño o devolución al proveedor. No registra una venta.`}
+              : `Salida por merma, daño o devolución al negocio. No registra una venta.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +180,7 @@ export function StockMovementModal({
             <Input
               id="stock-reason"
               placeholder={
-                isAlta ? "Compra a proveedor" : "Producto dañado"
+                isAlta ? "Llegó mercancía nueva" : "Producto dañado"
               }
               value={reason}
               onChange={(e) => setReason(e.target.value)}

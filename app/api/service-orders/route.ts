@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
   const supplierId = Number((body as { supplierId?: unknown }).supplierId);
   if (!Number.isInteger(supplierId) || supplierId <= 0) {
-    return NextResponse.json({ error: "Elige el proveedor" }, { status: 400 });
+    return NextResponse.json({ error: "Elige el negocio" }, { status: 400 });
   }
   const parsed = parseOrderBody(body);
   if ("error" in parsed) {
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         where: { id: supplierId },
         select: { servicePrefix: true, businessName: true, name: true },
       });
-      if (!supplier) return { error: "Proveedor no encontrado" as const, status: 404 };
+      if (!supplier) return { error: "Negocio no encontrado" as const, status: 404 };
 
       const productError = await checkOrderProducts(tx, supplierId, parsed.items);
       if (productError) return { error: productError, status: 400 };

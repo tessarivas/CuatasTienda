@@ -87,8 +87,8 @@ export function AddProductModal({
     if (!title.trim() || !(priceValue > 0) || !supplierId || (!isService && !(quantity > 0))) {
       toast.warning(
         isService
-          ? "Título, precio y proveedor son obligatorios."
-          : "Todos los campos son obligatorios, incluyendo el proveedor.",
+          ? "Título, precio y negocio son obligatorios."
+          : "Todos los campos son obligatorios, incluyendo el negocio.",
       );
       return;
     }
@@ -173,7 +173,7 @@ export function AddProductModal({
         >
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="supplier" className="text-right">
-              Proveedor <span className="-ml-1 text-my-red">*</span>
+              Negocio <span className="-ml-1 text-my-red">*</span>
             </Label>
             <Select
               value={supplierId}
@@ -181,7 +181,7 @@ export function AddProductModal({
               disabled={!!lockedSupplierId}
             >
               <SelectTrigger id="supplier" className="col-span-3">
-                <SelectValue placeholder="Selecciona un proveedor" />
+                <SelectValue placeholder="Selecciona un negocio" />
               </SelectTrigger>
               <SelectContent>
                 {suppliers.map((supplier) => (

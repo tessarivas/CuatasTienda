@@ -35,7 +35,7 @@ export async function GET(req: Request, { params }: Ctx) {
     select: { cutoffDay: true, createdAt: true },
   });
   if (!supplier) {
-    return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
   }
 
   const cutoffDay = effectiveCutoffDay(supplier.cutoffDay, storeDateString(supplier.createdAt));

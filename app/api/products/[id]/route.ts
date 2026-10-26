@@ -107,7 +107,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return NextResponse.json(
         {
           error:
-            "El producto tiene unidades apartadas. Libera esos apartados antes de cambiar precio, cantidad o proveedor.",
+            "El producto tiene unidades apartadas. Libera esos apartados antes de cambiar precio, cantidad o negocio.",
           field: attempted,
           reservedCount,
         },
@@ -178,7 +178,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const sid = Number(input.supplierId);
     if (!Number.isInteger(sid) || sid <= 0) {
       return NextResponse.json(
-        { error: "Proveedor inválido" },
+        { error: "Negocio inválido" },
         { status: 400 }
       );
     }
@@ -188,7 +188,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     });
     if (!exists) {
       return NextResponse.json(
-        { error: "Proveedor no encontrado" },
+        { error: "Negocio no encontrado" },
         { status: 404 }
       );
     }

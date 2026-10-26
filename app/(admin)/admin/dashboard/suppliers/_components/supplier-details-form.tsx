@@ -22,7 +22,7 @@ export function SupplierDetailsForm({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>Detalles del Proveedor</CardTitle>
+        <CardTitle>Detalles del Negocio</CardTitle>
         <CardActionButton onClick={onEdit}>
           <Pencil />
           Editar
@@ -63,7 +63,7 @@ export function SupplierDetailsForm({
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  Nombre del Proveedor
+                  Responsable
                 </Label>
                 <p className="font-medium">{supplier.name}</p>
               </div>

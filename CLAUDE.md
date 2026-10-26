@@ -315,7 +315,10 @@ silently drops it if sent on an `Alta` rather than rejecting the request.
 `SaleItem` sales of all the supplier's products, newest first; filters are client-side. It does
 **not** filter by `Product.status` — retired products must stay in the record. Creating a product
 writes no `StockMovement` for its initial pieces, so each product gets a reconstructed
-"Alta inicial" row at `createdAt` (current quantity + sold + retirados − altas).
+"Alta inicial" row at `createdAt` (current quantity + sold + retirados − altas). Its "Registró" is
+`Product.createdBy` (set from the session in `POST /api/products`; null for products created before
+2026-10-26). Altas (initial and later) carry `value` = current price × pieces, shown **gray** in the
+Monto column because it's not money collected (consignment); `amount` stays sales-only.
 
 UI: `stock-movement-modal.tsx`, one component for both directions, opened from "Agregar unidades" /
 "Retirar mercancía" in `product-details-modal.tsx`. Those buttons — and the quantity field itself —
@@ -388,8 +391,9 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
   one supplier, which is how `GET /api/suppliers/sales` attributes it.
 - `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
 - The POS product grid opens sorted by **"Más vendidos"** (`Product.soldCount`, all time — bumped
-  by POS sales, layaway liquidations and service orders), all suppliers, **only products** (services
-  one click away in the type filter).
+  by POS sales, layaway liquidations and service orders), filtered to **the store itself (supplier
+  id 1, "Cuatas Impresiones")** with **products and services** (`STORE_SUPPLIER_ID` in
+  `product-grid.tsx`; falls back to all suppliers if id 1 doesn't exist).
 - Below `lg:` the POS cart is a **bottom sheet**: the same `Cart` with a `sheet` prop, collapsed to
   the header (count + total + chevron) and the Cobrar button, expanding to 85% of the height. At
   `lg:` and up it's the usual right-hand 30% column. Both render from `renderCart()` in
@@ -590,6 +594,10 @@ the browser picks a screen-wide variant. New upload or image spots must follow b
 - **Spanish-first**: UI copy, API error messages, commit messages, and most comments are Spanish.
   Identifiers and Prisma model/field names are English (except the Spanish enum values). Write
   user-facing strings and API errors in Spanish; keep new identifiers English.
+- **Never "proveedor" in visible text** (UI, toasts, API errors, PDFs): the owners found it
+  confusing. The group is **"Colectivo"** ("Todo el colectivo" in filters), each supplier is a
+  **"Negocio"** (`businessName`), and `Supplier.name` (the person) is **"Responsable"**. Code
+  identifiers and routes (`supplier`, `/suppliers`) stay as they are.
 - Prisma relation fields are PascalCase and singular (`Product`, `LayawayItem`), so they appear
   capitalized in JSON payloads.
 - Route-local components live in `_components/` beside the page; modals dominate

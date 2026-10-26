@@ -111,13 +111,13 @@ export function AssignProductModal({
             </div>
             <Select value={supplierFilter} onValueChange={setSupplierFilter}>
               {/* Ancho según el texto (w-fit, default del trigger) para que
-                  "Todos los proveedores" no se corte; max-w-56 evita que un
-                  nombre largo de proveedor aplaste el buscador. */}
+                  "Todo el colectivo" no se corte; max-w-56 evita que un
+                  nombre largo de negocio aplaste el buscador. */}
               <SelectTrigger className="max-w-56 shrink-0 cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos los proveedores</SelectItem>
+                <SelectItem value="todos">Todo el colectivo</SelectItem>
                 {suppliersWithStock.map((supplier) => (
                   <SelectItem key={supplier.id} value={String(supplier.id)}>
                     {supplier.businessName}

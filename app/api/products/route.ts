@@ -10,6 +10,7 @@ import { randomBytes } from "crypto";
 import { servicePrefixFor } from "@/lib/services/folio";
 import { Prisma } from "@/generated/prisma/client";
 import { supabaseServerClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 
 // Proyección para consumidores anónimos (catálogo público). Deja fuera
 // supplierId, soldCount, code, quantity y reservedCount: son datos internos.
@@ -154,6 +155,11 @@ function generateProductCode(prefix: string): string {
 //   5. Si la inserción colisiona en `code` (P2002), borrar la imagen huérfana
 //      y reintentar con otro código.
 export async function POST(req: Request) {
+  // Quién lo da de alta, para el "Alta inicial" del historial del negocio.
+  // Sale de la sesión, nunca del formulario.
+  const { user: sessionUser, response } = await requireUser();
+  if (response) return response;
+
   try {
     const formData = await req.formData();
 
@@ -211,7 +217,7 @@ export async function POST(req: Request) {
 
     if (!title || !supplierId) {
       return NextResponse.json(
-        { error: "Título y proveedor son obligatorios" },
+        { error: "Título y negocio son obligatorios" },
         { status: 400 }
       );
     }
@@ -228,7 +234,7 @@ export async function POST(req: Request) {
     });
     if (!supplier) {
       return NextResponse.json(
-        { error: "Proveedor no encontrado" },
+        { error: "Negocio no encontrado" },
         { status: 404 }
       );
     }
@@ -262,6 +268,7 @@ export async function POST(req: Request) {
             picture: pictureUrl,
             type,
             Supplier: { connect: { id: supplierId } },
+            User: { connect: { id: sessionUser.id } },
           },
         });
         return NextResponse.json(product, { status: 201 });

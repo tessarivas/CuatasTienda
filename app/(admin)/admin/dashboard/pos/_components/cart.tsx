@@ -224,7 +224,7 @@ export function Cart({
                 {/* A la izquierda: arriba tapaba el total. max-w para que
                     se acomode en 2 renglones sobre la cuadrícula. */}
                 <TooltipContent side="left" className="max-w-56">
-                  Con productos de varios proveedores sólo se descuenta por
+                  Con productos de varios negocios sólo se descuenta por
                   producto.
                 </TooltipContent>
               </Tooltip>

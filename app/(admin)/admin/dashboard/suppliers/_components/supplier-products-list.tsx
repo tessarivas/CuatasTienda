@@ -46,14 +46,18 @@ export function SupplierProductsList({
   const [isAddProductModalOpen, setIsAddProductModalOpen] =
     React.useState(false);
 
-  // Contar productos: "apartados" ahora es cualquier producto con reservedCount > 0.
-  const availableCount = products.filter(
-    (p) => p.status === "Disponible" && (p.reservedCount ?? 0) === 0
-  ).length;
-  const apartadoCount = products.filter(
-    (p) => (p.reservedCount ?? 0) > 0
-  ).length;
-  const vendidoCount = products.filter((p) => p.status === "Vendido").length;
+  // Etiquetas en piezas, no en productos: a la tienda le importa cuántas
+  // piezas hay (un producto con 6 unidades son 6). Disponibles = unidades
+  // libres (sin las apartadas); apartadas = unidades en apartados activos;
+  // vendidas = todas las vendidas del producto (soldCount). Los servicios no
+  // tienen piezas.
+  const pieces = products.filter((p) => p.type !== "SERVICE" && p.status !== "Retirado");
+  const availableCount = pieces.reduce(
+    (sum, p) => sum + Math.max(0, p.quantity - (p.reservedCount ?? 0)),
+    0
+  );
+  const apartadoCount = pieces.reduce((sum, p) => sum + (p.reservedCount ?? 0), 0);
+  const vendidoCount = pieces.reduce((sum, p) => sum + (p.soldCount ?? 0), 0);
 
   const handleOpenModal = (product: Product) => {
     setSelectedProduct(product);
@@ -151,7 +155,7 @@ export function SupplierProductsList({
                   variant="default"
                   className="bg-my-green-light text-my-green-dark"
                 >
-                  {availableCount} Disponible
+                  {availableCount} {availableCount === 1 ? "disponible" : "disponibles"}
                 </Badge>
               )}
               {apartadoCount > 0 && (
@@ -159,7 +163,7 @@ export function SupplierProductsList({
                   variant="default"
                   className="bg-my-orange-light text-my-orange-dark"
                 >
-                  {apartadoCount} Apartado
+                  {apartadoCount} {apartadoCount === 1 ? "apartada" : "apartadas"}
                 </Badge>
               )}
               {vendidoCount > 0 && (
@@ -167,7 +171,7 @@ export function SupplierProductsList({
                   variant="default"
                   className="bg-my-red-light text-my-red-dark"
                 >
-                  {vendidoCount} Vendido
+                  {vendidoCount} {vendidoCount === 1 ? "vendida" : "vendidas"}
                 </Badge>
               )}
             </div>
@@ -273,7 +277,7 @@ export function SupplierProductsList({
                 No hay productos registrados
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Comienza agregando productos de este proveedor
+                Comienza agregando productos de este negocio
               </p>
               <Button
                 variant="default"

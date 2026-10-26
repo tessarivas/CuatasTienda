@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: Ctx) {
     select: { id: true, cutoffDay: true, createdAt: true },
   });
   if (!supplier) {
-    return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
   }
 
   const cutoffDay = effectiveCutoffDay(
@@ -132,10 +132,18 @@ export async function GET(req: Request, { params }: Ctx) {
       if (sale) sale.discountCents = cents;
     }
 
-    // Productos con al menos una unidad libre (no apartada).
-    const availableProducts = products.filter(
-      (p) => (p.quantity ?? 0) - p._count.LayawayItem > 0
-    ).length;
+    // Piezas en tienda que se pueden vender hoy (sin las apartadas) y en
+    // cuántos productos están. A la tienda le importa más cuántas piezas hay
+    // que cuántos productos distintos.
+    let availablePieces = 0;
+    let availableProducts = 0;
+    for (const p of products) {
+      const free = (p.quantity ?? 0) - p._count.LayawayItem;
+      if (free > 0) {
+        availablePieces += free;
+        availableProducts += 1;
+      }
+    }
 
     return NextResponse.json({
       cutoffDay,
@@ -144,6 +152,7 @@ export async function GET(req: Request, { params }: Ctx) {
       totalSold: (totalCents / 100).toFixed(2),
       unitsSold,
       salesCount: new Set(items.map((i) => i.saleId)).size,
+      availablePieces,
       availableProducts,
       products: Array.from(byProduct.values())
         .sort((a, b) => b.cents - a.cents)
@@ -168,7 +177,7 @@ export async function GET(req: Request, { params }: Ctx) {
   } catch (err) {
     console.error("GET corte de proveedor falló", err);
     return NextResponse.json(
-      { error: "No se pudo calcular el corte del proveedor" },
+      { error: "No se pudo calcular el corte del negocio" },
       { status: 500 }
     );
   }
