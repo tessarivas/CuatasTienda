@@ -31,16 +31,21 @@ export function EditCutoffDayModal({
   cutoffDay,
   onSave,
 }: EditCutoffDayModalProps) {
-  const [day, setDay] = React.useState(cutoffDay);
+  // Texto, no número: con un número, al borrar quedaba 0 y al escribir 15
+  // se veía "015".
+  const [day, setDay] = React.useState(String(cutoffDay));
+  const dayValue = Number(day);
+  const dayValid = Number.isInteger(dayValue) && dayValue >= 1 && dayValue <= 31;
 
   // Cada vez que se abre parte del día vigente, no del que había al cargar
   // la página (el modal vive montado todo el tiempo).
   React.useEffect(() => {
-    if (isOpen) setDay(cutoffDay);
+    if (isOpen) setDay(String(cutoffDay));
   }, [isOpen, cutoffDay]);
 
   const handleSave = () => {
-    onSave(day);
+    if (!dayValid) return;
+    onSave(dayValue);
     onClose();
   };
 
@@ -62,7 +67,8 @@ export function EditCutoffDayModal({
             min="1"
             max="31"
             value={day}
-            onChange={(e) => setDay(Number(e.target.value))}
+            inputMode="numeric"
+            onChange={(e) => setDay(e.target.value)}
             className="mt-2"
           />
         </div>
@@ -70,7 +76,9 @@ export function EditCutoffDayModal({
           <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancelar
           </Button>
-          <Button onClick={handleSave} className="cursor-pointer">Guardar Cambio</Button>
+          <Button onClick={handleSave} disabled={!dayValid} className="cursor-pointer">
+            Guardar Cambio
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

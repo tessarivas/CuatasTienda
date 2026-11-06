@@ -91,7 +91,10 @@ model Product {
   // los que aparecen al crear un pedido de servicio. Los rápidos (copias)
   // se venden en caja como siempre. Sólo aplica a type = SERVICE.
   byOrder                  Boolean                    @default(false)
-  ServiceOrderItem         ServiceOrderItem[]
+  // Sale en la página pública de la tienda (sección "Marcas Locales"). En
+  // false el producto se sigue vendiendo igual, sólo no se muestra ahí.
+  showOnLanding            Boolean                    @default(true)
+  ServiceOrderItem        ServiceOrderItem[]
   SupplierPromotionProduct SupplierPromotionProduct[]
   // Quién dio de alta el producto (para el "Alta inicial" del historial del
   // negocio). Null en los productos creados antes de guardarlo (2026-10-26).

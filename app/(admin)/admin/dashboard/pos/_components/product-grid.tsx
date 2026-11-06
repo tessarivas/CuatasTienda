@@ -28,32 +28,21 @@ interface ProductGridProps {
   loading?: boolean;
 }
 
-type SortOrder = "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
+type SortOrder = "ultimos" | "vendidos" | "reciente" | "antiguos" | "precio-desc" | "precio-asc";
 type TypeFilter = "todos" | "productos" | "servicios";
 
-// La tienda misma como proveedor (Cuatas, id fijo en prisma/seed/cuatas.sql).
-const STORE_SUPPLIER_ID = "1";
+// Fecha de la última venta en ms (0 = nunca se ha vendido).
+const lastSoldMs = (p: Product) => (p.lastSoldAt ? Date.parse(p.lastSoldAt) : 0);
 
 export function ProductGrid({ products, onAddToCart, promoFor, loading }: ProductGridProps) {
   const { suppliers } = React.useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = React.useState("");
-  // Al abrir la caja: los más vendidos primero, de la tienda misma (el
-  // proveedor id 1, ver prisma/seed/cuatas.sql), con productos y servicios.
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>("vendidos");
-  const [supplierFilter, setSupplierFilter] = React.useState<string>(STORE_SUPPLIER_ID);
+  // Al abrir la caja: todo el colectivo, productos y servicios, con lo que
+  // se vendió más recientemente primero (lo que se vuelve a vender seguido
+  // queda a la mano). Antes abría sólo con Cuatas por "Más vendidos".
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>("ultimos");
+  const [supplierFilter, setSupplierFilter] = React.useState<string>("todos");
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("todos");
-
-  // Si ese proveedor no existe (base vacía o borrado), se ven todos para que
-  // la caja no abra en blanco.
-  React.useEffect(() => {
-    if (
-      supplierFilter === STORE_SUPPLIER_ID &&
-      suppliers.length > 0 &&
-      !suppliers.some((s) => String(s.id) === STORE_SUPPLIER_ID)
-    ) {
-      setSupplierFilter("todos");
-    }
-  }, [suppliers, supplierFilter]);
 
   // Unidades libres: total menos las apartadas en Layaways activos.
   const availableOf = (p: Product) => p.quantity - (p.reservedCount ?? 0);
@@ -85,6 +74,10 @@ export function ProductGrid({ products, onAddToCart, promoFor, loading }: Produc
     });
 
     switch (sortOrder) {
+      case "ultimos":
+        // Última venta primero; lo que nunca se ha vendido va al final, en
+        // el orden de llegada (más reciente primero). sort es estable.
+        return [...filtered].sort((a, b) => lastSoldMs(b) - lastSoldMs(a));
       case "vendidos":
         // Piezas vendidas de todos los tiempos; empate por nombre.
         return [...filtered].sort(
@@ -122,9 +115,13 @@ export function ProductGrid({ products, onAddToCart, promoFor, loading }: Produc
             <SelectTrigger className="w-44 cursor-pointer">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
-            <SelectContent>
+            {/* position="popper": la lista se abre debajo del botón. La
+                default (item-aligned) la encima sobre el botón, alineada a
+                la opción elegida, y confundía. */}
+            <SelectContent position="popper">
+              <SelectItem value="ultimos">Vendidos hace poco</SelectItem>
               <SelectItem value="vendidos">Más vendidos</SelectItem>
-              <SelectItem value="reciente">Recientes primero</SelectItem>
+              <SelectItem value="reciente">Nuevos primero</SelectItem>
               <SelectItem value="antiguos">Antiguos primero</SelectItem>
               <SelectItem value="precio-desc">Precio: mayor a menor</SelectItem>
               <SelectItem value="precio-asc">Precio: menor a mayor</SelectItem>
@@ -136,7 +133,7 @@ export function ProductGrid({ products, onAddToCart, promoFor, loading }: Produc
             <SelectTrigger className="max-w-56 cursor-pointer">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="todos">Todo el colectivo</SelectItem>
               {suppliers.map((supplier) => (
                 <SelectItem key={supplier.id} value={String(supplier.id)}>
@@ -152,7 +149,7 @@ export function ProductGrid({ products, onAddToCart, promoFor, loading }: Produc
             <SelectTrigger className="cursor-pointer">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="todos">Productos y servicios</SelectItem>
               <SelectItem value="productos">Sólo productos</SelectItem>
               <SelectItem value="servicios">Sólo servicios</SelectItem>

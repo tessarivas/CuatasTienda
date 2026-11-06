@@ -117,8 +117,9 @@ export default function POSPage() {
   // precios y descuentos, valida stock y genera el folio DDMMYY-NNN. La
   // pantalla sólo refleja lo que devolvió el servidor.
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const handleProcessSale = async (paymentMethod: PaymentMethod) => {
-    if (cart.length === 0 || isProcessing) return;
+  // Regresa true si la venta se guardó (el carrito cierra su modal de pago).
+  const handleProcessSale = async (paymentMethod: PaymentMethod): Promise<boolean> => {
+    if (cart.length === 0 || isProcessing) return false;
     setIsProcessing(true);
     try {
       const res = await fetch("/api/sales", {
@@ -137,24 +138,30 @@ export default function POSPage() {
       if (!res.ok) {
         const { error: message } = await res.json();
         toast.error(message ?? "No se pudo registrar la venta");
-        return;
+        return false;
       }
       const { sale }: { sale: ApiSale } = await res.json();
 
       // Reflejar el stock que ya descontó el servidor. Los servicios no
-      // descuentan inventario; un producto en 0 pasa a "Vendido".
+      // descuentan inventario; un producto en 0 pasa a "Vendido". Lo vendido
+      // pasa al frente de "Vendidos hace poco" sin recargar.
+      const soldAt = new Date().toISOString();
       setProducts((prevProducts) =>
         prevProducts.map((product) => {
           const cartItem = cart.find((item) => item.product.id === product.id);
-          if (cartItem && product.type !== "SERVICE") {
-            const quantity = product.quantity - cartItem.quantity;
-            return {
-              ...product,
-              quantity,
-              status: quantity === 0 ? ("Vendido" as const) : product.status,
-            };
-          }
-          return product;
+          if (!cartItem) return product;
+          const sold = {
+            ...product,
+            lastSoldAt: soldAt,
+            soldCount: (product.soldCount ?? 0) + cartItem.quantity,
+          };
+          if (product.type === "SERVICE") return sold;
+          const quantity = product.quantity - cartItem.quantity;
+          return {
+            ...sold,
+            quantity,
+            status: quantity === 0 ? ("Vendido" as const) : product.status,
+          };
         })
       );
 
@@ -163,8 +170,10 @@ export default function POSPage() {
       setIsCartExpanded(false);
       setCart([]);
       setTotalDiscount(undefined);
+      return true;
     } catch {
       toast.error("No se pudo registrar la venta");
+      return false;
     } finally {
       setIsProcessing(false);
     }

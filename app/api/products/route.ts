@@ -114,10 +114,39 @@ export async function GET(req: Request) {
     // (CDN del hosting) guarde una y se la sirva al otro.
     const noStore = { headers: { "Cache-Control": "private, no-store" } };
     if (!isAdmin || (forcePublic && !includeAll)) {
-      return NextResponse.json(filtered.map(toPublicProduct), noStore);
+      // Los marcados "no mostrar en la página de la tienda" se siguen
+      // vendiendo, pero no salen en el catálogo público.
+      return NextResponse.json(
+        filtered.filter((p) => p.showOnLanding).map(toPublicProduct),
+        noStore
+      );
     }
 
-    return NextResponse.json(filtered, noStore);
+    // `lastSoldAt`: cuándo se vendió por última vez (caja, liquidación o
+    // pedido), para que la caja abra con lo recién vendido primero. El
+    // SaleItem con el id más alto de cada producto es su venta más reciente
+    // (los ids crecen con el tiempo); de ahí se toma la fecha de su Sale.
+    const latest = await prisma.saleItem.groupBy({
+      by: ["productId"],
+      _max: { id: true },
+    });
+    const latestIds = latest
+      .map((l) => l._max.id)
+      .filter((id): id is number => id !== null);
+    const latestItems = latestIds.length
+      ? await prisma.saleItem.findMany({
+          where: { id: { in: latestIds } },
+          select: { productId: true, Sale: { select: { date: true } } },
+        })
+      : [];
+    const lastSoldAt = new Map(
+      latestItems.map((i) => [i.productId, i.Sale.date.toISOString()])
+    );
+
+    return NextResponse.json(
+      filtered.map((p) => ({ ...p, lastSoldAt: lastSoldAt.get(p.id) ?? null })),
+      noStore
+    );
   } catch (err) {
     console.error("GET productos falló", err);
     return NextResponse.json(

@@ -27,7 +27,8 @@ interface CartProps {
   subtotal: number;
   itemsDiscount: number;
   total: number;
-  onProcessSale: (paymentMethod: PaymentMethod) => void;
+  // Guarda la venta; true si salió bien (ahí se cierra el modal de pago).
+  onProcessSale: (paymentMethod: PaymentMethod) => Promise<boolean>;
   // Modo "hoja" para celular (pos/page.tsx): plegado muestra sólo la barra
   // del carrito y el botón Cobrar; desplegado, el carrito completo. Sin
   // esta prop es la columna normal de pantallas grandes.
@@ -68,9 +69,18 @@ export function Cart({
     setShowTotalDiscountModal(false);
   };
 
-  const handlePayment = (paymentMethod: PaymentMethod) => {
-    onProcessSale(paymentMethod);
-    setShowPaymentModal(false);
+  // El modal de pago se queda abierto con su loader mientras se guarda la
+  // venta, y se cierra sólo si salió bien; si falla (ya salió el toast) se
+  // queda abierto para reintentar sin volver a elegir el método.
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const handlePayment = async (paymentMethod: PaymentMethod) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      if (await onProcessSale(paymentMethod)) setShowPaymentModal(false);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -266,6 +276,7 @@ export function Cart({
         onClose={() => setShowPaymentModal(false)}
         onConfirm={handlePayment}
         total={total}
+        processing={isProcessing}
       />
     </>
   );

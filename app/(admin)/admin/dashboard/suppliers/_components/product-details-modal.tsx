@@ -83,6 +83,12 @@ export function ProductDetailsModal({
   React.useEffect(() => {
     setByOrder(!!product?.byOrder);
   }, [product?.id, product?.byOrder]);
+  // "Mostrar en la página de la tienda" (sólo productos): se guarda al marcarlo.
+  const [showOnLanding, setShowOnLanding] = React.useState(true);
+  const [isSavingLanding, setIsSavingLanding] = React.useState(false);
+  React.useEffect(() => {
+    setShowOnLanding(product?.showOnLanding ?? true);
+  }, [product?.id, product?.showOnLanding]);
   const [error, setError] = React.useState("");
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [confirmPriceChange, setConfirmPriceChange] = React.useState(false);
@@ -217,6 +223,31 @@ export function ProductDetailsModal({
       toast.error("No se pudo guardar el cambio");
     } finally {
       setIsSavingByOrder(false);
+    }
+  };
+
+  const handleShowOnLandingChange = async (value: boolean) => {
+    setShowOnLanding(value);
+    setIsSavingLanding(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnLanding: value }),
+      });
+      if (!res.ok) {
+        const { error: message } = await res.json();
+        setShowOnLanding(!value);
+        toast.error(message ?? "No se pudo guardar el cambio");
+        return;
+      }
+      onChanged?.();
+      toast.success(value ? "Ya se muestra en la página de la tienda" : "Ya no se muestra en la página de la tienda");
+    } catch {
+      setShowOnLanding(!value);
+      toast.error("No se pudo guardar el cambio");
+    } finally {
+      setIsSavingLanding(false);
     }
   };
 
@@ -569,6 +600,28 @@ export function ProductDetailsModal({
                     <span className="block text-xs text-muted-foreground">
                       Sólo los marcados aparecen al crear un pedido de servicio. Los
                       rápidos, como las copias, se venden en la caja.
+                    </span>
+                  </span>
+                </label>
+              )}
+
+              {/* Productos: si sale en la sección "Marcas Locales" de la
+                  página pública. Mismo lugar y estilo que "Se hace por
+                  pedido" (los servicios no salen ahí). */}
+              {isEditing && !isService && !isRetirado && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                  <input
+                    type="checkbox"
+                    checked={showOnLanding}
+                    disabled={isSavingLanding}
+                    onChange={(e) => handleShowOnLandingChange(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-foreground"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Mostrar en la página de la tienda</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Si lo quitas, se sigue vendiendo igual pero no sale en la
+                      sección Marcas Locales de la página pública.
                     </span>
                   </span>
                 </label>

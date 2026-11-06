@@ -35,6 +35,11 @@ Cosas ya construidas que falta probar a mano (sin issue en GitHub):
       apartado, "Devolver" junto a "Le sobran"; revisar que baje su saldo,
       salga en su historial y estado de cuenta, y que en el Corte de Caja
       reste de la caja de apartados (efectivo) o de banco.
+- [ ] Cambios del 2026-11-05: calculadora de cambio al cobrar en efectivo;
+      la caja abre con todo el colectivo y "Vendidos hace poco"; quitar un
+      producto de la página de la tienda (Editar → casilla) y que ya no salga
+      en Marcas Locales; subir una foto desde el iPhone y ver que se vea
+      nítida.
 
 ## Cliente: cómo se lleva la cuenta (`clients/[id]`, referencia)
 
@@ -110,6 +115,24 @@ mercancía, sin salir de la app.
       buscador de la caja ya acepta el código).
 
 ## Completado
+
+### 2026-11-05
+
+- [x] Caja: calculadora de cambio en el modal de pago (efectivo): "Paga
+      con", botones de billetes y "Exacto", y el cambio o lo que falta.
+- [x] Caja: abre con "Todo el colectivo" y ordenada por "Vendidos hace poco"
+      (`lastSoldAt` en `GET /api/products`); los filtros se abren hacia
+      abajo (`position="popper"`).
+- [x] Ocultar productos de la página pública: `Product.showOnLanding`
+      (migración `product_show_on_landing`), casilla "Mostrar en la página
+      de la tienda" al editar el producto.
+- [x] Fotos del iPhone borrosas: Safari no codifica WebP en canvas (regresa
+      PNG) y la compresión encogía la foto para llegar al peso; ahora usa
+      JPEG donde no hay WebP.
+- [x] Pedidos de servicio: el menú Negocio salía vacío cuando ningún
+      servicio está marcado "Se hace por pedido"; ahora se deshabilita y
+      explica qué marcar. En la página del negocio, el detalle de un
+      servicio ya muestra bien esa casilla (no se pasaba `byOrder`).
 
 ### 2026-10-26
 
