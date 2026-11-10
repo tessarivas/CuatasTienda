@@ -22,6 +22,8 @@ import { PricingTabs } from "./_components/landing/pricing-tabs";
 import { OrdersGallery } from "./_components/landing/orders-gallery";
 import { IdeasCarousel } from "./_components/landing/ideas-carousel";
 import { AnimatedContent } from "./_components/landing/animated-content";
+import { Aurora } from "./_components/landing/aurora";
+import { ChristmasLights } from "./_components/landing/christmas-lights";
 import {
   DOT,
   ORDER_STEPS,
@@ -131,6 +133,20 @@ export default function LandingPage() {
             aria-hidden
             className="absolute inset-0 bg-linear-to-r from-black/70 via-black/30 to-transparent"
           />
+          {/* Luz de temporada que sube desde abajo: encima del fondo, detrás
+              del texto y la imagen. No recibe clics. */}
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <Aurora
+              colorStops={SEASON.aurora}
+              amplitude={0.7}
+              blend={0.5}
+              height={0.45}
+              speed={0.7}
+              glow={0.6}
+              direction="bottom"
+              mouseInteraction={false}
+            />
+          </div>
           <div
             className={cn(
               CONTAINER,
@@ -387,10 +403,13 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="bg-black text-white">
-        <div className={cn(CONTAINER, "py-10")}>
-          <div className="flex flex-col gap-3 text-xs text-white/80 md:flex-row md:items-center md:justify-between">
-            <ul className="flex flex-wrap items-center gap-4">
+      <footer className="relative overflow-hidden bg-black text-white">
+        {/* Foquitos de Navidad colgando arriba (quitar al terminar la temporada). */}
+        <ChristmasLights />
+        <div className={cn(CONTAINER, "pt-20 pb-10 md:pt-24")}>
+          {/* En celular todo el pie va centrado. */}
+          <div className="flex flex-col items-center gap-3 text-center text-xs text-white/80 md:flex-row md:justify-between md:text-left">
+            <ul className="flex flex-wrap items-center justify-center gap-4">
               {[
                 { label: "Personalizados", color: "yellow" },
                 { label: "Impresiones", color: "blue" },
@@ -404,9 +423,15 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
+            {/* En celular un día por renglón; desde md, en una línea con punto. */}
             <p>
-              {STORE_HOURS_LABEL.weekdays} {STORE_HOURS_LABEL.weekdaysHours} ·{" "}
-              {STORE_HOURS_LABEL.sunday} {STORE_HOURS_LABEL.sundayHours}
+              <span className="block md:inline">
+                {STORE_HOURS_LABEL.weekdays} {STORE_HOURS_LABEL.weekdaysHours}
+              </span>
+              <span className="hidden md:inline"> · </span>
+              <span className="block md:inline">
+                {STORE_HOURS_LABEL.sunday} {STORE_HOURS_LABEL.sundayHours}
+              </span>
             </p>
           </div>
 
@@ -414,17 +439,23 @@ export default function LandingPage() {
             href={STORE_INFO.whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-10 flex items-end gap-3 md:mt-16"
+            className="group mt-10 flex items-end justify-center gap-3 text-center md:mt-16 md:justify-start md:text-left"
           >
             <span className="text-6xl leading-none font-extrabold tracking-tighter sm:text-7xl md:text-[9rem]">
               {SEASON.footerCta}
             </span>
-            <ArrowUpRight className="mb-2 h-8 w-8 shrink-0 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 md:mb-6 md:h-14 md:w-14" />
+            <ArrowUpRight className="mb-2 hidden h-8 w-8 shrink-0 md:block transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 md:mb-6 md:h-14 md:w-14" />
           </a>
 
-          <div className="mt-10 flex flex-col gap-2 border-t border-white/15 pt-6 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between">
+          {/* En celular una sola línea centrada, separada con puntos. */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-white/15 pt-6 text-xs text-white/70 sm:justify-between sm:gap-x-4">
             <span>Cuatas © {new Date().getFullYear()}</span>
-            <span>San Quintín, Baja California</span>
+            <span aria-hidden className="sm:hidden">·</span>
+            <span>
+              San Quintín, <span className="sm:hidden">B.C.</span>
+              <span className="hidden sm:inline">Baja California</span>
+            </span>
+            <span aria-hidden className="sm:hidden">·</span>
             <a href="#inicio" className="hover:text-white">
               Volver arriba
             </a>

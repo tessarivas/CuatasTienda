@@ -34,6 +34,8 @@ export const SEASON = {
     ],
   },
   footerCta: "Cotiza tu regalo",
+  // Luz que ondula sobre el fondo de la portada (verde, dorado, rojo).
+  aurora: ["#0b6e4d", "#eab308", "#c42424"],
 };
 
 // Cinta que corre debajo de la portada. Los puntitos alternan amarillo,
