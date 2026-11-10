@@ -72,14 +72,15 @@ export function ColectivoProducts() {
 
   return (
     <div>
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap gap-2 px-4 md:px-8">
+      {/* Chips en un solo renglón que se desliza de lado (son muchos negocios). */}
+      <div className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:px-8">
         {[ALL, ...suppliers].map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setSupplier(s)}
             className={cn(
-              "h-9 cursor-pointer rounded-full border px-4 text-sm font-medium transition-colors",
+              "h-9 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors",
               supplier === s ? "border-black bg-black text-white" : "border-black/15 hover:border-black"
             )}
           >

@@ -9,7 +9,11 @@ export const STORE_INFO = {
   // WhatsApp es el mismo teléfono; wa.me pide el número completo con lada
   // de país (52) y sin espacios.
   whatsappUrl: "https://wa.me/526161599954",
+  // Teléfono para llamar (el de WhatsApp es `phone`), del diseño de la
+  // página pública.
+  callPhone: "616 596 0507",
   social: "@cuatastienda",
+  instagramUrl: "https://www.instagram.com/cuatastienda",
   // PNG generado una vez desde public/LOGO_CUATAS.svg (react-pdf no dibuja
   // bien un SVG desde archivo).
   logoPath: "/LOGO_CUATAS.png",

@@ -3,9 +3,20 @@
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
-// Sudadera y taza de la portada flotando: sube y baja despacio con un leve
-// giro, en ciclo. Quien pidió menos movimiento en su sistema la ve quieta.
-export function FloatingHero() {
+// Imagen de la portada flotando: sube y baja despacio con un leve giro, en
+// ciclo. Quien pidió menos movimiento en su sistema la ve quieta. La imagen
+// es de la temporada (SEASON.hero en content.ts).
+export function FloatingHero({
+  src,
+  alt,
+  width,
+  height,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}) {
   const reduce = useReducedMotion();
   return (
     <motion.div
@@ -14,10 +25,10 @@ export function FloatingHero() {
       transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
     >
       <Image
-        src="/landing/hero.webp"
-        alt="Sudadera roja y taza blanca con el texto Tu diseño aquí"
-        width={900}
-        height={1190}
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
         priority
         className="h-auto w-full drop-shadow-2xl"
       />
