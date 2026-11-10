@@ -39,7 +39,9 @@ export function AddProductModal({
   // Texto, no número: así el campo arranca vacío (con placeholder) en vez
   // de mostrar un 0 que hay que borrar.
   const [price, setPrice] = React.useState("");
-  const [quantity, setQuantity] = React.useState(1);
+  // También texto: con un número, al borrar el 1 quedaba 0 (Number("")) y
+  // al escribir 2 se veía "02".
+  const [quantity, setQuantity] = React.useState("1");
   const [image, setImage] = React.useState<File | null>(null);
   const [supplierId, setSupplierId] = React.useState(
     lockedSupplierId ?? ""
@@ -76,7 +78,7 @@ export function AddProductModal({
   const resetFields = () => {
     setTitle("");
     setPrice("");
-    setQuantity(1);
+    setQuantity("1");
     setImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -84,7 +86,13 @@ export function AddProductModal({
   const handleSubmit = async (mode: SaveMode) => {
     if (saving) return;
     const priceValue = Number(price);
-    if (!title.trim() || !(priceValue > 0) || !supplierId || (!isService && !(quantity > 0))) {
+    const quantityValue = Number(quantity);
+    if (
+      !title.trim() ||
+      !(priceValue > 0) ||
+      !supplierId ||
+      (!isService && !(Number.isInteger(quantityValue) && quantityValue > 0))
+    ) {
       toast.warning(
         isService
           ? "Título, precio y negocio son obligatorios."
@@ -99,7 +107,7 @@ export function AddProductModal({
     formData.append("title", title.trim());
     formData.append("price", String(priceValue));
     formData.append("type", type);
-    if (!isService) formData.append("quantity", String(quantity));
+    if (!isService) formData.append("quantity", String(quantityValue));
     formData.append("supplierId", supplierId);
     if (image) formData.append("image", await compressImage(image, "product"));
 
@@ -229,10 +237,12 @@ export function AddProductModal({
               <Input
                 id="quantity"
                 type="number"
+                inputMode="numeric"
                 min={1}
+                step={1}
                 value={quantity}
                 placeholder="Cantidad inicial"
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="col-span-3"
               />
             </div>

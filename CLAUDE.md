@@ -140,7 +140,7 @@ Session required but **no role check** (`NO_ROLE_PATHS` in `proxy.ts`): `/api/sy
 `GET /api/products` serves three shapes, and since the proxy lets it through it **checks the role
 itself**: an `ADMIN` gets the full admin payload; anyone else (anonymous or `USER`) gets a trimmed
 projection (`id`, `title`, `price`, `picture`, `type`, `supplier` = the supplier's `businessName`,
-never its `name`, which holds the owners' personal names) of available stock; `?include=all` is 401
+never its `name`, which holds the owners' personal names) of available stock (only `showOnLanding = true`, unchecked via "Mostrar en la página de la tienda" in the product modal); `?include=all` is 401
 anonymous / 403 for a `USER`. `?view=public` forces the trimmed projection even for an ADMIN — the
 public landing (`app/page.tsx`) uses it. Keep internal fields (`supplierId`, `soldCount`, `code`,
 `quantity`, `reservedCount`) out of the public branch. It sends `Cache-Control: private, no-store`
@@ -350,8 +350,10 @@ in progress; `lib/data.ts` also contains stale fields that no longer match its o
 ### Client-heavy rendering
 
 `app/layout.tsx` is marked `"use client"`, so effectively the whole tree renders client-side despite
-`components.json` declaring `rsc: true`. There are **no server actions** and no `loading.tsx` /
-`error.tsx`. `app/not-found.tsx` is the one 404 for the whole app; it renders in the root layout
+`components.json` declaring `rsc: true`. There are **no server actions** and no `error.tsx`. One
+`dashboard/loading.tsx` (generic: title, 3 stat cards, a list card) covers page-to-page navigation:
+without it, in prod the old page froze 1–2 s while the next page's JS downloaded, because each page's
+own skeleton only shows once its code has loaded. `app/not-found.tsx` is the one 404 for the whole app; it renders in the root layout
 (no sidebar), so it carries its own logo and a link back to `/admin/dashboard`.
 
 `app/(admin)/admin/dashboard/layout.tsx` is the de-facto app root: it owns the global store
@@ -390,10 +392,12 @@ stock. The cart/discount UI still lives in `DashboardContext`, but checkout writ
   disabled + tooltip) and in `POST /api/sales` (400). So the whole ticket discount is charged to that
   one supplier, which is how `GET /api/suppliers/sales` attributes it.
 - `Sale.paymentMethod` is null for liquidations (paid from the client's credit).
-- The POS product grid opens sorted by **"Más vendidos"** (`Product.soldCount`, all time — bumped
-  by POS sales, layaway liquidations and service orders), filtered to **the store itself (supplier
-  id 1, "Cuatas Impresiones")** with **products and services** (`STORE_SUPPLIER_ID` in
-  `product-grid.tsx`; falls back to all suppliers if id 1 doesn't exist).
+- The POS product grid opens on **"Todo el colectivo"**, products and services, sorted by
+  **"Vendidos hace poco"** (`lastSoldAt`, the date of each product's latest `SaleItem`, added only
+  to the admin branch of `GET /api/products`; the POS bumps it locally after a sale). "Más
+  vendidos" (`Product.soldCount`, all time) is still an option. Its filter `Select`s use
+  `position="popper"` so the list opens below the button. The payment modal has a change
+  calculator for cash ("Paga con" → cambio); it's display-only, nothing is stored.
 - Below `lg:` the POS cart is a **bottom sheet**: the same `Cart` with a `sheet` prop, collapsed to
   the header (count + total + chevron) and the Cobrar button, expanding to 85% of the height. At
   `lg:` and up it's the usual right-hand 30% column. Both render from `renderCart()` in
@@ -570,7 +574,7 @@ creation uploads *before* insert and cleans up orphans on code collision.
 `next.config.ts` allowlists `res.cloudinary.com` for `next/image`.
 
 **Size (free plan, 25 credits/month):** every upload is shrunk twice. The browser runs
-`compressImage(file, kind)` (`lib/images/compress.ts`, `browser-image-compression`) before appending
+`compressImage(file, kind)` (`lib/images/compress.ts`, `browser-image-compression`; WebP, or JPEG where the canvas can't encode WebP, i.e. Safari/iPhone, which silently returns PNG and made the library shrink photos) before appending
 it to the `FormData`; the server checks it with `imageFileError` (image type, ≤ 4 MB — under the
 ~4.5 MB serverless body limit) and uploads through `uploadImage` in `lib/cloudinary/upload.ts`, whose
 incoming transformation stores only a resized WebP. Max side per kind lives in `lib/images/sizes.ts`
@@ -690,3 +694,13 @@ The broken/dead files (`hooks/use-auth.ts`, `providers.tsx`, `context/`, `module
 - `app/api/products/[id]/route.ts` — reservation and soft-delete invariants
 - `app/(admin)/admin/dashboard/layout.tsx` — the client-side app shell and global store
 - `proxy.ts` + `lib/auth/roles.ts` + `lib/supabase/server.ts` — the entire auth surface
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

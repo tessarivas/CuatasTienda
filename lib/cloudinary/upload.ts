@@ -58,6 +58,11 @@ export function uploadImage(
           asset_folder: assetFolder,
           display_name: displayName,
           overwrite: true,
+          // Al reemplazar la foto, borra del CDN y de los derivados (los
+          // tamaños que pide el loader, f_auto/w_…) la versión anterior. Sin
+          // esto, la original sí se sobreescribía pero sus copias achicadas
+          // podían seguir guardadas y en caché hasta 30 días.
+          invalidate: true,
           resource_type: "image",
           format: "webp",
           transformation: [

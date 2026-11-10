@@ -54,6 +54,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     status?: unknown;
     type?: unknown;
     byOrder?: unknown;
+    showOnLanding?: unknown;
   };
 
   if (input.code !== undefined) {
@@ -125,6 +126,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return NextResponse.json({ error: "Valor inválido" }, { status: 400 });
     }
     data.byOrder = input.byOrder;
+  }
+
+  // "Mostrar en la página de la tienda": sólo decide si sale en el catálogo
+  // público (la sección "Marcas Locales" de /). Se puede cambiar aunque haya
+  // apartados: no toca precio, existencia ni negocio.
+  if (input.showOnLanding !== undefined) {
+    if (typeof input.showOnLanding !== "boolean") {
+      return NextResponse.json({ error: "Valor inválido" }, { status: 400 });
+    }
+    data.showOnLanding = input.showOnLanding;
   }
 
   if (input.title !== undefined) {

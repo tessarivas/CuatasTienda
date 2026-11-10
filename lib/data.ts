@@ -36,6 +36,10 @@ export type Product = {
   byOrder?: boolean;
   // Piezas vendidas de todos los tiempos (caja, apartados y pedidos).
   soldCount?: number;
+  // Sale en la página pública de la tienda (true salvo que se oculte).
+  showOnLanding?: boolean;
+  // Última venta (ISO), para ordenar la caja por lo recién vendido.
+  lastSoldAt?: string | null;
 };
 
 export type Client = {

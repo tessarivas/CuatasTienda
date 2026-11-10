@@ -50,6 +50,8 @@ type ApiSupplierWithProducts = Supplier & {
     code: string | null;
     supplierId: number | null;
     reservedCount?: number;
+    byOrder?: boolean;
+    showOnLanding?: boolean;
   }>;
 };
 
@@ -174,6 +176,8 @@ export default function SupplierDetailPage({
         photoUrl: p.picture ?? "",
         barcode: p.code ?? undefined,
         reservedCount: p.reservedCount ?? 0,
+        byOrder: p.byOrder ?? false,
+        showOnLanding: p.showOnLanding ?? true,
       }));
     const term = searchTerm.trim().toLowerCase();
     if (!term) return mapped;

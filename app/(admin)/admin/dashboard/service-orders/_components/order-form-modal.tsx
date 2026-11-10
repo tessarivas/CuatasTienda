@@ -270,12 +270,19 @@ export function OrderFormModal({
                   setSupplierId(v);
                   setRows([emptyRow()]);
                 }}
-                disabled={isEdit}
+                // Sin servicios "por pedido" la lista saldría vacía (parecía
+                // que el menú no funcionaba): se deshabilita y abajo se
+                // explica qué falta.
+                disabled={isEdit || suppliersWithServices.length === 0}
               >
                 <SelectTrigger id="order-supplier" className="w-full cursor-pointer">
-                  <SelectValue placeholder="Elige el negocio" />
+                  <SelectValue
+                    placeholder={
+                      suppliersWithServices.length === 0 ? "Sin servicios por pedido" : "Elige el negocio"
+                    }
+                  />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   {suppliersWithServices.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>
                       {s.businessName || s.name}
@@ -284,8 +291,9 @@ export function OrderFormModal({
                 </SelectContent>
               </Select>
               {suppliersWithServices.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Ningún servicio está marcado &quot;Se hace por pedido&quot;. Márcalo al editar el servicio en Inventario.
+                <p className="text-xs text-my-red-dark">
+                  Ningún servicio está marcado &quot;Se hace por pedido&quot;. En Inventario → Servicios, abre el
+                  servicio, dale Editar y marca esa casilla.
                 </p>
               )}
             </div>
@@ -314,7 +322,7 @@ export function OrderFormModal({
                     <SelectTrigger className="min-w-0 flex-1 cursor-pointer">
                       <SelectValue placeholder={supplierId ? "Elige el servicio" : "Primero elige el negocio"} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       {services.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.title} · {money(p.price)}

@@ -16,6 +16,8 @@ export type ApiProduct = {
   reservedCount?: number;
   byOrder?: boolean;
   soldCount?: number;
+  showOnLanding?: boolean;
+  lastSoldAt?: string | null;
 };
 
 // The rest of the app uses the legacy mock shape (`photoUrl`, `barcode`,
@@ -39,6 +41,8 @@ export function normalizeProduct(p: ApiProduct): Product {
     reservedCount: p.reservedCount ?? 0,
     byOrder: p.byOrder ?? false,
     soldCount: p.soldCount ?? 0,
+    showOnLanding: p.showOnLanding ?? true,
+    lastSoldAt: p.lastSoldAt ?? null,
   };
 }
 
