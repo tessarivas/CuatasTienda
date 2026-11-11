@@ -379,15 +379,15 @@ export default function SalesHistoryPage() {
         </div>
 
         <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
+          <Table className="text-center">
+            <TableHeader className="bg-muted">
               <TableRow>
-                <TableHead className="pl-4">Folio</TableHead>
-                <TableHead>Fecha y hora</TableHead>
-                <TableHead>Origen</TableHead>
+                <TableHead className="text-center pl-4">Folio</TableHead>
+                <TableHead className="text-center">Fecha y hora</TableHead>
+                <TableHead className="text-center">Origen</TableHead>
                 <TableHead className="text-center">Artículos</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead className="pr-4 text-right">Total</TableHead>
+                <TableHead className="text-center">Método</TableHead>
+                <TableHead className="pr-4 text-center">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -435,7 +435,7 @@ export default function SalesHistoryPage() {
                       {sale.SaleItem.reduce((sum, i) => sum + i.quantity, 0)}
                     </TableCell>
                     <TableCell>{methodLabel(sale.paymentMethod)}</TableCell>
-                    <TableCell className="pr-4 text-right font-semibold tabular-nums">
+                    <TableCell className="pr-4 text-center font-semibold tabular-nums">
                       {formatMoney(Number(sale.total))}
                     </TableCell>
                   </TableRow>

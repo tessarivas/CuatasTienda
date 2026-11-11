@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
-import { AppSidebar, data } from "./_components/app-sidebar";
+import { AppSidebar } from "./_components/app-sidebar";
 import {
   type Client,
   initialClients,
@@ -21,14 +20,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
 
 // Tipo del contexto (integrado con tu sistema existente)
 type DashboardContextType = {
@@ -77,18 +70,26 @@ export const DashboardContext = React.createContext<DashboardContextType>({
   isLoadingSuppliers: true,
 });
 
+// Barra de arriba sólo con el botón del menú, y sólo cuando hace falta: en
+// celular (el menú es un panel que se abre encima) o en compu con el menú
+// escondido. Con el menú abierto en compu, el botón vive junto al logo
+// (app-sidebar.tsx) y esta barra no se muestra. Ya no lleva el nombre de la
+// página: cada página tiene su propio título.
+function TopBar() {
+  const { isMobile, state } = useSidebar();
+  if (!isMobile && state === "expanded") return null;
+  return (
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b bg-background px-4">
+      <SidebarTrigger className="-ml-1 cursor-pointer" />
+    </header>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  // Las subsecciones (p. ej. "Historial de Ventas" dentro de Caja
-  // Registradora) se buscan primero para que el encabezado diga su nombre;
-  // las que aún no tienen página apuntan a "#" y se ignoran.
-  const currentPage = data.navMain
-    .flatMap((item) => [...(item.items ?? []), item])
-    .find((item) => item.url !== "#" && pathname.startsWith(item.url));
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] =
     React.useState(false);
@@ -208,22 +209,7 @@ export default function DashboardLayout({
       >
         <AppSidebar/>
         <SidebarInset className="flex-1 flex flex-col h-screen">
-          <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b sticky top-0 z-10 bg-background">
-            <SidebarTrigger className="-ml-1 cursor-pointer" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    {currentPage?.title ?? "Dashboard"}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </header>
+          <TopBar />
           <main className="flex-1 overflow-auto">
             {children}
           </main>

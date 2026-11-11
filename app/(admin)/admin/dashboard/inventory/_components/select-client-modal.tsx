@@ -77,8 +77,8 @@ export function SelectClientModal({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <div className="border rounded-lg max-h-[400px] overflow-y-auto">
-            <Table>
-              <TableHeader>
+            <Table className="text-center">
+              <TableHeader className="bg-muted">
                 <TableRow>
                   <TableCell>Nombre</TableCell>
                   <TableCell>Teléfono</TableCell>

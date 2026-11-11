@@ -17,6 +17,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 export const data = {
@@ -30,7 +31,7 @@ export const data = {
       url: "/admin/dashboard/inventory",
     },
     {
-      title: "Clientes",
+      title: "Apartados",
       url: "/admin/dashboard/clients",
     },
     {
@@ -94,8 +95,10 @@ export function AppSidebar({
 
   return (
     <Sidebar variant="floating" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
+      {/* Logo a la izquierda y, a la derecha, el botón para esconder el menú
+          (antes estaba en la barra de arriba de la página). */}
+      <SidebarHeader className="flex-row items-center gap-1">
+        <SidebarMenu className="min-w-0 flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/admin/dashboard">
@@ -114,6 +117,7 @@ export function AppSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <SidebarTrigger className="shrink-0 cursor-pointer" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

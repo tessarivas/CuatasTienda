@@ -87,12 +87,12 @@ export function ProductsTable({
       {/* Ancho mínimo: en celular la tabla se desliza de lado (el
           contenedor de Table ya trae overflow-x) en vez de apretar las
           columnas hasta encimarlas. */}
-      <Table className="min-w-[48rem] table-fixed">
-        <TableHeader>
+      <Table className="min-w-[48rem] table-fixed text-center">
+        <TableHeader className="bg-muted">
           <TableRow>
-            <TableHead className={`${widths.foto} pl-4`}>Foto</TableHead>
-            <TableHead className={widths.titulo}>Título</TableHead>
-            <TableHead className={widths.proveedor}>Proveedor</TableHead>
+            <TableHead className={`text-center ${widths.foto} pl-4`}>Foto</TableHead>
+            <TableHead className={`text-center ${widths.titulo}`}>Título</TableHead>
+            <TableHead className={`text-center ${widths.proveedor}`}>Negocio</TableHead>
             {!isServiceMode && (
               <TableHead className={`${PRODUCT_WIDTHS.estado} text-center`}>
                 Estado
@@ -128,8 +128,8 @@ export function ProductsTable({
               rows={8}
               cells={
                 isServiceMode
-                  ? ["image", "text", "text", "center", "center"]
-                  : ["image", "text", "text", "center", "center", "center", "center"]
+                  ? ["image", "center", "center", "center", "center"]
+                  : ["image", "center", "center", "center", "center", "center", "center"]
               }
             />
           ) : products.length > 0 ? (
@@ -156,10 +156,10 @@ export function ProductsTable({
                         alt={product.title}
                         width={48}
                         height={48}
-                        className="rounded-md object-cover aspect-square"
+                        className="mx-auto rounded-md object-cover aspect-square"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center">
+                      <div className="mx-auto w-12 h-12 rounded-md border bg-muted flex items-center justify-center">
                         <Package className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
@@ -173,7 +173,7 @@ export function ProductsTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center justify-center gap-2 overflow-hidden">
                       {/* Logo pequeño y circular, mismo ícono de respaldo
                           (User) que usa la vista de detalle del negocio
                           cuando no tiene logo cargado. */}

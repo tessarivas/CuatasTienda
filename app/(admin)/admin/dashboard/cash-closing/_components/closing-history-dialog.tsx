@@ -199,10 +199,10 @@ export function ClosingHistoryDialog({ open, onClose, onSelect }: ClosingHistory
         )}
 
         <div className="max-h-[40vh] overflow-y-auto rounded-lg border">
-          <Table>
-            <TableHeader>
+          <Table className="text-center">
+            <TableHeader className="bg-muted">
               <TableRow>
-                <TableHead className="pl-4">Fecha</TableHead>
+                <TableHead className="text-center pl-4">Fecha</TableHead>
                 {/* Mismas cifras que las tarjetas del corte: total cobrado,
                     efectivo esperado (caja principal) y banco. */}
                 <TableHead className="text-center">Total cobrado</TableHead>

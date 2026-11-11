@@ -167,17 +167,17 @@ export default function ServiceOrdersPage() {
         </div>
 
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[48rem] text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
+          <table className="w-full min-w-[48rem] text-sm text-center">
+            <thead className="bg-muted">
+              <tr className="border-b text-center text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Folio</th>
                 <th className="px-2 py-2.5 font-medium">Fecha</th>
                 <th className="px-2 py-2.5 font-medium">Cliente</th>
                 <th className="px-2 py-2.5 font-medium">Teléfono</th>
                 <th className="px-2 py-2.5 font-medium">Negocio</th>
                 <th className="px-2 py-2.5 text-center font-medium">Servicios</th>
-                <th className="px-2 py-2.5 text-right font-medium">Total</th>
-                <th className="px-2 py-2.5 text-right font-medium">Resta</th>
+                <th className="px-2 py-2.5 text-center font-medium">Total</th>
+                <th className="px-2 py-2.5 text-center font-medium">Resta</th>
                 <th className="px-4 py-2.5 font-medium">Estado</th>
               </tr>
             </thead>
@@ -185,7 +185,7 @@ export default function ServiceOrdersPage() {
               {isLoading ? (
                 <TableRowsSkeleton
                   rows={6}
-                  cells={["text", "text", "text", "text", "text", "center", "end", "end", "text"]}
+                  cells={["center", "center", "center", "center", "center", "center", "center", "center", "center"]}
                 />
               ) : visible.length === 0 ? (
                 <tr>
@@ -222,11 +222,11 @@ export default function ServiceOrdersPage() {
                     <td className="px-2 py-2.5 text-center tabular-nums">
                       {o.ServiceOrderItem.reduce((sum, i) => sum + i.quantity, 0)}
                     </td>
-                    <td className="px-2 py-2.5 text-right font-semibold tabular-nums">
+                    <td className="px-2 py-2.5 text-center font-semibold tabular-nums">
                       {money(orderTotal(o))}
                     </td>
                     {/* Lo que falta por pagar; sólo cuenta mientras está por entregar. */}
-                    <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">
+                    <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
                       {o.status === "PorEntregar" ? money(orderRest(o)) : ""}
                     </td>
                     <td className="px-4 py-2.5">

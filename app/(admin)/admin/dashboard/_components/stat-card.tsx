@@ -5,7 +5,9 @@ import { type LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// Fondo -light con texto -dark del mismo color de marca.
+// Tarjeta blanca con borde gris; sólo la franja del título va de color
+// (fondo -light, texto -dark). Antes toda la tarjeta iba de color y, con
+// varias por página, se sentía pesado.
 const COLORS = {
   yellow: "bg-my-yellow-light text-my-yellow-dark",
   blue: "bg-my-blue-light text-my-blue-dark",
@@ -50,28 +52,30 @@ export function StatCard({
   loading,
 }: StatCardProps) {
   return (
-    <div className={cn("min-w-0 rounded-xl p-5", COLORS[color])}>
-      <div className="flex items-center gap-2 text-sm font-medium">
+    <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
+      {/* Franja de color con ícono y título, centrados. */}
+      <div className={cn("flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium", COLORS[color])}>
         <Icon className="h-4 w-4 shrink-0" />
         <span className="truncate">{title}</span>
       </div>
-      {/* Cargando: barras del color de la tarjeta (bg-current) en el lugar
-          del valor y de la pista, con el mismo alto que el texto real. La
-          pista no se muestra antes de tiempo ("Sin ventas" mientras carga
-          sería falso). */}
-      {loading ? (
-        <>
-          <Skeleton className="mt-2 mb-1.5 h-6 w-24 bg-current/15" />
-          <Skeleton className="h-3 w-32 bg-current/10" />
-        </>
-      ) : (
-        <>
-          <p className="mt-1 truncate text-2xl font-bold" title={valueTitle}>
-            {value}
-          </p>
-          {hint && <p className="truncate text-xs opacity-75">{hint}</p>}
-        </>
-      )}
+      <div className="px-4 py-4 text-center">
+        {/* Cargando: barras grises en el lugar del valor y de la pista, con
+            el mismo alto que el texto real. La pista no se muestra antes de
+            tiempo ("Sin ventas" mientras carga sería falso). */}
+        {loading ? (
+          <>
+            <Skeleton className="mx-auto mt-1 mb-1 h-5 w-24" />
+            <Skeleton className="mx-auto h-3 w-32" />
+          </>
+        ) : (
+          <>
+            <p className="truncate text-xl font-bold" title={valueTitle}>
+              {value}
+            </p>
+            {hint && <p className="truncate text-xs">{hint}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }

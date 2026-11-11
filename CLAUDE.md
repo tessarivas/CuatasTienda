@@ -17,8 +17,10 @@ The list pages `suppliers/page.tsx` and `clients/page.tsx` share one layout: tit
 primary CTA right on the same row, then a 3-card highlights row, then a `grid-cols-2
 md:grid-cols-4` card grid. Keep new list pages consistent with it.
 
-**Highlight cards always use `dashboard/_components/stat-card.tsx` (`StatCard`)** — icon + title,
-main value, small hint below — never a hand-built colored div. Their row uses the `STAT_ROW` class from the
+**Highlight cards always use `dashboard/_components/stat-card.tsx` (`StatCard`)** — title + icon,
+main value, small hint below — never a hand-built div. Look: white card with a gray border;
+only a header band with icon + title is colored (`-light` bg, `-dark` text), and the value and
+hint sit centered below in foreground. The whole card used to be colored and felt heavy. Their row uses the `STAT_ROW` class from the
 same file: a one-row swipe carousel on mobile, the 3-column grid from `md:`. Used on suppliers, clients, sales
 history and cash closing. Colors by position: yellow → blue → green on suppliers/clients;
 yellow → blue → pink on sales and cash closing (green/purple/orange for the sales money row). Hints
@@ -626,7 +628,7 @@ the browser picks a screen-wide variant. New upload or image spots must follow b
   `ListRowsSkeleton`, `CardSkeleton`, `PageHeaderSkeleton`); a component- or page-specific skeleton
   goes in its own `*-skeleton.tsx` beside the real component (`client-card-skeleton.tsx`,
   `product-card-skeleton.tsx`, `supplier-detail-skeleton.tsx`, `home/home-skeleton.tsx`, …).
-  `StatCard` takes `loading` (bars in the card's color, hint hidden). A full-page skeleton is only
+  `StatCard` takes `loading` (gray bars, hint hidden). A full-page skeleton is only
   for detail pages whose header comes from the data (`clients/[id]`, `suppliers/[id]`). Spinners
   stay for button actions (`Loader2` + "Guardando…") and small loads inside modals. Login keeps
   "Entrando…" until the dashboard opens. Cloudinary photos/logos render with `FadeInImage`

@@ -224,15 +224,15 @@ export function SupplierMovements({
                 aplica) y salía una barra de scroll horizontal. Producto y
                 Detalle se reparten lo que sobra y se cortan con "…". */}
             <div className="max-h-[28rem] overflow-auto rounded-lg border">
-              <table className="w-full min-w-[48rem] table-fixed text-sm">
-                <thead className="sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)]">
-                  <tr className="text-left text-muted-foreground">
+              <table className="w-full min-w-[48rem] table-fixed text-sm text-center">
+                <thead className="sticky top-0 z-10 bg-muted shadow-[inset_0_-1px_0_var(--border)]">
+                  <tr className="text-center text-muted-foreground">
                     <th className="w-40 px-4 py-2.5 font-medium">Fecha</th>
                     <th className="px-2 py-2.5 font-medium">Producto</th>
                     <th className="w-28 px-2 py-2.5 font-medium">Movimiento</th>
                     <th className="w-24 px-2 py-2.5 text-center font-medium">Cantidad</th>
                     <th className="px-2 py-2.5 font-medium">Detalle</th>
-                    <th className="w-28 px-2 py-2.5 text-right font-medium">Monto</th>
+                    <th className="w-28 px-2 py-2.5 text-center font-medium">Monto</th>
                     <th className="w-28 px-4 py-2.5 font-medium">Registró</th>
                   </tr>
                 </thead>
@@ -265,7 +265,7 @@ export function SupplierMovements({
                             {m.detail}
                           </p>
                         </td>
-                        <td className="whitespace-nowrap px-2 py-2.5 text-right font-semibold tabular-nums">
+                        <td className="whitespace-nowrap px-2 py-2.5 text-center font-semibold tabular-nums">
                           {m.amount !== null ? (
                             money(m.amount)
                           ) : m.value !== null ? (
